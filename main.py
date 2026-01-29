@@ -12,13 +12,13 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("🚗 차량 매입 관리")
-    if st.button("Buy Program 실행", use_container_width=True, type="primary"):
-        st.switch_page("pages/1_차량_매입_관리.py")
+    if st.button("Buy Program 실행", use_container_width=True):
+        st.switch_page("차량 매입 관리")  # 페이지 이름
 
 with col2:
     st.subheader("🚛 탁송 관리")
     if st.button("탁송 프로그램 실행", use_container_width=True):
-        st.switch_page("탁송 관리")  # 페이지 제목 사용
+        st.switch_page("탁송 관리")  # 페이지 이름
 
 st.divider()
-
+st.info("💡 페이지 이름을 사용해서 ‘st.switch_page’로 이동해야 합니다.")
