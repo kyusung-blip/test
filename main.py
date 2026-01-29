@@ -22,4 +22,6 @@ with col2:
 
 st.divider()
 st.info("💡 페이지 이름을 사용해서 ‘st.switch_page’로 이동해야 합니다.")
+st.write(st.session_state)  # Streamlit 상태 출력
+
 
