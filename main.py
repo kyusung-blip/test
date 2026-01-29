@@ -30,14 +30,7 @@ elif selected_menu == "차량 매입 관리":
 
 elif selected_menu == "탁송 관리":
     st.title("🚛 탁송 관리")
-    try:
-        module = importlib.import_module("pages.delivery_management")
-        if hasattr(module, "main"):
-            module.main()
-        else:
-            st.error("탁송 관리 페이지에 'main()' 함수가 정의되어 있지 않습니다.")
-    except Exception as e:
-        st.error(f"오류 발생: {e}")
+    
 
 elif selected_menu == "프로젝션":
     st.title("📈 프로젝션")
@@ -45,3 +38,4 @@ elif selected_menu == "프로젝션":
     number = st.number_input("프로젝션 값 입력", min_value=0, max_value=100, value=50)
     st.write(f"입력된 값: {number}")
     st.line_chart([number, number * 2, number * 3])  # 간단한 예제 차트
+
