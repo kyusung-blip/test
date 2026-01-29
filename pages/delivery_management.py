@@ -3,7 +3,7 @@ import re
 
 def main():
     # 페이지 설정
-    st.set_page_config(page_title="delivery_management", layout="wide")
+    st.set_page_config(page_title="탁송 관리", layout="wide")
 
     st.title("🚛 탁송 정보 생성기")
     st.info("매입 프로그램에서 생성된 정보를 붙여넣고 출발지를 입력하면 탁송 기사용 메시지가 생성됩니다.")
