@@ -13,14 +13,11 @@ col1, col2 = st.columns(2)
 with col1:
     st.subheader("🚗 차량 매입 관리")
     if st.button("Buy Program 실행", use_container_width=True, type="primary"):
-        # 파일이 최상위에 있으므로 파일명만 입력합니다.
-        st.switch_page("GUI.py") 
+        st.switch_page("pages/1_차량_매입_관리.py")
 
 with col2:
     st.subheader("🚛 탁송 관리")
     if st.button("탁송 프로그램 실행", use_container_width=True):
-        # 파일이 최상위에 있으므로 파일명만 입력합니다.
-        st.switch_page("pages/tak.py") 
+        st.switch_page("pages/2_탁송_관리.py")
 
 st.divider()
-st.info("💡 파일들이 같은 폴더에 있을 때는 파일명만 정확히 입력하면 연결됩니다.")
