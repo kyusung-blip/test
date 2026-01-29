@@ -20,8 +20,9 @@ with col1:
 with col2:
     st.subheader("🚛 탁송 관리")
     if st.button("탁송 프로그램 실행", use_container_width=True):
-        st.switch_page("pages/tak.py")
+        st.switch_page("pages/tak")
     st.write("출발지/도착지 설정 및 탁송 기사용 정보 추출을 수행합니다.")
 
 st.divider()
+
 st.info("💡 왼쪽 사이드바 메뉴를 통해서도 자유롭게 페이지 이동이 가능합니다.")
