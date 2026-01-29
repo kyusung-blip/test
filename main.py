@@ -18,6 +18,7 @@ with col1:
 with col2:
     st.subheader("🚛 탁송 관리")
     if st.button("탁송 프로그램 실행", use_container_width=True):
-        st.switch_page("pages/2_탁송_관리.py")
+        st.switch_page("탁송 관리")  # 페이지 제목 사용
 
 st.divider()
+
