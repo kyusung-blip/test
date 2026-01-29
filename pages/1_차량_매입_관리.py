@@ -6,7 +6,7 @@ from datetime import datetime
 import re
 
 # 페이지 설정
-st.set_page_config(page_title="서북인터내셔널 - 차량 매입 관리", layout="wide")
+st.set_page_config(page_title="차량 매입 관리", layout="wide")
 
 # --- 1. 보안 설정 및 시트 연결 ---
 def get_google_sheet(sheet_name, worksheet_name):
