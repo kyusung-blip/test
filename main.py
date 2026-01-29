@@ -16,10 +16,10 @@ menu_col, content_col = st.columns([1, 4])  # 전체 화면 비율 20% : 80%
 with menu_col:
     st.image("https://via.placeholder.com/150x80", caption="서북인터내셔널", use_column_width=True)
     st.title("메뉴")  # 메뉴 제목
-    menu_items = ["차량 매입 관리", "탁송 관리", "프로젝션"]
+    menu_items = ["차량 매입 관리", "탁송 관리", "프로젝션"]  # 메뉴 리스트에 '프로젝션' 추가
     for item in menu_items:
         if st.button(item, use_container_width=True):
-            st.session_state["selected_menu"] = item
+            st.session_state["selected_menu"] = item  # 선택된 메뉴 업데이트
 
 # 오른쪽 콘텐츠 영역
 with content_col:
@@ -45,3 +45,9 @@ with content_col:
         st.title("📈 프로젝션")
         st.write("이 페이지는 데이터 프로젝션을 위한 공간입니다.")
         # 프로젝션 관련 로직 추가 가능
+        st.subheader("📊 데이터 프로젝션 도구")
+        st.info("이곳에서 데이터를 프로젝션하고 분석할 수 있습니다.")
+        # 예시: 간단한 입력 필드 및 시각화 추가
+        number = st.number_input("예측 값 입력", min_value=0, max_value=100, value=50)
+        st.write(f"예측 값: {number}")
+        st.line_chart([number, number * 2, number * 3])  # 간단한 예제 차트
