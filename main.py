@@ -1,39 +1,38 @@
 import streamlit as st
+import importlib
 
 # 페이지 설정
 st.set_page_config(page_title="서북인터내셔널 관리 시스템", layout="wide")
 
 # 페이지 상태 초기화
-if "selected_menu" not in st.session_state:
-    st.session_state["selected_menu"] = "메인"  # 초기값으로 '메인' 설정
+if "selected_page" not in st.session_state:
+    st.session_state["selected_page"] = "메인"  # 초기값 '메인'
 
-# 사이드바 구성
+# 사용자 정의 사이드 메뉴 구성
 with st.sidebar:
-    st.title("서북인터내셔널")
-    st.write("메뉴를 선택하세요:")
-    menu_items = ["메인", "차량 매입 관리", "탁송 관리", "프로젝션"]  # 메뉴 리스트 정의
-    # 버튼 생성 및 상태 업데이트
-    for item in menu_items:
-        if st.button(item):  # 클릭한 버튼에 따라 상태 변경
-            st.session_state["selected_menu"] = item  # 선택된 메뉴를 상태에 저장
+    st.title("메뉴 선택")
+    menu_items = {
+        "메인": None,
+        "차량 매입 관리": "pages.차량.차량_매입",
+        "탁송 관리": "pages.탁송.탁송_관리"
+    }
 
-# 선택된 메뉴에 따라 오른쪽 콘텐츠 영역 업데이트
-selected_menu = st.session_state["selected_menu"]
-if selected_menu == "메인":
+    for menu_name, module_path in menu_items.items():
+        if st.button(menu_name):
+            st.session_state["selected_page"] = module_path
+
+# 메인 콘텐츠 영역
+selected_page = st.session_state["selected_page"]
+if not selected_page or selected_page == "메인":
     st.title("🌐 메인 페이지")
     st.write("이 페이지는 서북인터내셔널의 메인 화면입니다.")
 
-elif selected_menu == "차량 매입 관리":
-    st.title("🚗 차량 매입 관리")
-    st.write("이 페이지는 차량 매입 관리를 위한 기능을 제공합니다.")
-
-elif selected_menu == "탁송 관리":
-    st.title("🚛 탁송 관리")
-    st.write("이 페이지는 탁송 관리를 위한 기능을 제공합니다.")
-
-elif selected_menu == "프로젝션":
-    st.title("📈 프로젝션")
-    st.write("이 페이지는 데이터 프로젝션을 위한 공간입니다.")
-    value = st.number_input("입력 값을 설정하세요", min_value=0, max_value=100, value=50)
-    st.write(f"입력된 값: {value}")
-    st.line_chart([value * i for i in range(1, 5)])  # 간단한 예제 차트
+elif selected_page:
+    try:
+        module = importlib.import_module(selected_page)  # 동적 모듈 불러오기
+        if hasattr(module, "main"):
+            module.main()  # 각 페이지의 main() 함수 실행
+        else:
+            st.error(f"{selected_page}에 'main()' 함수가 정의되어 있지 않습니다.")
+    except ModuleNotFoundError:
+        st.error(f"{selected_page} 모듈을 찾을 수 없습니다. 파일 구조를 확인하세요.")
