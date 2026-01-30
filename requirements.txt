@@ -1,3 +1,4 @@
 streamlit
 gspread
+selenium
 google-auth
