@@ -19,7 +19,7 @@ def process_tak_message(type_label, notice_text):
         st.error("매입 정보를 먼저 입력해주세요.")
         return
     
-    route_line = f"{from_value} -> 서��"
+    route_line = f"{from_value} -> 서북"
     dispatch_line = "배차 후 바로 딜러와 통화해주세요"
     arrival_line = "도착 : 인천 연수구 능허대로 36 카택물류센터 SEOBUK 010-8399-8082"
 
