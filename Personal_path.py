@@ -2,12 +2,14 @@ import pandas as pd
 import requests
 import time
 import gspread
+import warnings
 from auth import get_credentials, get_gspread_client
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import streamlit as st
 
 # --- Streamlit Secrets에서 Google 인증 정보 가져오기 ---
+# Note: Personal_path.py uses the generic "gcp_service_account" key
 credentials = get_credentials("gcp_service_account")
 spreadsheet_name = st.secrets["gcp_service_account"]["spreadsheet_name"]  # Google Sheets 파일 이름
 worksheet_name = st.secrets["gcp_service_account"]["worksheet_name"]  # 워크시트 이름
@@ -30,18 +32,24 @@ session.verify = False  # SSL 인증서 검증 무시 (필요 시 활성화 가�
 def Google_API():
     """
     DEPRECATED: 이 함수는 더 이상 사용하지 않습니다.
-    대신 get_gspread_client_for_seobuk()를 사용하세요.
+    대신 get_gspread_client_for_personal()를 사용하세요.
     
     이전에는 Streamlit Secrets를 반환했으나, 이는 gspread.service_account(filename=...)와
     호환되지 않습니다. 대신 인증된 클라이언트를 직접 사용하세요.
     """
-    raise DeprecationWarning(
-        "Google_API() is deprecated. Use get_gspread_client_for_seobuk() instead."
+    warnings.warn(
+        "Google_API() is deprecated. Use get_gspread_client_for_personal() instead.",
+        DeprecationWarning,
+        stacklevel=2
+    )
+    raise NotImplementedError(
+        "Google_API() is deprecated. Use get_gspread_client_for_personal() instead."
     )
 
-def get_gspread_client_for_seobuk():
+def get_gspread_client_for_personal():
     """
-    seobuk 프로젝트용 인증된 gspread 클라이언트를 반환합니다.
+    Personal_path.py에서 사용하는 인증된 gspread 클라이언트를 반환합니다.
+    이 함수는 "gcp_service_account" 키를 사용합니다.
     
     Returns:
         gspread.Client: 인증된 gspread 클라이언트

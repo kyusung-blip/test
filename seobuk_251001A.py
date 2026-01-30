@@ -28,7 +28,7 @@ HEYDEALER_ACCOUNTS = {
 HEYDEALER_LOGIN_URL = "https://dealer.heydealer.com/login"
 
 try:
-    gc = Pp.get_gspread_client_for_seobuk().open(FILE_NAME)
+    gc = Pp.get_gspread_client_for_personal().open(FILE_NAME)
 except Exception as e:
     print(f"Error connecting to Google Sheet: {e}")
     gc = None
@@ -1498,7 +1498,7 @@ def run_pipeline(list_pairs, user_name: str, headless: bool = False, hd_login_id
         
         # 1. 새 스프레드시트 파일 열기 (인증 클라이언트 사용)
         # 기존 gc 객체가 이미 파일을 연 상태라면, 그 세션을 재사용하여 인증합니다.
-        client = Pp.get_gspread_client_for_seobuk()
+        client = Pp.get_gspread_client_for_personal()
         super_spreadsheet = client.open_by_key(SUPER_SHEET_ID)
         super_ws = super_spreadsheet.worksheet("SUPER PROJECTION")
         
