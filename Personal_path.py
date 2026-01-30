@@ -2,18 +2,18 @@ import pandas as pd
 import requests
 import time
 import gspread
-from google.oauth2.service_account import Credentials
+from auth import get_credentials, get_gspread_client
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import streamlit as st
 
 # --- Streamlit Secrets에서 Google 인증 정보 가져오기 ---
-credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+credentials = get_credentials("gcp_service_account")
 spreadsheet_name = st.secrets["gcp_service_account"]["spreadsheet_name"]  # Google Sheets 파일 이름
 worksheet_name = st.secrets["gcp_service_account"]["worksheet_name"]  # 워크시트 이름
 
 # --- Google Sheets 연결 ---
-gc = gspread.authorize(credentials)  # 인증 및 클라이언트 초기화
+gc = get_gspread_client("gcp_service_account")  # 인증 및 클라이언트 초기화
 worksheet = gc.open(spreadsheet_name).worksheet(worksheet_name)  # 특정 Google Sheets의 워크시트 열기
 
 # --- Retry 설정 ---
@@ -29,9 +29,24 @@ session.verify = False  # SSL 인증서 검증 무시 (필요 시 활성화 가�
 # --- 함수 정의 ---
 def Google_API():
     """
-    Streamlit Secrets에서 읽어온 인증 정보를 반환합니다.
+    DEPRECATED: 이 함수는 더 이상 사용하지 않습니다.
+    대신 get_gspread_client_for_seobuk()를 사용하세요.
+    
+    이전에는 Streamlit Secrets를 반환했으나, 이는 gspread.service_account(filename=...)와
+    호환되지 않습니다. 대신 인증된 클라이언트를 직접 사용하세요.
     """
-    return st.secrets["gcp_service_account"]
+    raise DeprecationWarning(
+        "Google_API() is deprecated. Use get_gspread_client_for_seobuk() instead."
+    )
+
+def get_gspread_client_for_seobuk():
+    """
+    seobuk 프로젝트용 인증된 gspread 클라이언트를 반환합니다.
+    
+    Returns:
+        gspread.Client: 인증된 gspread 클라이언트
+    """
+    return gc
 
 def User():
     """

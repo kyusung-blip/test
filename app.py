@@ -1,20 +1,11 @@
 import streamlit as st
-from google.oauth2.service_account import Credentials
-import gspread
+from auth import get_google_sheet
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import time
-
-# --- Google Sheets 연결 ---
-@st.cache_resource
-def get_google_sheet(sheet_name, worksheet_name):
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
-    gc = gspread.authorize(creds)
-    return gc.open(sheet_name).worksheet(worksheet_name)
 
 # --- 크롤러 로직 ---
 def make_driver(headless=True):
