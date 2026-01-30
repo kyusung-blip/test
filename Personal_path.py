@@ -2,19 +2,24 @@ import pandas as pd
 import requests
 import time
 import gspread
-from google.oauth2.service_account import Credentials
+from auth import get_gspread_client
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import streamlit as st
 
-# --- Streamlit Secrets에서 Google 인증 정보 가져오기 ---
-credentials = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+# --- Streamlit Secrets에서 Google 설정 가져오기 ---
+# Note: Personal_path.py uses the generic "gcp_service_account" key
 spreadsheet_name = st.secrets["gcp_service_account"]["spreadsheet_name"]  # Google Sheets 파일 이름
 worksheet_name = st.secrets["gcp_service_account"]["worksheet_name"]  # 워크시트 이름
 
-# --- Google Sheets 연결 ---
-gc = gspread.authorize(credentials)  # 인증 및 클라이언트 초기화
-worksheet = gc.open(spreadsheet_name).worksheet(worksheet_name)  # 특정 Google Sheets의 워크시트 열기
+# --- Google Sheets 연결 (지연 초기화를 위해 함수로 캡슐화) ---
+def _get_client():
+    """내부용: 인증된 gspread 클라이언트를 가져옵니다 (캐시됨)."""
+    return get_gspread_client("gcp_service_account")
+
+def _get_worksheet():
+    """내부용: 워크시트 객체를 가져옵니다."""
+    return _get_client().open(spreadsheet_name).worksheet(worksheet_name)
 
 # --- Retry 설정 ---
 retry_strategy = Retry(
@@ -29,9 +34,28 @@ session.verify = False  # SSL 인증서 검증 무시 (필요 시 활성화 가�
 # --- 함수 정의 ---
 def Google_API():
     """
-    Streamlit Secrets에서 읽어온 인증 정보를 반환합니다.
+    DEPRECATED: 이 함수는 더 이상 사용하지 않습니다.
+    대신 get_gspread_client_for_personal()를 사용하세요.
+    
+    이전에는 Streamlit Secrets를 반환했으나, 이는 gspread.service_account(filename=...)와
+    호환되지 않습니다. 대신 인증된 클라이언트를 직접 사용하세요.
     """
-    return st.secrets["gcp_service_account"]
+    raise NotImplementedError(
+        "Google_API() is deprecated and has been removed. "
+        "Use get_gspread_client_for_personal() instead."
+    )
+
+def get_gspread_client_for_personal():
+    """
+    Personal_path.py에서 사용하는 인증된 gspread 클라이언트를 반환합니다.
+    이 함수는 "gcp_service_account" 키를 사용합니다.
+    
+    Note: 캐싱은 내부 auth.get_gspread_client()에서 처리됩니다.
+    
+    Returns:
+        gspread.Client: 인증된 gspread 클라이언트
+    """
+    return _get_client()
 
 def User():
     """
@@ -55,6 +79,7 @@ def Read_gspread():
     """
     Google Sheets 데이터를 읽어서 pandas DataFrame으로 변환합니다.
     """
+    worksheet = _get_worksheet()
     df_gspread = pd.DataFrame(worksheet.get_all_records())  # Google 워크시트 데이터를 읽기
     time.sleep(0.1)
     return df_gspread

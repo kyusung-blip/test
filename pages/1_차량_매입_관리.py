@@ -1,20 +1,11 @@
 import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
+from auth import get_google_sheet
 import pandas as pd
 from datetime import datetime
 import re
 
 # 페이지 설정
 st.set_page_config(page_title="차량 매입 관리", layout="wide")
-
-# --- 1. 보안 설정 및 시트 연결 ---
-def get_google_sheet(sheet_name, worksheet_name):
-    scope = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
-    # Streamlit Secrets에 저장된 정보를 사용합니다.
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scope)
-    gc = gspread.authorize(creds)
-    return gc.open(sheet_name).worksheet(worksheet_name)
 
 # --- 2. 로직 함수 (기존 GUI.py에서 가져온 핵심 로직) ---
 def parse_money(value_raw):
