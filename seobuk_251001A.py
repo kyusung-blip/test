@@ -8,6 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 import warnings
 import re
+import traceback
 
 warnings.filterwarnings(action='ignore')
 
@@ -90,7 +91,6 @@ def process_url(driver, url, buyer):
     except Exception as e:
         error_msg = f"URL 처리 실패: {str(e)}"
         print(f"❌ [ERROR] {error_msg}")
-        import traceback
         print(traceback.format_exc())
         return {
             "url": url,
@@ -133,7 +133,6 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
             } for url, buyer in list_pairs]
     except Exception as e:
         print(f"❌ [ERROR] Google Sheets 연결 오류: {str(e)}")
-        import traceback
         print(traceback.format_exc())
         # Return failed records for all pairs
         return [{
@@ -151,7 +150,6 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
         print(f"✅ [DEBUG] 크롬 드라이버 초기화 성공")
     except Exception as e:
         print(f"❌ [ERROR] 드라이버 초기화 실패: {str(e)}")
-        import traceback
         print(traceback.format_exc())
         # Return failed records for all pairs
         return [{
@@ -183,7 +181,6 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
             except Exception as e:
                 error_msg = f"작업 실패: {str(e)}"
                 print(f"❌ [ERROR] {error_msg}")
-                import traceback
                 print(traceback.format_exc())
                 completed_records.append({
                     "url": url,

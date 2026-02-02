@@ -1,4 +1,5 @@
 from seobuk_251001A import run_pipeline
+import traceback
 
 def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     """
@@ -24,8 +25,14 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
             print(f"   - Sales팀: {task.get('sales_team', 'N/A')}")
             
             # Validate inputs
-            if not task.get("url") or not task.get("buyer"):
-                error_msg = "URL 또는 Buyer가 없습니다"
+            missing_fields = []
+            if not task.get("url"):
+                missing_fields.append("URL")
+            if not task.get("buyer"):
+                missing_fields.append("Buyer")
+            
+            if missing_fields:
+                error_msg = f"{', '.join(missing_fields)}가 없습니다"
                 print(f"❌ [ERROR] {error_msg}")
                 completed_tasks.append({
                     "url": task.get("url", "N/A"),
@@ -59,7 +66,6 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 })
         except Exception as e:
             print(f"❌ [ERROR] 작업 실패: {str(e)}")
-            import traceback
             print(traceback.format_exc())
             completed_tasks.append({
                 "url": task.get("url", "N/A"),

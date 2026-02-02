@@ -1,5 +1,6 @@
 import streamlit as st
 from projection import execute_crawling  # projection.py에서 크롤링 함수 임포트
+import traceback
 
 # 페이지 설정
 st.set_page_config(page_title="프로젝션 관리", layout="wide")
@@ -94,7 +95,6 @@ with tab1:
                         error_msg = f"작업 실행 중 예외 발생: {str(e)}"
                         st.error(f"❌ {error_msg}")
                         print(f"[UI ERROR] {error_msg}")
-                        import traceback
                         print(traceback.format_exc())
 
 # 진행 중 작업 탭
