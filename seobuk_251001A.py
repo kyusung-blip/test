@@ -53,22 +53,21 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
 # =========================
 def process_url(driver, url, buyer):
     """
-    단일 URL과 Buyer에 대한 크롤링 작업 수행.
-
-    Args:
-        driver (webdriver.Chrome): Selenium WebDriver 객체
-        url (str): 크롤링 대상 URL
-        buyer (str): Buyer 이름
-    Returns:
-        dict: 크롤링 작업 결과
+    단일 URL과 Buyer를 처리. 결과 데이터를 생성.
     """
-    print(f"Processing URL: {url} for Buyer: {buyer}")
-    # 예제 로직: URL과 Buyer 데이터를 simple dictionary로 반환
-    return {
-        "url": url,
-        "buyer": buyer,
-        "status": "COMPLETED"
-    }
+    print(f"🚀 DEBUG: process_url 시작 - URL: {url}, Buyer: {buyer}")
+    try:
+        # 예제 로직: URL과 Buyer 데이터를 기반으로 처리 수행
+        record = {
+            "url": url,
+            "buyer": buyer,
+            "status": "COMPLETED"  # 상태를 단순히 "COMPLETED"로 설정 (예제)
+        }
+        print(f"✅ process_url 결과: {record}")
+        return record
+    except Exception as e:
+        print(f"❌ ERROR in process_url - {e}")
+        return {"url": url, "buyer": buyer, "status": "FAILED"}
 
 # =========================
 # 메인 파이프라인 로직
