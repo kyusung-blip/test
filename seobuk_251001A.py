@@ -97,11 +97,12 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
         print(f"🌐 실행 중 - {idx+1}/{len(list_pairs)}, URL: {url}, Buyer: {buyer}")
         try:
             record = process_url(driver, url, buyer)
-            print(f"✅ record 생성: {record}")
+            if not record:
+                print(f"⚠️ WARNING: process_url 반환값이 비어 있음 - URL: {url}, Buyer: {buyer}")
             completed_records.append(record)
         except Exception as e:
             print(f"❌ 실행 중 오류 발생 - URL: {url}, ERROR: {e}")
     
     driver.quit()
-    print("🚀 DEBUG: run_pipeline 종료")
+    print("🚀 DEBUG: run_pipeline 종료 - completed_records: {completed_records}")
     return completed_records
