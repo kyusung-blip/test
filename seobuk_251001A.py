@@ -55,18 +55,23 @@ def process_url(driver, url, buyer):
     """
     단일 URL과 Buyer에 대한 크롤링 작업 수행.
     """
-    print(f"🚀 [DEBUG] 크롤링 시작 - URL: {url}, Buyer: {buyer}")
+    print(f"\n🚀 [DEBUG] process_url 시작")
+    print(f"   - URL: {url}")
+    print(f"   - Buyer: {buyer}")
 
     try:
+        print(f"   - 브라우저로 URL 이동 중...")
         driver.get(url)  # URL 접속
         print(f"✅ [DEBUG] URL 접속 성공: {url}")
 
         # 자동차 이름 추출: 요소 탐색
         try:
+            print(f"   - 페이지 요소 탐색 중...")
             name_element = driver.find_element(By.XPATH, '//h1[@class="car-name"]')  # 예시 XPath
             car_name = name_element.text if name_element else "데이터 없음"
+            print(f"   - 추출된 차량 이름: {car_name}")
         except Exception as e:
-            print(f"❌ [ERROR] 요소 탐색 실패: {e}")
+            print(f"⚠️  [WARNING] 요소 탐색 실패: {str(e)}")
             car_name = "데이터 없음"
 
         result = {
@@ -76,12 +81,24 @@ def process_url(driver, url, buyer):
             "status": "COMPLETED" if car_name != "데이터 없음" else "FAILED"
         }
 
-        print(f"✅ [DEBUG] 작업 결과: {result}")
+        if result["status"] == "FAILED":
+            result["error"] = "페이지에서 데이터를 찾을 수 없습니다"
+
+        print(f"✅ [DEBUG] process_url 결과: {result}")
         return result
 
     except Exception as e:
-        print(f"❌ [ERROR] 전체 작업 실패: {e}")
-        return {"url": url, "buyer": buyer, "status": "FAILED", "error": str(e)}
+        error_msg = f"URL 처리 실패: {str(e)}"
+        print(f"❌ [ERROR] {error_msg}")
+        import traceback
+        print(traceback.format_exc())
+        return {
+            "url": url,
+            "buyer": buyer,
+            "car_name": "데이터 없음",
+            "status": "FAILED",
+            "error": error_msg
+        }
 
 # =========================
 # 메인 파이프라인 로직
@@ -90,26 +107,100 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
     """
     실행 크롤링 로직.
     """
-    print("🚀 [DEBUG] run_pipeline 시작")
+    print(f"\n🚀 [DEBUG] run_pipeline 시작")
+    print(f"   - list_pairs 개수: {len(list_pairs)}")
+    print(f"   - user_name: {user_name}")
+    print(f"   - spreadsheet_name: {spreadsheet_name}")
+    print(f"   - headless: {headless}")
+    
+    # Validate inputs
+    if not list_pairs:
+        print(f"❌ [ERROR] list_pairs가 비어있습니다")
+        return []
+    
+    # Connect to Google Sheets
     try:
+        print(f"   - Google Sheets 연결 시도 중...")
         spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
         if not spreadsheet:
-            print(f"❌ [ERROR] Google Sheets 연결 실패.")
-            return []
+            print(f"❌ [ERROR] Google Sheets 연결 실패")
+            # Return failed records for all pairs
+            return [{
+                "url": url,
+                "buyer": buyer,
+                "status": "FAILED",
+                "error": "Google Sheets 연결 실패"
+            } for url, buyer in list_pairs]
     except Exception as e:
-        print(f"❌ [ERROR] Google Sheets 연결 오류: {e}")
-        return []
+        print(f"❌ [ERROR] Google Sheets 연결 오류: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        # Return failed records for all pairs
+        return [{
+            "url": url,
+            "buyer": buyer,
+            "status": "FAILED",
+            "error": f"Google Sheets 연결 오류: {str(e)}"
+        } for url, buyer in list_pairs]
 
-    driver = make_driver(headless=headless)
+    # Initialize driver
+    driver = None
+    try:
+        print(f"   - 크롬 드라이버 초기화 중...")
+        driver = make_driver(headless=headless)
+        print(f"✅ [DEBUG] 크롬 드라이버 초기화 성공")
+    except Exception as e:
+        print(f"❌ [ERROR] 드라이버 초기화 실패: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        # Return failed records for all pairs
+        return [{
+            "url": url,
+            "buyer": buyer,
+            "status": "FAILED",
+            "error": f"드라이버 초기화 실패: {str(e)}"
+        } for url, buyer in list_pairs]
+    
     completed_records = []
-    for idx, (url, buyer) in enumerate(list_pairs):
-        print(f"🌐 [DEBUG] 현재 작업 - URL: {url}, Buyer: {buyer}")
-        try:
-            record = process_url(driver, url, buyer)
-            completed_records.append(record)
-        except Exception as e:
-            print(f"❌ [ERROR] 작업 실패: {e}")
+    try:
+        for idx, (url, buyer) in enumerate(list_pairs):
+            print(f"\n🌐 [DEBUG] 작업 {idx+1}/{len(list_pairs)} 처리")
+            print(f"   - URL: {url}")
+            print(f"   - Buyer: {buyer}")
+            try:
+                record = process_url(driver, url, buyer)
+                if record:
+                    completed_records.append(record)
+                    print(f"✅ [DEBUG] 레코드 추가 완료")
+                else:
+                    print(f"⚠️  [WARNING] process_url이 None 반환")
+                    completed_records.append({
+                        "url": url,
+                        "buyer": buyer,
+                        "status": "FAILED",
+                        "error": "process_url이 결과를 반환하지 않음"
+                    })
+            except Exception as e:
+                error_msg = f"작업 실패: {str(e)}"
+                print(f"❌ [ERROR] {error_msg}")
+                import traceback
+                print(traceback.format_exc())
+                completed_records.append({
+                    "url": url,
+                    "buyer": buyer,
+                    "status": "FAILED",
+                    "error": error_msg
+                })
+    finally:
+        if driver:
+            try:
+                print(f"   - 드라이버 종료 중...")
+                driver.quit()
+                print(f"✅ [DEBUG] 드라이버 종료 완료")
+            except Exception as e:
+                print(f"⚠️  [WARNING] 드라이버 종료 실패: {str(e)}")
 
-    driver.quit()
-    print(f"✅ [DEBUG] 작업 완료 기록: {completed_records}")
+    print(f"\n✅ [DEBUG] run_pipeline 완료")
+    print(f"   - 총 처리된 레코드: {len(completed_records)}")
+    print(f"   - completed_records: {completed_records}")
     return completed_records
