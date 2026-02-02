@@ -45,10 +45,6 @@ if st.button("저장"):
     else:
         st.error("❌ URL과 Buyer 이름을 모두 입력해주세요!")
 
-# 작업 리스트 및 진행 상태
-st.markdown("### 작업 리스트")
-tab1, tab2, tab3 = st.tabs(["⏳ 대기 중", "🚀 진행 중", "✅ 완료"])
-
 with tab1:
     st.write("📋 대기 중 작업 리스트")
     if not st.session_state["waiting_list"]:
@@ -61,20 +57,21 @@ with tab1:
 
                 with st.spinner(f"🔄 {item['buyer']} 작업 실행 중..."):
                     completed_task = execute_crawling(
-                        waiting_list=[item],
-                        gcp_secrets=secrets,
-                        spreadsheet_name=selected_sheet
+                        [item],
+                        secrets,
+                        selected_sheet
                     )
 
-                    print(f"✅ [DEBUG] 완료된 작업 반환 값 - {completed_task}")
-
+                    print(f"✅ [DEBUG] 완료된 작업: {completed_task}")
                     if completed_task:
                         st.session_state["completed_list"].extend(completed_task)
-                        st.success(f"✅ {item['buyer']} 작업 성공!")
+                        for record in completed_task:
+                            if record["status"] == "FAILED":
+                                st.error(f"❌ {item['buyer']} 작업 실패! 오류: {record.get('error', 'Unknown Error')}")
+                            else:
+                                st.success(f"✅ {item['buyer']} 작업 완료! 반환값: {record}")
                     else:
-                        st.error(f"❌ {item['buyer']} 작업 실패!")
-
-                print(f"✅ Streamlit 작업 완료 - {item['buyer']}")
+                        st.error(f"{item['buyer']} 작업 실패! 반환값이 비어 있음.")
 
 # 진행 중 작업 탭
 with tab2:
