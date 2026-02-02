@@ -54,46 +54,33 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
 def process_url(driver, url, buyer):
     """
     단일 URL과 Buyer에 대한 크롤링 작업 수행.
-
-    Args:
-        driver (webdriver.Chrome): Selenium WebDriver 객체
-        url (str): 크롤링 대상 URL
-        buyer (str): Buyer 이름
-    Returns:
-        dict: 크롤링 작업 결과
     """
     print(f"🚀 [DEBUG] 크롤링 시작 - URL: {url}, Buyer: {buyer}")
 
     try:
         driver.get(url)  # URL 접속
-        print(f"✅ [DEBUG] URL 접속 성공 - {url}")
+        print(f"✅ [DEBUG] URL 접속 성공: {url}")
 
-        # 특정 타겟 요소 추출 (예: 자동차 이름 가져오기)
-        # 반드시 잘못된 경우를 대비해 확인 로직 추가
+        # 자동차 이름 추출: 요소 탐색
         try:
             name_element = driver.find_element(By.XPATH, '//h1[@class="car-name"]')  # 예시 XPath
-            car_name = name_element.text if name_element else "UNKNOWN"
+            car_name = name_element.text if name_element else "데이터 없음"
         except Exception as e:
-            print(f"❌ [ERROR] 데이터 탐색 실패 - {e}")
-            car_name = "UNKNOWN"
+            print(f"❌ [ERROR] 요소 탐색 실패: {e}")
+            car_name = "데이터 없음"
 
         result = {
             "url": url,
             "buyer": buyer,
             "car_name": car_name,
-            "status": "COMPLETED" if car_name != "UNKNOWN" else "FAILED"
+            "status": "COMPLETED" if car_name != "데이터 없음" else "FAILED"
         }
 
-        if car_name == "UNKNOWN":
-            print(f"❌ [DEBUG] 작업 실패 - 데이터가 비어 있음: {result}")
-        else:
-            print(f"✅ [DEBUG] 크롤링 성공: {result}")
-
+        print(f"✅ [DEBUG] 작업 결과: {result}")
         return result
 
     except Exception as e:
-        # URL 접속 실패를 비롯한 모든 예외 처리
-        print(f"❌ [ERROR] 크롤링 작업 전체 실패 - URL: {url}, Error: {e}")
+        print(f"❌ [ERROR] 전체 작업 실패: {e}")
         return {"url": url, "buyer": buyer, "status": "FAILED", "error": str(e)}
 
 # =========================
