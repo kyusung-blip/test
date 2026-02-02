@@ -45,33 +45,35 @@ if st.button("저장"):
     else:
         st.error("❌ URL과 Buyer 이름을 모두 입력해주세요!")
 
-with tab1:
+# 작업 리스트 및 진행 상태
+st.markdown("### 작업 리스트")
+tab1, tab2, tab3 = st.tabs(["⏳ 대기 중", "🚀 진행 중", "✅ 완료"])  # 탭 생성
+
+# 대기 중 작업 탭
+with tab1:  # 작업 리스트를 대기 중 탭에 표시
     st.write("📋 대기 중 작업 리스트")
-    if not st.session_state["waiting_list"]:
+    if not st.session_state["waiting_list"]:  # 대기 중 작업이 없을 경우 표시
         st.info("현재 대기 중인 작업이 없습니다.")
     else:
         for idx, item in enumerate(st.session_state["waiting_list"]):
             st.write(f"{idx + 1}. Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
             if st.button(f"작업 실행: {idx + 1}", key=f"start_{idx}"):
-                print(f"🚀 Streamlit 작업 실행 버튼 눌림 - {item}")
+                print(f"🚀 Streamlit 작업 실행 버튼 눌림 - 현재 작업: {item}")
 
-                with st.spinner(f"🔄 {item['buyer']} 작업 실행 중..."):
+                with st.spinner(f"🔄 작업 중: {item['buyer']}"):
+                    # execute_crawling 호출
                     completed_task = execute_crawling(
                         [item],
                         secrets,
-                        selected_sheet
+                        selected_sheet  # 선택된 Google 스프레드시트
                     )
 
-                    print(f"✅ [DEBUG] 완료된 작업: {completed_task}")
+                    # 작업 결과 출력
+                    print(f"✅ 작업 완료 결과: {completed_task}")
                     if completed_task:
-                        st.session_state["completed_list"].extend(completed_task)
-                        for record in completed_task:
-                            if record["status"] == "FAILED":
-                                st.error(f"❌ {item['buyer']} 작업 실패! 오류: {record.get('error', 'Unknown Error')}")
-                            else:
-                                st.success(f"✅ {item['buyer']} 작업 완료! 반환값: {record}")
+                        st.success(f"✅ {item['buyer']} 작업 완료!")
                     else:
-                        st.error(f"{item['buyer']} 작업 실패! 반환값이 비어 있음.")
+                        st.error(f"❌ {item['buyer']} 작업 실패!")
 
 # 진행 중 작업 탭
 with tab2:
