@@ -53,56 +53,75 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
 # =========================
 def process_url(driver, url, buyer):
     """
-    단일 URL과 Buyer를 처리. 결과 데이터를 생성.
+    단일 URL과 Buyer에 대한 크롤링 작업 수행.
+
+    Args:
+        driver (webdriver.Chrome): Selenium WebDriver 객체
+        url (str): 크롤링 대상 URL
+        buyer (str): Buyer 이름
+    Returns:
+        dict: 크롤링 작업 결과
     """
-    print(f"🚀 DEBUG: process_url 시작 - URL: {url}, Buyer: {buyer}")
+    print(f"🚀 [DEBUG] 크롤링 시작 - URL: {url}, Buyer: {buyer}")
+
     try:
-        # 예제 로직: URL과 Buyer 데이터를 기반으로 처리 수행
-        record = {
+        driver.get(url)  # URL 접속
+        print(f"✅ URL 접속 완료: {url}")
+
+        # 사이트별 크롤링 로직 구현
+        # 예제: 특정 타겟 요소 추출 (자동차 이름 가져오기)
+        name_element = driver.find_element(By.XPATH, '//h1[@class="car-name"]')  # 예시 XPath
+        car_name = name_element.text if name_element else "UNKNOWN"
+
+        result = {
             "url": url,
             "buyer": buyer,
-            "status": "COMPLETED"  # 상태를 단순히 "COMPLETED"로 설정 (예제)
+            "car_name": car_name,
+            "status": "COMPLETED" if car_name != "UNKNOWN" else "FAILED"
         }
-        print(f"✅ process_url 결과: {record}")
-        return record
+
+        print(f"✅ [DEBUG] 크롤링 성공: {result}")
+        return result
+
     except Exception as e:
-        print(f"❌ ERROR in process_url - {e}")
-        return {"url": url, "buyer": buyer, "status": "FAILED"}
+        print(f"❌ [ERROR] 크롤링 실패 - URL: {url}, Error: {e}")
+        return {"url": url, "buyer": buyer, "status": "FAILED", "error": str(e)}
 
 # =========================
 # 메인 파이프라인 로직
 # =========================
 def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=False):
     """
-    실제 크롤링 실행. 디버깅 로그 추가.
+    GCP 인증 정보와 지정된 스프레드시트로 크롤링 실행.
+
+    Args:
+        list_pairs (list): URL 및 Buyer 정보가 포함된 리스트
+        user_name (str): 실행 중인 사용자 정보
+        gcp_secrets (dict): GCP Service Account 인증 정보
+        spreadsheet_name (str): 사용할 Google 스프레드시트의 이름
+        headless (bool): Chrome을 headless 모드로 사용할지 여부
+    Returns:
+        list: 크롤링 작업 결과 리스트
     """
-    print("🚀 DEBUG: run_pipeline 시작")
-    print(f"✅ list_pairs 전달됨: {list_pairs}")
-    print(f"✅ user_name 전달됨: {user_name}")
-    print(f"✅ spreadsheet_name 전달됨: {spreadsheet_name}")
-    
-    try:
-        spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
-        print(f"✅ Google Sheet 연결 성공 - {spreadsheet_name}")
-    except Exception as e:
-        print(f"❌ Google Sheet 연결 실패 - {e}")
+    print("🚀 [DEBUG] run_pipeline 함수 시작")
+    print(f"✅ list_pairs: {list_pairs}, user_name: {user_name}, spreadsheet_name: {spreadsheet_name}")
+
+    # Google Sheets 연결 설정
+    spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
+    if not spreadsheet:
+        print(f"❌ [ERROR] Google Sheets 연결 실패: {spreadsheet_name}")
         return []
-    
-    # WebDriver 초기화
+
+    # WebDriver 생성
     driver = make_driver(headless=headless)
-    print("✅ WebDriver 생성 성공 - Headless 모드: {headless}")
+    print(f"✅ [DEBUG] WebDriver 생성 완료 - Headless 여부: {headless}")
     
     completed_records = []
     for idx, (url, buyer) in enumerate(list_pairs):
-        print(f"🌐 실행 중 - {idx+1}/{len(list_pairs)}, URL: {url}, Buyer: {buyer}")
-        try:
-            record = process_url(driver, url, buyer)
-            if not record:
-                print(f"⚠️ WARNING: process_url 반환값이 비어 있음 - URL: {url}, Buyer: {buyer}")
-            completed_records.append(record)
-        except Exception as e:
-            print(f"❌ 실행 중 오류 발생 - URL: {url}, ERROR: {e}")
-    
+        print(f"🚀 [DEBUG] [{idx+1}/{len(list_pairs)}] 크롤링 중 - URL: {url}, Buyer: {buyer}")
+        record = process_url(driver, url, buyer)
+        completed_records.append(record)
+
     driver.quit()
-    print("🚀 DEBUG: run_pipeline 종료 - completed_records: {completed_records}")
+    print(f"🚀 [DEBUG] run_pipeline 종료 - 완료된 기록: {completed_records}")
     return completed_records
