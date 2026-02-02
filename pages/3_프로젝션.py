@@ -49,7 +49,6 @@ if st.button("저장"):
 st.markdown("### 작업 리스트")
 tab1, tab2, tab3 = st.tabs(["⏳ 대기 중", "🚀 진행 중", "✅ 완료"])
 
-# 작업 실행 버튼
 with tab1:
     st.write("📋 대기 중 작업 리스트")
     if not st.session_state["waiting_list"]:
@@ -58,24 +57,22 @@ with tab1:
         for idx, item in enumerate(st.session_state["waiting_list"]):
             st.write(f"{idx + 1}. Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
             if st.button(f"작업 실행: {idx + 1}", key=f"start_{idx}"):
-                print(f"🚀 Streamlit 작업 실행 버튼 클릭 - Item: {item}")
-                
+                print(f"🚀 Streamlit 작업 실행 버튼 눌림 - {item}")
+
                 with st.spinner(f"🔄 {item['buyer']} 작업 실행 중..."):
                     completed_task = execute_crawling(
-                        [item],  # 작업 리스트
-                        secrets,  # GCP 인증 정보
-                        selected_sheet  # 선택된 스프레드시트
+                        waiting_list=[item],
+                        gcp_secrets=secrets,
+                        spreadsheet_name=selected_sheet
                     )
-                    
-                    # 반환값 확인
-                    print(f"✅ DEBUG: completed_task 반환값: {completed_task}")
 
-                    # Streamlit에 반환값 표시
+                    print(f"✅ [DEBUG] 완료된 작업 반환 값 - {completed_task}")
+
                     if completed_task:
                         st.session_state["completed_list"].extend(completed_task)
-                        st.success(f"{item['buyer']} 작업 완료! 반환값: {completed_task}")
+                        st.success(f"✅ {item['buyer']} 작업 성공!")
                     else:
-                        st.error(f"{item['buyer']} 작업 실패! 반환값이 비어있음.")
+                        st.error(f"❌ {item['buyer']} 작업 실패!")
 
                 print(f"✅ Streamlit 작업 완료 - {item['buyer']}")
 
