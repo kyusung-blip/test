@@ -14,6 +14,30 @@ if "in_progress" not in st.session_state:
 if "completed_list" not in st.session_state:
     st.session_state["completed_list"] = []  # 완료된 리스트
 
+# Service Account 및 스프레드시트 동적 로드 함수
+def load_secrets(account_type):
+    """Streamlit Secrets에서 선택된 GCP 계정을 동적으로 로드"""
+    try:
+        account_secrets = st.secrets[account_type]
+        return account_secrets
+    except KeyError:
+        st.error(f"[{account_type}]에 대한 정보가 없습니다.")
+        return None
+
+# GCP Service Account 선택
+account_type = st.sidebar.selectbox(
+    "GCP Service Account 선택", ["gcp_service_account_seobuk", "gcp_service_account_concise"]
+)
+
+# 선택된 계정의 secrets 가져오기
+secrets = load_secrets(account_type)
+
+# 스프레드시트 선택
+if secrets is not None:
+    st.sidebar.markdown("### 스프레드시트 선택")
+    spreadsheet_names = secrets["spreadsheet_name"]
+    selected_sheet = st.sidebar.selectbox("스프레드시트를 선택하세요", spreadsheet_names)
+
 # 상단 구성
 st.markdown("### Sales팀: 프로젝션 관리")
 with st.container():
@@ -52,13 +76,14 @@ with tab1:
         for idx, item in enumerate(st.session_state["waiting_list"]):
             st.write(f"{idx + 1}. 팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
             if st.button(f"작업 실행 {idx + 1}", key=f"start_{idx}"):
-                # 작업 실행 버튼 클릭 시 크롤링 시작
+                # 작업 실행 ���튼 클릭 시 크롤링 시작
                 st.session_state["progress_logs"].append(f"🔄 {item['buyer']} 작업 실행 중...")
                 
                 with st.spinner(f"{item['buyer']} 작업 처리 중..."):
                     waiting_items = [item]  # 단일 작업을 실행하도록 전달
-                    completed = execute_crawling(waiting_items)  # 크롤링 로직 호출
+                    completed = execute_crawling(waiting_items, secrets, selected_sheet)  # 크롤링 로직 호출
 
+                    # 작업 상태 업데이트
                     st.session_state["in_progress"].append(item)  # 진행 중 목록에 추가
                     del st.session_state["waiting_list"][idx]  # 대기 중에서 제거
                     
