@@ -74,39 +74,34 @@ def process_url(driver, url, buyer):
 # =========================
 def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=False):
     """
-    `execute_crawling`으로 전달받은 데이터를 사용하여 크롤링 수행.
+    실제 크롤링 실행. 디버깅 로그 추가.
     """
-    print("🚀 DEBUG: run_pipeline 함수 시작")
-    print(f"✅ list_pairs: {list_pairs} (URL과 Buyer 정보 목록)")
-    print(f"✅ user_name: {user_name} (Sales 팀 이름)")
-    print(f"✅ gcp_secrets 전달됨? {bool(gcp_secrets)}")
-    print(f"✅ spreadsheet_name: {spreadsheet_name}")
-
-    # Google Sheets 연결 확인
+    print("🚀 DEBUG: run_pipeline 시작")
+    print(f"✅ list_pairs 전달됨: {list_pairs}")
+    print(f"✅ user_name 전달됨: {user_name}")
+    print(f"✅ spreadsheet_name 전달됨: {spreadsheet_name}")
+    
     try:
         spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
-        if not spreadsheet:
-            print(f"❌ ERROR: Google Sheet에 연결 실패 - {spreadsheet_name}")
-            return []
+        print(f"✅ Google Sheet 연결 성공 - {spreadsheet_name}")
     except Exception as e:
-        print(f"❌ ERROR: Google Sheets 연결 중 오류 - {e}")
+        print(f"❌ Google Sheet 연결 실패 - {e}")
         return []
-
+    
     # WebDriver 초기화
     driver = make_driver(headless=headless)
-    print(f"✅ WebDriver 생성 완료 - Headless 모드: {headless}")
-
-    # 크롤링 작업 수행
+    print("✅ WebDriver 생성 성공 - Headless 모드: {headless}")
+    
     completed_records = []
     for idx, (url, buyer) in enumerate(list_pairs):
-        print(f"🌐 DEBUG: 크롤링 중 - {idx+1}/{len(list_pairs)}, URL: {url}, Buyer: {buyer}")
+        print(f"🌐 실행 중 - {idx+1}/{len(list_pairs)}, URL: {url}, Buyer: {buyer}")
         try:
             record = process_url(driver, url, buyer)
-            print(f"✅ 크롤링 성공 - 결과: {record}")
+            print(f"✅ record 생성: {record}")
             completed_records.append(record)
         except Exception as e:
-            print(f"❌ ERROR: 크롤링 실패 (URL: {url}) - {e}")
-
+            print(f"❌ 실행 중 오류 발생 - URL: {url}, ERROR: {e}")
+    
     driver.quit()
-    print("🚀 DEBUG: run_pipeline 완료")
+    print("🚀 DEBUG: run_pipeline 종료")
     return completed_records
