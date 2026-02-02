@@ -2,3 +2,4 @@ streamlit
 gspread
 selenium
 google-auth
+oauth2client
