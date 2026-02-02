@@ -13,10 +13,16 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     """
     completed_tasks = []
     try:
+        print("🔧 DEBUG: execute_crawling 시작...")  # 디버깅용 로그
+        print(f"✅ waiting_list: {waiting_list},")
+        print(f"✅ spreadsheet_name: {spreadsheet_name}")
+
         for task in waiting_list:
             url = task["url"]
             buyer = task["buyer"]
             sales_team = task["sales_team"]
+
+            print(f"🔧 DEBUG: 현재 작업 - URL: {url}, Buyer: {buyer}, Sales팀: {sales_team}")
 
             # run_pipeline 호출 및 작업 실행
             list_pairs = [(url, buyer)]
@@ -27,8 +33,15 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 spreadsheet_name=spreadsheet_name,
                 headless=True
             )
-            completed_tasks.extend(records)  # 작업 완료 항목 추가
+
+            if not records:  # records가 비어있다면 크롤링이 실패한 상태
+                print(f"⚠️ WARNING: 작업 실패 (URL: {url}, Buyer: {buyer})")
+            else:
+                print(f"✅ 성공적으로 작업 완료된 records: {records}")
+                completed_tasks.extend(records)  # 작업 완료 항목 추가
+
+        print("🔧 DEBUG: execute_crawling 완료")
         return completed_tasks
     except Exception as e:
-        print(f"크롤링 실패: {e}")
+        print(f"❌ execute_crawling 오류 발생: {str(e)}")
         return []
