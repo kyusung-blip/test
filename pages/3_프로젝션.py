@@ -50,30 +50,29 @@ st.markdown("### 작업 리스트")
 tab1, tab2, tab3 = st.tabs(["⏳ 대기 중", "🚀 진행 중", "✅ 완료"])  # 탭 생성
 
 # 대기 중 작업 탭
-with tab1:  # 작업 리스트를 대기 중 탭에 표시
+with tab1:
     st.write("📋 대기 중 작업 리스트")
-    if not st.session_state["waiting_list"]:  # 대기 중 작업이 없을 경우 표시
+    if not st.session_state["waiting_list"]:
         st.info("현재 대기 중인 작업이 없습니다.")
     else:
         for idx, item in enumerate(st.session_state["waiting_list"]):
             st.write(f"{idx + 1}. Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
             if st.button(f"작업 실행: {idx + 1}", key=f"start_{idx}"):
-                print(f"🚀 Streamlit 작업 실행 버튼 눌림 - 현재 작업: {item}")
-
-                with st.spinner(f"🔄 작업 중: {item['buyer']}"):
-                    # execute_crawling 호출
+                with st.spinner(f"🔄 {item['buyer']} 작업 실행 중..."):
                     completed_task = execute_crawling(
-                        [item],
-                        secrets,
-                        selected_sheet  # 선택된 Google 스프레드시트
+                        [item],  # 대기 작업
+                        secrets,  # GCP 인증 정보
+                        selected_sheet  # 스프레드시트 이름
                     )
 
-                    # 작업 결과 출력
-                    print(f"✅ 작업 완료 결과: {completed_task}")
                     if completed_task:
-                        st.success(f"✅ {item['buyer']} 작업 완료!")
+                        for record in completed_task:
+                            if record["status"] == "FAILED":
+                                st.error(f"❌ {item['buyer']} 작업 실패: {record.get('error', 'Unknown Error')}")
+                            else:
+                                st.success(f"✅ {item['buyer']} 작업 완료! 데이터: {record}")
                     else:
-                        st.error(f"❌ {item['buyer']} 작업 실패!")
+                        st.error(f"❌ {item['buyer']} 작업 실패: 반환 값이 없습니다.")
 
 # 진행 중 작업 탭
 with tab2:
