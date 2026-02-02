@@ -75,43 +75,39 @@ def process_url(driver, url, buyer):
 # =========================
 def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=False):
     """
-    GCP 인증 정보와 지정된 스프레드시트로 크롤링 실행.
-
-    Args:
-        list_pairs (list): URL 및 Buyer 정보
-        user_name (str): 실행 사용자
-        gcp_secrets (dict): Google 서비스 계정 인증 정보
-        spreadsheet_name (str): 작업 대상 Google 스프레드시트 이름
-        headless (bool): Headless 모드 여부
-    Returns:
-        list: 크롤링 작업 결과 리스트
+    `execute_crawling`으로 전달받은 데이터를 사용하여 크롤링 수행.
     """
-    print("🔧 DEBUG: run_pipeline 시작...")
-    print(f"✅ PARAMETERS: list_pairs={list_pairs}, user_name={user_name}, spreadsheet_name={spreadsheet_name}")
-    
+    print("🚀 DEBUG: run_pipeline 함수 시작")
+    print(f"✅ list_pairs: {list_pairs} (URL과 Buyer 정보 목록)")
+    print(f"✅ user_name: {user_name} (Sales 팀 이름)")
+    print(f"✅ gcp_secrets 전달됨? {bool(gcp_secrets)}")
+    print(f"✅ spreadsheet_name: {spreadsheet_name}")
+
     # Google Sheets 연결 확인
     try:
         spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
         if not spreadsheet:
-            print(f"❌ WARNING: Google Sheet 연결 실패 - {spreadsheet_name}")
+            print(f"❌ ERROR: Google Sheet에 연결 실패 - {spreadsheet_name}")
             return []
     except Exception as e:
-        print(f"❌ ERROR: Google Sheets 연결 중 오류 발생 - {str(e)}")
+        print(f"❌ ERROR: Google Sheets 연결 중 오류 - {e}")
         return []
 
     # WebDriver 초기화
     driver = make_driver(headless=headless)
-    print(f"✅ WebDriver 생성 완료 - Headless: {headless}")
-    
+    print(f"✅ WebDriver 생성 완료 - Headless 모드: {headless}")
+
+    # 크롤링 작업 수행
     completed_records = []
     for idx, (url, buyer) in enumerate(list_pairs):
-        print(f"🔧 DEBUG: [{idx + 1}/{len(list_pairs)}] URL: {url}, Buyer: {buyer}")
+        print(f"🌐 DEBUG: 크롤링 중 - {idx+1}/{len(list_pairs)}, URL: {url}, Buyer: {buyer}")
         try:
-            record = process_url(driver, url, buyer)  # 개별 URL 처리
-            print(f"✅ 크롤링 성공: {record}")
+            record = process_url(driver, url, buyer)
+            print(f"✅ 크롤링 성공 - 결과: {record}")
             completed_records.append(record)
         except Exception as e:
-            print(f"❌ ERROR: 크롤링 실패 - URL: {url}, ERROR: {str(e)}")
+            print(f"❌ ERROR: 크롤링 실패 (URL: {url}) - {e}")
+
     driver.quit()
-    print("🔧 DEBUG: run_pipeline 완료")
+    print("🚀 DEBUG: run_pipeline 완료")
     return completed_records
