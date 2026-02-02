@@ -2,38 +2,32 @@ from seobuk_251001A import run_pipeline
 
 def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     """
-    대기 중 작업 목록을 처리하고 run_pipeline으로 전달.
+    대기 중 작업 목록 처리 및 run_pipeline 실행 확인용 디버깅 로그 추가.
     """
-    completed_tasks = []
     try:
         print("🚀 DEBUG: execute_crawling 시작")
         print(f"✅ waiting_list: {waiting_list}")
-        print(f"✅ gcp_secrets: {gcp_secrets['type']} - 인증 정보 전달됨")  # gcp_secrets가 올바른지 간략 확인
         print(f"✅ spreadsheet_name: {spreadsheet_name}")
-
+        print(f"✅ gcp_secrets 전달됨: {gcp_secrets['type']}")
+        
+        completed_tasks = []  # 완료된 작업을 보관
         for task in waiting_list:
-            url = task["url"]
-            buyer = task["buyer"]
-            sales_team = task["sales_team"]
-
-            print(f"🔧 DEBUG: 현재 작업 처리 시작 - URL: {url}, Buyer: {buyer}, Sales팀: {sales_team}")
-
-            # URL과 Buyer 정보 전달
-            list_pairs = [(url, buyer)]
-
-            # run_pipeline 호출
+            print(f"🔧 DEBUG: 작업 실행 - URL: {task['url']}, Buyer: {task['buyer']}, Sales팀: {task['sales_team']}")
+            list_pairs = [(task["url"], task["buyer"])]  # URL 및 Buyer 정보 입력
+            
+            # run_pipeline 호출 및 결과 반환 확인
             records = run_pipeline(
-                list_pairs,
-                user_name=sales_team,
+                list_pairs=list_pairs,
+                user_name=task["sales_team"],
                 gcp_secrets=gcp_secrets,
                 spreadsheet_name=spreadsheet_name,
                 headless=True
             )
-
-            print(f"🔧 DEBUG: run_pipeline 실행 후 반환값 - {records}")
-            completed_tasks.extend(records)  # 처리된 결과 추가
-
-        print("🚀 DEBUG: execute_crawling 완료")
+            
+            print(f"✅ DEBUG: run_pipeline 반환값 - {records}")
+            completed_tasks.extend(records)
+        
+        print("🚀 DEBUG: execute_crawling 종료")
         return completed_tasks
 
     except Exception as e:
