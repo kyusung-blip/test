@@ -66,12 +66,16 @@ def process_url(driver, url, buyer):
 
     try:
         driver.get(url)  # URL 접속
-        print(f"✅ URL 접속 완료: {url}")
+        print(f"✅ [DEBUG] URL 접속 성공 - {url}")
 
-        # 사이트별 크롤링 로직 구현
-        # 예제: 특정 타겟 요소 추출 (자동차 이름 가져오기)
-        name_element = driver.find_element(By.XPATH, '//h1[@class="car-name"]')  # 예시 XPath
-        car_name = name_element.text if name_element else "UNKNOWN"
+        # 특정 타겟 요소 추출 (예: 자동차 이름 가져오기)
+        # 반드시 잘못된 경우를 대비해 확인 로직 추가
+        try:
+            name_element = driver.find_element(By.XPATH, '//h1[@class="car-name"]')  # 예시 XPath
+            car_name = name_element.text if name_element else "UNKNOWN"
+        except Exception as e:
+            print(f"❌ [ERROR] 데이터 탐색 실패 - {e}")
+            car_name = "UNKNOWN"
 
         result = {
             "url": url,
@@ -80,11 +84,16 @@ def process_url(driver, url, buyer):
             "status": "COMPLETED" if car_name != "UNKNOWN" else "FAILED"
         }
 
-        print(f"✅ [DEBUG] 크롤링 성공: {result}")
+        if car_name == "UNKNOWN":
+            print(f"❌ [DEBUG] 작업 실패 - 데이터가 비어 있음: {result}")
+        else:
+            print(f"✅ [DEBUG] 크롤링 성공: {result}")
+
         return result
 
     except Exception as e:
-        print(f"❌ [ERROR] 크롤링 실패 - URL: {url}, Error: {e}")
+        # URL 접속 실패를 비롯한 모든 예외 처리
+        print(f"❌ [ERROR] 크롤링 작업 전체 실패 - URL: {url}, Error: {e}")
         return {"url": url, "buyer": buyer, "status": "FAILED", "error": str(e)}
 
 # =========================
