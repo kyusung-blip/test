@@ -101,35 +101,32 @@ def process_url(driver, url, buyer):
 # =========================
 def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=False):
     """
-    GCP 인증 정보와 지정된 스프레드시트로 크롤링 실행.
-
-    Args:
-        list_pairs (list): URL 및 Buyer 정보가 포함된 리스트
-        user_name (str): 실행 중인 사용자 정보
-        gcp_secrets (dict): GCP Service Account 인증 정보
-        spreadsheet_name (str): 사용할 Google 스프레드시트의 이름
-        headless (bool): Chrome을 headless 모드로 사용할지 여부
-    Returns:
-        list: 크롤링 작업 결과 리스트
+    실제 크롤링 실행.
     """
-    print("🚀 [DEBUG] run_pipeline 함수 시작")
-    print(f"✅ list_pairs: {list_pairs}, user_name: {user_name}, spreadsheet_name: {spreadsheet_name}")
+    print("🚀 [DEBUG] run_pipeline 시작")
+    print(f"✅ list_pairs 전달됨: {list_pairs}")
+    print(f"✅ user_name 전달됨: {user_name}")
 
-    # Google Sheets 연결 설정
-    spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
-    if not spreadsheet:
-        print(f"❌ [ERROR] Google Sheets 연결 실패: {spreadsheet_name}")
+    try:
+        spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
+        if not spreadsheet:
+            print(f"❌ [ERROR] Google Sheets 연결 실패: {spreadsheet_name}")
+            return []
+    except Exception as e:
+        print(f"❌ [ERROR] Google Sheets 연결 중 오류 발생: {e}")
         return []
 
-    # WebDriver 생성
     driver = make_driver(headless=headless)
-    print(f"✅ [DEBUG] WebDriver 생성 완료 - Headless 여부: {headless}")
+    print("✅ [DEBUG] WebDriver 생성 성공 - Headless 여부: {headless}")
     
     completed_records = []
     for idx, (url, buyer) in enumerate(list_pairs):
-        print(f"🚀 [DEBUG] [{idx+1}/{len(list_pairs)}] 크롤링 중 - URL: {url}, Buyer: {buyer}")
-        record = process_url(driver, url, buyer)
-        completed_records.append(record)
+        print(f"🌐 [DEBUG] 크롤링 중 - URL: {url}, Buyer: {buyer}")
+        try:
+            record = process_url(driver, url, buyer)
+            completed_records.append(record)
+        except Exception as e:
+            print(f"❌ [ERROR] 크롤링 작업 실패 - URL: {url}, Error: {e}")
 
     driver.quit()
     print(f"🚀 [DEBUG] run_pipeline 종료 - 완료된 기록: {completed_records}")
