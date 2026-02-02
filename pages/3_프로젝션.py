@@ -69,6 +69,7 @@ with tab1:
                     st.session_state["completed_list"].extend(completed_task)  # 완료 리스트에 추가
                     st.session_state["progress_logs"].append(f"✅ 작업 완료: {item['buyer']}")
                 st.success(f"✅ {item['buyer']} 작업이 성공적으로 완료되었습니다!")
+            print("🚀 DEBUG: Streamlit 작업 완료")
 
 # 진행 중 작업 탭
 with tab2:
