@@ -49,7 +49,7 @@ if st.button("저장"):
 st.markdown("### 작업 리스트")
 tab1, tab2, tab3 = st.tabs(["⏳ 대기 중", "🚀 진행 중", "✅ 완료"])
 
-# 대기 중 작업 실행 버튼
+# 작업 실행 버튼
 with tab1:
     st.write("📋 대기 중 작업 리스트")
     if not st.session_state["waiting_list"]:
@@ -69,8 +69,13 @@ with tab1:
                     
                     # 반환값 확인
                     print(f"✅ DEBUG: completed_task 반환값: {completed_task}")
-                    st.session_state["completed_list"].extend(completed_task)
-                    st.success(f"{item['buyer']} 작업 완료!")
+
+                    # Streamlit에 반환값 표시
+                    if completed_task:
+                        st.session_state["completed_list"].extend(completed_task)
+                        st.success(f"{item['buyer']} 작업 완료! 반환값: {completed_task}")
+                    else:
+                        st.error(f"{item['buyer']} 작업 실패! 반환값이 비어있음.")
 
                 print(f"✅ Streamlit 작업 완료 - {item['buyer']}")
 
