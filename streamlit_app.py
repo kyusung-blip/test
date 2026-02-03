@@ -17,6 +17,7 @@ except Exception as e:
     st.error(f"Error with Seobuk Project Server: {e}")
 
 # 두 번째 서비스 계정 사용 (Concise Project)
+# Note: 이 예제에서는 Seobuk과 동일한 스프레드시트에 연결합니다
 # 스프레드시트: "SEOBUK PROJECTION" (ID: 139D1fskBpdGGbG2O7FQIQJJbwVmt2hPxqgFc-QXOAfY)
 # 워크시트: "NUEVO PROJECTION#2"
 st.header("Concise Project Server")
