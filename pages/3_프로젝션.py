@@ -1,5 +1,6 @@
 import streamlit as st
 from projection import execute_crawling  # projection.py에서 크롤링 함수 임포트
+import traceback
 
 # 페이지 설정
 st.set_page_config(page_title="프로젝션 관리", layout="wide")
@@ -59,20 +60,42 @@ with tab1:
             st.write(f"{idx + 1}. Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
             if st.button(f"작업 실행: {idx + 1}", key=f"start_{idx}"):
                 with st.spinner(f"🔄 {item['buyer']} 작업 실행 중..."):
-                    completed_task = execute_crawling(
-                        [item],  # 대기 작업
-                        secrets,  # GCP 인증 정보
-                        selected_sheet  # 스프레드시트 이름
-                    )
+                    try:
+                        print(f"[UI] 작업 실행 시작 - Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
+                        completed_task = execute_crawling(
+                            [item],  # 대기 작업
+                            secrets,  # GCP 인증 정보
+                            selected_sheet  # 스프레드시트 이름
+                        )
+                        print(f"[UI] execute_crawling 반환값: {completed_task}")
 
-                    if completed_task:
-                        for record in completed_task:
-                            if record["status"] == "FAILED":
-                                st.error(f"❌ {item['buyer']} 작업 실패: {record.get('error', 'Unknown Error')}")
-                            else:
-                                st.success(f"✅ {item['buyer']} 작업 완료! 데이터: {record}")
-                    else:
-                        st.error(f"❌ {item['buyer']} 작업 실패: 반환 값이 없습니다.")
+                        if completed_task and len(completed_task) > 0:
+                            # Process each record
+                            success_count = 0
+                            failed_count = 0
+                            
+                            for record in completed_task:
+                                if record.get("status") == "FAILED":
+                                    failed_count += 1
+                                    error_detail = record.get('error', 'Unknown Error')
+                                    st.error(f"❌ {record.get('buyer', 'N/A')} 작업 실패: {error_detail}")
+                                    print(f"[UI] 작업 실패 - Buyer: {record.get('buyer')}, Error: {error_detail}")
+                                else:
+                                    success_count += 1
+                                    st.success(f"✅ {record.get('buyer', 'N/A')} 작업 완료! 차량명: {record.get('car_name', 'N/A')}")
+                                    print(f"[UI] 작업 성공 - Buyer: {record.get('buyer')}, 차량명: {record.get('car_name')}")
+                            
+                            # Summary message
+                            st.info(f"📊 처리 결과: 성공 {success_count}건, 실패 {failed_count}건")
+                        else:
+                            error_msg = "작업 실패: 반환 값이 없습니다. 로그를 확인하세요."
+                            st.error(f"❌ {item['buyer']} {error_msg}")
+                            print(f"[UI] {error_msg}")
+                    except Exception as e:
+                        error_msg = f"작업 실행 중 예외 발생: {str(e)}"
+                        st.error(f"❌ {error_msg}")
+                        print(f"[UI ERROR] {error_msg}")
+                        print(traceback.format_exc())
 
 # 진행 중 작업 탭
 with tab2:
