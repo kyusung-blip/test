@@ -72,10 +72,8 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 })
                 continue
             
-            # Validate URL format
+            # Validate URL format (use local variable to avoid mutating input)
             url = task["url"].strip()
-            # Update task with cleaned URL for consistent error reporting
-            task["url"] = url
             
             try:
                 parsed_url = urlparse(url)
@@ -113,6 +111,7 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 })
                 continue
             
+            # Use cleaned URL for crawling
             list_pairs = [(url, task["buyer"])]
             logging.info(f"[execute_crawling] run_pipeline 호출 중...")
             print(f"   - run_pipeline 호출 중...")

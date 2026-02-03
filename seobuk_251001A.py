@@ -39,6 +39,9 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
 
     Args:
         gcp_secrets (dict or str): GCP Service Account 인증 정보
+                                   - dict: GCP Service Account JSON 키파일의 내용을 딕셔너리로 변환한 것
+                                   - str: GCP Service Account JSON 키파일의 내용을 문자열로 직렬화한 것
+                                         (예: '{"type": "service_account", "project_id": "...", ...}')
         spreadsheet_name (str): 열고자 하는 스프레드시트 이름
                                 (예: "SEOBUK PROJECTION" - ID: 139D1fskBpdGGbG2O7FQIQJJbwVmt2hPxqgFc-QXOAfY)
     Returns:
