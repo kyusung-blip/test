@@ -35,8 +35,8 @@ if st.button("Start Crawling"):
     try:
         # 요청 보내기
         response = requests.post(
-            "http://<external-server-ip>:5000/start-tasks",
-            json=task_data
+            "http://192.168.0.38:5000/start-tasks",
+            json=data  # 전달할 데이터
         )
         if response.status_code == 200:
             st.success("Crawling tasks started successfully!")
