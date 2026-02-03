@@ -49,8 +49,8 @@ def convert_to_dict(obj):
     if obj is None:
         raise ValueError("Cannot convert None to dict")
     
-    # Already a dict
-    if isinstance(obj, dict) and type(obj) == dict:
+    # Already a plain dict (not a subclass like AttrDict)
+    if type(obj) == dict:
         return obj
     
     # String (JSON)
@@ -66,8 +66,9 @@ def convert_to_dict(obj):
             result = {}
             for key in obj.keys():
                 value = obj[key]
-                # Recursively convert nested AttrDict objects
-                if hasattr(value, 'keys') and hasattr(value, '__getitem__'):
+                # Recursively convert nested structures
+                # convert_to_dict will handle plain dicts, AttrDicts, etc.
+                if type(value) != dict and (hasattr(value, 'keys') and hasattr(value, '__getitem__')):
                     result[key] = convert_to_dict(value)
                 else:
                     result[key] = value
