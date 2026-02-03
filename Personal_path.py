@@ -2,21 +2,19 @@ import pandas as pd
 import requests
 import time
 import gspread
-from auth import get_gspread_client
+import os
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
-import streamlit as st
 
-# --- Streamlit Secrets에서 Google 설정 가져오기 ---
-# Note: Personal_path.py uses the generic "gcp_service_account" key
-spreadsheet_name = st.secrets["gcp_service_account"]["spreadsheet_name"]  # Google Sheets 파일 이름
-worksheet_name = st.secrets["gcp_service_account"]["worksheet_name"]  # 워크시트 이름
+# Import auth module for client creation to avoid code duplication
+from auth import _get_client
+
+# --- Environment Variables에서 Google 설정 가져오기 ---
+# Enhanced security through environment variables instead of hardcoding credentials
+spreadsheet_name = os.getenv("SPREADSHEET_NAME", "SEOBUK PROJECTION")  # Google Sheets 파일 이름
+worksheet_name = os.getenv("WORKSHEET_NAME", "NUEVO PROJECTION#2")  # 워크시트 이름
 
 # --- Google Sheets 연결 (지연 초기화를 위해 함수로 캡슐화) ---
-def _get_client():
-    """내부용: 인증된 gspread 클라이언트를 가져옵니다 (캐시됨)."""
-    return get_gspread_client("gcp_service_account")
-
 def _get_worksheet():
     """내부용: 워크시트 객체를 가져옵니다."""
     return _get_client().open(spreadsheet_name).worksheet(worksheet_name)
@@ -32,25 +30,10 @@ session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
 session.verify = False  # SSL 인증서 검증 무시 (필요 시 활성화 가능)
 
 # --- 함수 정의 ---
-def Google_API():
-    """
-    DEPRECATED: 이 함수는 더 이상 사용하지 않습니다.
-    대신 get_gspread_client_for_personal()를 사용하세요.
-    
-    이전에는 Streamlit Secrets를 반환했으나, 이는 gspread.service_account(filename=...)와
-    호환되지 않습니다. 대신 인증된 클라이언트를 직접 사용하세요.
-    """
-    raise NotImplementedError(
-        "Google_API() is deprecated and has been removed. "
-        "Use get_gspread_client_for_personal() instead."
-    )
-
 def get_gspread_client_for_personal():
     """
     Personal_path.py에서 사용하는 인증된 gspread 클라이언트를 반환합니다.
-    이 함수는 "gcp_service_account" 키를 사용합니다.
-    
-    Note: 캐싱은 내부 auth.get_gspread_client()에서 처리됩니다.
+    환경 변수 GCP_SERVICE_KEY를 사용하여 인증합니다.
     
     Returns:
         gspread.Client: 인증된 gspread 클라이언트
