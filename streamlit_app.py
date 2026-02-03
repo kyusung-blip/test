@@ -4,6 +4,8 @@ from auth import get_gspread_client_seobuk, get_gspread_client_concise
 st.title("Multiple Google Service Accounts Example")
 
 # 첫 번째 서비스 계정 사용 (Seobuk Project)
+# 스프레드시트: "SEOBUK PROJECTION" (ID: 139D1fskBpdGGbG2O7FQIQJJbwVmt2hPxqgFc-QXOAfY)
+# 워크시트: "NUEVO PROJECTION#2"
 st.header("Seobuk Project Server")
 try:
     gc_seobuk = get_gspread_client_seobuk()
@@ -15,6 +17,8 @@ except Exception as e:
     st.error(f"Error with Seobuk Project Server: {e}")
 
 # 두 번째 서비스 계정 사용 (Concise Project)
+# 스프레드시트: "SEOBUK PROJECTION" (ID: 139D1fskBpdGGbG2O7FQIQJJbwVmt2hPxqgFc-QXOAfY)
+# 워크시트: "NUEVO PROJECTION#2"
 st.header("Concise Project Server")
 try:
     gc_concise = get_gspread_client_concise()
