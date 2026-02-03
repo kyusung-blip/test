@@ -33,15 +33,60 @@ def make_driver(headless=False):
 # =========================
 # Google Sheets 연결
 # =========================
+def convert_to_dict(obj):
+    """
+    객체를 일반 딕셔너리로 변환합니다.
+    
+    Args:
+        obj: 변환할 객체 (dict, AttrDict, str 등)
+    
+    Returns:
+        dict: 변환된 딕셔너리
+    
+    Raises:
+        ValueError: 변환할 수 없는 타입인 경우
+    """
+    if obj is None:
+        raise ValueError("Cannot convert None to dict")
+    
+    # Already a dict
+    if isinstance(obj, dict) and type(obj) == dict:
+        return obj
+    
+    # String (JSON)
+    if isinstance(obj, str):
+        try:
+            return json.loads(obj)
+        except json.JSONDecodeError as e:
+            raise ValueError(f"Invalid JSON string: {str(e)}")
+    
+    # AttrDict or dict-like object (has keys() and __getitem__)
+    if hasattr(obj, 'keys') and hasattr(obj, '__getitem__'):
+        try:
+            result = {}
+            for key in obj.keys():
+                value = obj[key]
+                # Recursively convert nested AttrDict objects
+                if hasattr(value, 'keys') and hasattr(value, '__getitem__'):
+                    result[key] = convert_to_dict(value)
+                else:
+                    result[key] = value
+            return result
+        except Exception as e:
+            raise ValueError(f"Failed to convert dict-like object: {str(e)}")
+    
+    raise ValueError(f"Cannot convert type {type(obj)} to dict")
+
 def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
     """
     GCP 인증 정보를 이용해 Google Sheets에 연결.
 
     Args:
-        gcp_secrets (dict or str): GCP Service Account 인증 정보
+        gcp_secrets (dict or str or AttrDict): GCP Service Account 인증 정보
                                    - dict: GCP Service Account JSON 키파일의 내용을 딕셔너리로 변환한 것
                                    - str: GCP Service Account JSON 키파일의 내용을 문자열로 직렬화한 것
                                          (예: '{"type": "service_account", "project_id": "...", ...}')
+                                   - AttrDict: Streamlit secrets에서 반환되는 객체
         spreadsheet_name (str): 열고자 하는 스프레드시트 이름
                                 (예: "SEOBUK PROJECTION" - ID: 139D1fskBpdGGbG2O7FQIQJJbwVmt2hPxqgFc-QXOAfY)
     Returns:
@@ -55,15 +100,14 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
         logging.error("[connect_to_google_sheet] gcp_secrets가 None입니다")
         raise ValueError("GCP secrets cannot be None")
     
-    # Handle case where gcp_secrets is a string (JSON)
-    if isinstance(gcp_secrets, str):
-        logging.info("[connect_to_google_sheet] gcp_secrets가 문자열입니다. 딕셔너리로 변환 중...")
-        try:
-            gcp_secrets = json.loads(gcp_secrets)
-            logging.info("[connect_to_google_sheet] JSON 파싱 성공")
-        except json.JSONDecodeError as e:
-            logging.error(f"[connect_to_google_sheet] JSON 파싱 실패: {str(e)}")
-            raise ValueError(f"Invalid JSON in gcp_secrets: {str(e)}")
+    # Convert to dict (handles str, dict, AttrDict, etc.)
+    try:
+        logging.info("[connect_to_google_sheet] gcp_secrets를 딕셔너리로 변환 중...")
+        gcp_secrets = convert_to_dict(gcp_secrets)
+        logging.info("[connect_to_google_sheet] 딕셔너리 변환 성공")
+    except ValueError as e:
+        logging.error(f"[connect_to_google_sheet] 딕셔너리 변환 실패: {str(e)}")
+        raise ValueError(f"Failed to convert gcp_secrets to dict: {str(e)}")
     
     # Ensure gcp_secrets is a dictionary
     if not isinstance(gcp_secrets, dict):
