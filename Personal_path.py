@@ -3,10 +3,11 @@ import requests
 import time
 import gspread
 import os
-import json
-from google.oauth2.service_account import Credentials
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+# Import auth module for client creation to avoid code duplication
+from auth import _get_client
 
 # --- Environment Variables에서 Google 설정 가져오기 ---
 # Enhanced security through environment variables instead of hardcoding credentials
@@ -14,24 +15,6 @@ spreadsheet_name = os.getenv("SPREADSHEET_NAME", "SEOBUK PROJECTION")  # Google 
 worksheet_name = os.getenv("WORKSHEET_NAME", "NUEVO PROJECTION#2")  # 워크시트 이름
 
 # --- Google Sheets 연결 (지연 초기화를 위해 함수로 캡슐화) ---
-def _get_client():
-    """내부용: 인증된 gspread 클라이언트를 가져옵니다."""
-    try:
-        gcp_key = os.getenv("GCP_SERVICE_KEY")
-        if not gcp_key:
-            raise ValueError(
-                "GCP_SERVICE_KEY environment variable is not set. "
-                "Please set this variable with your Google Cloud service account JSON credentials."
-            )
-        service_account_info = json.loads(gcp_key)
-        credentials = Credentials.from_service_account_info(service_account_info)
-        client = gspread.authorize(credentials)
-        return client
-    except json.JSONDecodeError as e:
-        raise Exception(f"Failed to parse GCP_SERVICE_KEY as JSON: {e}")
-    except Exception as e:
-        raise Exception(f"Google Sheets 클라이언트 생성 실패: {e}")
-
 def _get_worksheet():
     """내부용: 워크시트 객체를 가져옵니다."""
     return _get_client().open(spreadsheet_name).worksheet(worksheet_name)
