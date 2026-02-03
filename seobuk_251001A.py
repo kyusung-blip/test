@@ -9,8 +9,14 @@ from selenium.common.exceptions import TimeoutException
 import warnings
 import re
 import traceback
+import json
+import io
+import logging
 
 warnings.filterwarnings(action='ignore')
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # =========================
 # 크롬 드라이버 생성
@@ -32,26 +38,57 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
     GCP 인증 정보를 이용해 Google Sheets에 연결.
 
     Args:
-        gcp_secrets (dict): GCP Service Account 인증 정보
+        gcp_secrets (dict or str): GCP Service Account 인증 정보
         spreadsheet_name (str): 열고자 하는 스프레드시트 이름
                                 (예: "SEOBUK PROJECTION" - ID: 139D1fskBpdGGbG2O7FQIQJJbwVmt2hPxqgFc-QXOAfY)
     Returns:
         gspread.Spreadsheet: 연결된 스프레드시트 객체
     """
+    logging.info(f"[connect_to_google_sheet] 시작 - spreadsheet_name: {spreadsheet_name}")
+    logging.info(f"[connect_to_google_sheet] gcp_secrets 타입: {type(gcp_secrets)}")
+    
+    # Validate and convert gcp_secrets to dict if necessary
+    if gcp_secrets is None:
+        logging.error("[connect_to_google_sheet] gcp_secrets가 None입니다")
+        raise ValueError("GCP secrets cannot be None")
+    
+    # Handle case where gcp_secrets is a string (JSON)
+    if isinstance(gcp_secrets, str):
+        logging.info("[connect_to_google_sheet] gcp_secrets가 문자열입니다. 딕셔너리로 변환 중...")
+        try:
+            gcp_secrets = json.loads(gcp_secrets)
+            logging.info("[connect_to_google_sheet] JSON 파싱 성공")
+        except json.JSONDecodeError as e:
+            logging.error(f"[connect_to_google_sheet] JSON 파싱 실패: {str(e)}")
+            raise ValueError(f"Invalid JSON in gcp_secrets: {str(e)}")
+    
+    # Ensure gcp_secrets is a dictionary
+    if not isinstance(gcp_secrets, dict):
+        logging.error(f"[connect_to_google_sheet] gcp_secrets가 딕셔너리가 아닙니다: {type(gcp_secrets)}")
+        raise TypeError(f"gcp_secrets must be a dict, got {type(gcp_secrets)}")
+    
     # Define the required scopes for Google Sheets and Drive access
     scopes = [
         'https://www.googleapis.com/auth/spreadsheets',
         'https://www.googleapis.com/auth/drive'
     ]
-    credentials = ServiceAccountCredentials.from_json_keyfile_dict(gcp_secrets, scopes=scopes)
-    gc = gspread.authorize(credentials)
-
-    # Google 스프레드시트 열기
+    
     try:
+        logging.info("[connect_to_google_sheet] ServiceAccountCredentials 생성 중...")
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(gcp_secrets, scopes=scopes)
+        logging.info("[connect_to_google_sheet] 인증 정보 생성 완료")
+        
+        gc = gspread.authorize(credentials)
+        logging.info("[connect_to_google_sheet] gspread 인증 완료")
+        
+        # Google 스프레드시트 열기
         spreadsheet = gc.open(spreadsheet_name)
+        logging.info(f"✅ {spreadsheet_name} 스프레드시트 열림")
         print(f"✅ {spreadsheet_name} 스프레드시트 열림")
         return spreadsheet
     except Exception as e:
+        logging.error(f"[connect_to_google_sheet] 스프레드시트 연결 실패: {str(e)}")
+        logging.error(traceback.format_exc())
         print(f"⛔️ 스프레드시트를 열 수 없습니다: {e}")
         return None
 
@@ -113,22 +150,52 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
     """
     실행 크롤링 로직.
     """
+    logging.info(f"[run_pipeline] 시작")
+    logging.info(f"   - list_pairs 개수: {len(list_pairs) if list_pairs else 0}")
+    logging.info(f"   - user_name: {user_name}")
+    logging.info(f"   - spreadsheet_name: {spreadsheet_name}")
+    logging.info(f"   - headless: {headless}")
+    logging.info(f"   - gcp_secrets 타입: {type(gcp_secrets)}")
+    
     print(f"\n🚀 [DEBUG] run_pipeline 시작")
-    print(f"   - list_pairs 개수: {len(list_pairs)}")
+    print(f"   - list_pairs 개수: {len(list_pairs) if list_pairs else 0}")
     print(f"   - user_name: {user_name}")
     print(f"   - spreadsheet_name: {spreadsheet_name}")
     print(f"   - headless: {headless}")
     
     # Validate inputs
     if not list_pairs:
+        logging.error("[run_pipeline] list_pairs가 비어있습니다")
         print(f"❌ [ERROR] list_pairs가 비어있습니다")
         return []
     
+    if not gcp_secrets:
+        logging.error("[run_pipeline] gcp_secrets가 비어있습니다")
+        print(f"❌ [ERROR] gcp_secrets가 비어있습니다")
+        return [{
+            "url": url,
+            "buyer": buyer,
+            "status": "FAILED",
+            "error": "GCP secrets가 제공되지 않음"
+        } for url, buyer in list_pairs]
+    
+    if not spreadsheet_name:
+        logging.error("[run_pipeline] spreadsheet_name이 비어있습니다")
+        print(f"❌ [ERROR] spreadsheet_name이 비어있습니다")
+        return [{
+            "url": url,
+            "buyer": buyer,
+            "status": "FAILED",
+            "error": "스프레드시트 이름이 제공되지 않음"
+        } for url, buyer in list_pairs]
+    
     # Connect to Google Sheets
     try:
+        logging.info("[run_pipeline] Google Sheets 연결 시도 중...")
         print(f"   - Google Sheets 연결 시도 중...")
         spreadsheet = connect_to_google_sheet(gcp_secrets, spreadsheet_name)
         if not spreadsheet:
+            logging.error("[run_pipeline] Google Sheets 연결 실패")
             print(f"❌ [ERROR] Google Sheets 연결 실패")
             # Return failed records for all pairs
             return [{
@@ -137,7 +204,10 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
                 "status": "FAILED",
                 "error": "Google Sheets 연결 실패"
             } for url, buyer in list_pairs]
+        logging.info("[run_pipeline] Google Sheets 연결 성공")
     except Exception as e:
+        logging.error(f"[run_pipeline] Google Sheets 연결 오류: {str(e)}")
+        logging.error(traceback.format_exc())
         print(f"❌ [ERROR] Google Sheets 연결 오류: {str(e)}")
         print(traceback.format_exc())
         # Return failed records for all pairs
@@ -151,10 +221,14 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
     # Initialize driver
     driver = None
     try:
+        logging.info("[run_pipeline] 크롬 드라이버 초기화 중...")
         print(f"   - 크롬 드라이버 초기화 중...")
         driver = make_driver(headless=headless)
+        logging.info("[run_pipeline] 크롬 드라이버 초기화 성공")
         print(f"✅ [DEBUG] 크롬 드라이버 초기화 성공")
     except Exception as e:
+        logging.error(f"[run_pipeline] 드라이버 초기화 실패: {str(e)}")
+        logging.error(traceback.format_exc())
         print(f"❌ [ERROR] 드라이버 초기화 실패: {str(e)}")
         print(traceback.format_exc())
         # Return failed records for all pairs
@@ -168,6 +242,7 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
     completed_records = []
     try:
         for idx, (url, buyer) in enumerate(list_pairs):
+            logging.info(f"[run_pipeline] 작업 {idx+1}/{len(list_pairs)} 처리")
             print(f"\n🌐 [DEBUG] 작업 {idx+1}/{len(list_pairs)} 처리")
             print(f"   - URL: {url}")
             print(f"   - Buyer: {buyer}")
@@ -175,8 +250,10 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
                 record = process_url(driver, url, buyer)
                 if record:
                     completed_records.append(record)
+                    logging.info(f"[run_pipeline] 레코드 추가 완료: {record}")
                     print(f"✅ [DEBUG] 레코드 추가 완료")
                 else:
+                    logging.warning("[run_pipeline] process_url이 None 반환")
                     print(f"⚠️  [WARNING] process_url이 None 반환")
                     completed_records.append({
                         "url": url,
@@ -186,6 +263,8 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
                     })
             except Exception as e:
                 error_msg = f"작업 실패: {str(e)}"
+                logging.error(f"[run_pipeline] {error_msg}")
+                logging.error(traceback.format_exc())
                 print(f"❌ [ERROR] {error_msg}")
                 print(traceback.format_exc())
                 completed_records.append({
@@ -197,12 +276,16 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
     finally:
         if driver:
             try:
+                logging.info("[run_pipeline] 드라이버 종료 중...")
                 print(f"   - 드라이버 종료 중...")
                 driver.quit()
+                logging.info("[run_pipeline] 드라이버 종료 완료")
                 print(f"✅ [DEBUG] 드라이버 종료 완료")
             except Exception as e:
+                logging.warning(f"[run_pipeline] 드라이버 종료 실패: {str(e)}")
                 print(f"⚠️  [WARNING] 드라이버 종료 실패: {str(e)}")
 
+    logging.info(f"[run_pipeline] 완료 - 총 처리된 레코드: {len(completed_records)}")
     print(f"\n✅ [DEBUG] run_pipeline 완료")
     print(f"   - 총 처리된 레코드: {len(completed_records)}")
     print(f"   - completed_records: {completed_records}")

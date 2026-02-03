@@ -1,6 +1,10 @@
 import streamlit as st
 from projection import execute_crawling  # projection.py에서 크롤링 함수 임포트
 import traceback
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 페이지 설정
 st.set_page_config(page_title="프로젝션 관리", layout="wide")
@@ -19,8 +23,11 @@ if "completed_list" not in st.session_state:
 def load_secrets(account_type):
     """Streamlit Secrets에서 선택된 GCP 계정을 로드"""
     try:
-        return st.secrets[account_type]
+        secrets_data = st.secrets[account_type]
+        logging.info(f"[load_secrets] {account_type} 로드 성공")
+        return secrets_data
     except KeyError:
+        logging.error(f"[load_secrets] {account_type}에 대한 정보가 없습니다")
         st.error(f"[{account_type}]에 대한 정보가 없습니다.")
         return None
 
@@ -40,11 +47,33 @@ url = st.text_input("🌐 URL 입력", placeholder="예: https://example.com")
 buyer = st.text_input("🛒 Buyer 이름 입력", placeholder="예: John Doe")
 
 if st.button("저장"):
-    if url and buyer:
-        st.session_state["waiting_list"].append({"sales_team": sales_team, "url": url, "buyer": buyer})
-        st.success(f"✅ 대기 중 리스트에 저장 완료: Buyer={buyer}, URL={url}")
+    # Validate inputs before saving
+    errors = []
+    
+    if not url:
+        errors.append("URL을 입력해주세요")
+    elif not url.strip().startswith(("http://", "https://")):
+        errors.append("유효한 URL 형식이 아닙니다 (http:// 또는 https://로 시작해야 합니다)")
+    
+    if not buyer:
+        errors.append("Buyer 이름을 입력해주세요")
+    elif not buyer.strip():
+        errors.append("Buyer 이름은 공백만으로 구성될 수 없습니다")
+    
+    if errors:
+        for error in errors:
+            st.error(f"❌ {error}")
     else:
-        st.error("❌ URL과 Buyer 이름을 모두 입력해주세요!")
+        # Trim whitespace
+        url_clean = url.strip()
+        buyer_clean = buyer.strip()
+        
+        st.session_state["waiting_list"].append({
+            "sales_team": sales_team,
+            "url": url_clean,
+            "buyer": buyer_clean
+        })
+        st.success(f"✅ 대기 중 리스트에 저장 완료: Buyer={buyer_clean}, URL={url_clean}")
 
 # 작업 리스트 및 진행 상태
 st.markdown("### 작업 리스트")
@@ -59,14 +88,27 @@ with tab1:
         for idx, item in enumerate(st.session_state["waiting_list"]):
             st.write(f"{idx + 1}. Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
             if st.button(f"작업 실행: {idx + 1}", key=f"start_{idx}"):
+                # Validate secrets before execution
+                if not secrets:
+                    st.error("❌ GCP 인증 정보가 없습니다. 왼쪽 사이드바에서 계정을 선택해주세요.")
+                    logging.error("[UI] GCP 인증 정보 없음")
+                    continue
+                
+                if not selected_sheet:
+                    st.error("❌ 스프레드시트가 선택되지 않았습니다.")
+                    logging.error("[UI] 스프레드시트 선택되지 않음")
+                    continue
+                
                 with st.spinner(f"🔄 {item['buyer']} 작업 실행 중..."):
                     try:
+                        logging.info(f"[UI] 작업 실행 시작 - Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
                         print(f"[UI] 작업 실행 시작 - Sales팀: {item['sales_team']}, URL: {item['url']}, Buyer: {item['buyer']}")
                         completed_task = execute_crawling(
                             [item],  # 대기 작업
                             secrets,  # GCP 인증 정보
                             selected_sheet  # 스프레드시트 이름
                         )
+                        logging.info(f"[UI] execute_crawling 반환값: {completed_task}")
                         print(f"[UI] execute_crawling 반환값: {completed_task}")
 
                         if completed_task and len(completed_task) > 0:
@@ -79,10 +121,12 @@ with tab1:
                                     failed_count += 1
                                     error_detail = record.get('error', 'Unknown Error')
                                     st.error(f"❌ {record.get('buyer', 'N/A')} 작업 실패: {error_detail}")
+                                    logging.error(f"[UI] 작업 실패 - Buyer: {record.get('buyer')}, Error: {error_detail}")
                                     print(f"[UI] 작업 실패 - Buyer: {record.get('buyer')}, Error: {error_detail}")
                                 else:
                                     success_count += 1
                                     st.success(f"✅ {record.get('buyer', 'N/A')} 작업 완료! 차량명: {record.get('car_name', 'N/A')}")
+                                    logging.info(f"[UI] 작업 성공 - Buyer: {record.get('buyer')}, 차량명: {record.get('car_name')}")
                                     print(f"[UI] 작업 성공 - Buyer: {record.get('buyer')}, 차량명: {record.get('car_name')}")
                             
                             # Summary message
@@ -90,10 +134,13 @@ with tab1:
                         else:
                             error_msg = "작업 실패: 반환 값이 없습니다. 로그를 확인하세요."
                             st.error(f"❌ {item['buyer']} {error_msg}")
+                            logging.error(f"[UI] {error_msg}")
                             print(f"[UI] {error_msg}")
                     except Exception as e:
                         error_msg = f"작업 실행 중 예외 발생: {str(e)}"
                         st.error(f"❌ {error_msg}")
+                        logging.error(f"[UI ERROR] {error_msg}")
+                        logging.error(traceback.format_exc())
                         print(f"[UI ERROR] {error_msg}")
                         print(traceback.format_exc())
 

@@ -1,5 +1,9 @@
 from seobuk_251001A import run_pipeline
 import traceback
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     """
@@ -11,14 +15,37 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     Returns:
         list: 완료된 작업의 결과 리스트
     """
+    logging.info(f"[execute_crawling] 시작")
+    logging.info(f"   - waiting_list 개수: {len(waiting_list) if waiting_list else 0}")
+    logging.info(f"   - gcp_secrets 타입: {type(gcp_secrets)}")
+    logging.info(f"   - spreadsheet_name: {spreadsheet_name}")
+    
     print(f"🚀 [DEBUG] execute_crawling 시작")
-    print(f"   - waiting_list 개수: {len(waiting_list)}")
+    print(f"   - waiting_list 개수: {len(waiting_list) if waiting_list else 0}")
     print(f"   - gcp_secrets 존재 여부: {gcp_secrets is not None}")
     print(f"   - spreadsheet_name: {spreadsheet_name}")
+    
+    # Validate inputs
+    if not waiting_list:
+        logging.error("[execute_crawling] waiting_list가 비어있습니다")
+        print(f"❌ [ERROR] waiting_list가 비어있습니다")
+        return []
+    
+    if not gcp_secrets:
+        logging.error("[execute_crawling] gcp_secrets가 비어있습니다")
+        print(f"❌ [ERROR] gcp_secrets가 비어있습니다")
+        return []
+    
+    if not spreadsheet_name:
+        logging.error("[execute_crawling] spreadsheet_name이 비어있습니다")
+        print(f"❌ [ERROR] spreadsheet_name이 비어있습니다")
+        return []
+    
     completed_tasks = []
 
     for idx, task in enumerate(waiting_list):
         try:
+            logging.info(f"[execute_crawling] 작업 {idx+1}/{len(waiting_list)} 처리 중")
             print(f"\n🚀 [DEBUG] 작업 {idx+1}/{len(waiting_list)} 처리 중")
             print(f"   - URL: {task.get('url', 'N/A')}")
             print(f"   - Buyer: {task.get('buyer', 'N/A')}")
@@ -33,6 +60,7 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
             
             if missing_fields:
                 error_msg = f"{', '.join(missing_fields)}가 없습니다"
+                logging.error(f"[execute_crawling] {error_msg}")
                 print(f"❌ [ERROR] {error_msg}")
                 completed_tasks.append({
                     "url": task.get("url", "N/A"),
@@ -42,7 +70,22 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 })
                 continue
             
-            list_pairs = [(task["url"], task["buyer"])]
+            # Validate URL format
+            url = task["url"].strip()
+            if not url.startswith(("http://", "https://")):
+                error_msg = "유효하지 않은 URL 형식입니다"
+                logging.error(f"[execute_crawling] {error_msg}: {url}")
+                print(f"❌ [ERROR] {error_msg}: {url}")
+                completed_tasks.append({
+                    "url": url,
+                    "buyer": task.get("buyer", "N/A"),
+                    "status": "FAILED",
+                    "error": error_msg
+                })
+                continue
+            
+            list_pairs = [(url, task["buyer"])]
+            logging.info(f"[execute_crawling] run_pipeline 호출 중...")
             print(f"   - run_pipeline 호출 중...")
             records = run_pipeline(
                 list_pairs=list_pairs,
@@ -51,12 +94,15 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 spreadsheet_name=spreadsheet_name,
                 headless=True
             )
+            logging.info(f"[execute_crawling] run_pipeline 반환값: {records}")
             print(f"   - run_pipeline 반환값: {records}")
             
             if records:
                 completed_tasks.extend(records)
+                logging.info(f"[execute_crawling] 작업 성공 - {len(records)}개 레코드 추가")
                 print(f"✅ [DEBUG] 작업 성공 - {len(records)}개 레코드 추가")
             else:
+                logging.warning("[execute_crawling] run_pipeline이 빈 리스트 반환")
                 print(f"⚠️  [WARNING] run_pipeline이 빈 리스트 반환")
                 completed_tasks.append({
                     "url": task["url"],
@@ -65,7 +111,10 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                     "error": "크롤링 결과가 없습니다"
                 })
         except Exception as e:
-            print(f"❌ [ERROR] 작업 실패: {str(e)}")
+            error_msg = f"작업 실패: {str(e)}"
+            logging.error(f"[execute_crawling] {error_msg}")
+            logging.error(traceback.format_exc())
+            print(f"❌ [ERROR] {error_msg}")
             print(traceback.format_exc())
             completed_tasks.append({
                 "url": task.get("url", "N/A"),
@@ -74,6 +123,7 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
                 "error": str(e)
             })
     
+    logging.info(f"[execute_crawling] 종료 - 총 처리된 작업: {len(completed_tasks)}")
     print(f"\n🚀 [DEBUG] execute_crawling 종료")
     print(f"   - 총 처리된 작업: {len(completed_tasks)}")
     print(f"   - completed_tasks: {completed_tasks}")
