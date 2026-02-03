@@ -30,6 +30,9 @@ def connect_to_google_sheets():
 def read_google_sheets():
     """
     pandas DataFrame으로 Google Sheets 데이터를 반환합니다.
+    
+    Note: 이 함수는 Personal_path.Read_gspread()와 동일한 기능을 수행합니다.
+    새로운 코드에서는 Personal_path.Read_gspread()를 사용하는 것을 권장합니다.
 
     Returns:
         DataFrame: Google Sheets 데이터
@@ -41,3 +44,55 @@ def read_google_sheets():
         return df
     except Exception as e:
         raise Exception(f"Google Sheets 데이터 읽기 실패: {e}")
+
+# --- Helper functions for compatibility ---
+def _get_client():
+    """
+    인증된 gspread 클라이언트를 생성하여 반환합니다.
+    
+    Returns:
+        gspread.Client: 인증된 gspread 클라이언트
+    """
+    try:
+        service_account_info = json.loads(os.getenv("GCP_SERVICE_KEY"))
+        credentials = Credentials.from_service_account_info(service_account_info)
+        client = gspread.authorize(credentials)
+        return client
+    except Exception as e:
+        raise Exception(f"Google Sheets 클라이언트 생성 실패: {e}")
+
+def get_google_sheet(spreadsheet_name, worksheet_name):
+    """
+    지정된 스프레드시트와 워크시트를 열어서 워크시트 객체를 반환합니다.
+    
+    Args:
+        spreadsheet_name (str): 스프레드시트 이름
+        worksheet_name (str): 워크시트 이름
+    
+    Returns:
+        gspread.Worksheet: 워크시트 객체
+    """
+    try:
+        client = _get_client()
+        worksheet = client.open(spreadsheet_name).worksheet(worksheet_name)
+        return worksheet
+    except Exception as e:
+        raise Exception(f"워크시트 열기 실패: {e}")
+
+def get_gspread_client_seobuk():
+    """
+    Seobuk 프로젝트용 gspread 클라이언트를 반환합니다.
+    
+    Returns:
+        gspread.Client: 인증된 gspread 클라이언트
+    """
+    return _get_client()
+
+def get_gspread_client_concise():
+    """
+    Concise 프로젝트용 gspread 클라이언트를 반환합니다.
+    
+    Returns:
+        gspread.Client: 인증된 gspread 클라이언트
+    """
+    return _get_client()
