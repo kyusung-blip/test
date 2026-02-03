@@ -37,7 +37,12 @@ def connect_to_google_sheet(gcp_secrets, spreadsheet_name):
     Returns:
         gspread.Spreadsheet: 연결된 스프레드시트 객체
     """
-    credentials = ServiceAccountCredentials.from_json_keyfile_dict(gcp_secrets)
+    # Define the required scopes for Google Sheets and Drive access
+    scopes = [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/drive'
+    ]
+    credentials = ServiceAccountCredentials.from_json_keyfile_dict(gcp_secrets, scopes=scopes)
     gc = gspread.authorize(credentials)
 
     # Google 스프레드시트 열기
