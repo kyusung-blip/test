@@ -18,12 +18,12 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
         list: 완료된 작업의 결과 리스트
     """
     logging.info(f"[execute_crawling] 시작")
-    logging.info(f"   - waiting_list 개수: {len(waiting_list) if waiting_list else 0}")
+    logging.info(f"   - waiting_list 개수: {len(waiting_list)}")
     logging.info(f"   - gcp_secrets 타입: {type(gcp_secrets)}")
     logging.info(f"   - spreadsheet_name: {spreadsheet_name}")
     
     print(f"🚀 [DEBUG] execute_crawling 시작")
-    print(f"   - waiting_list 개수: {len(waiting_list) if waiting_list else 0}")
+    print(f"   - waiting_list 개수: {len(waiting_list)}")
     print(f"   - gcp_secrets 존재 여부: {gcp_secrets is not None}")
     print(f"   - spreadsheet_name: {spreadsheet_name}")
     
@@ -74,6 +74,9 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
             
             # Validate URL format
             url = task["url"].strip()
+            # Update task with cleaned URL for consistent error reporting
+            task["url"] = url
+            
             try:
                 parsed_url = urlparse(url)
                 if not parsed_url.scheme or not parsed_url.netloc:

@@ -151,14 +151,14 @@ def run_pipeline(list_pairs, user_name, gcp_secrets, spreadsheet_name, headless=
     실행 크롤링 로직.
     """
     logging.info(f"[run_pipeline] 시작")
-    logging.info(f"   - list_pairs 개수: {len(list_pairs) if list_pairs else 0}")
+    logging.info(f"   - list_pairs 개수: {len(list_pairs)}")
     logging.info(f"   - user_name: {user_name}")
     logging.info(f"   - spreadsheet_name: {spreadsheet_name}")
     logging.info(f"   - headless: {headless}")
     logging.info(f"   - gcp_secrets 타입: {type(gcp_secrets)}")
     
     print(f"\n🚀 [DEBUG] run_pipeline 시작")
-    print(f"   - list_pairs 개수: {len(list_pairs) if list_pairs else 0}")
+    print(f"   - list_pairs 개수: {len(list_pairs)}")
     print(f"   - user_name: {user_name}")
     print(f"   - spreadsheet_name: {spreadsheet_name}")
     print(f"   - headless: {headless}")
