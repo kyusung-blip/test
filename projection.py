@@ -1,9 +1,11 @@
 from seobuk_251001A import run_pipeline
 import traceback
 import logging
+from urllib.parse import urlparse
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging only if not already configured
+if not logging.getLogger().hasHandlers():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     """
@@ -72,10 +74,34 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
             
             # Validate URL format
             url = task["url"].strip()
-            if not url.startswith(("http://", "https://")):
-                error_msg = "유효하지 않은 URL 형식입니다"
-                logging.error(f"[execute_crawling] {error_msg}: {url}")
-                print(f"❌ [ERROR] {error_msg}: {url}")
+            try:
+                parsed_url = urlparse(url)
+                if not parsed_url.scheme or not parsed_url.netloc:
+                    error_msg = "유효하지 않은 URL 형식입니다 (도메인이 없거나 프로토콜이 누락됨)"
+                    logging.error(f"[execute_crawling] {error_msg}: {url}")
+                    print(f"❌ [ERROR] {error_msg}: {url}")
+                    completed_tasks.append({
+                        "url": url,
+                        "buyer": task.get("buyer", "N/A"),
+                        "status": "FAILED",
+                        "error": error_msg
+                    })
+                    continue
+                if parsed_url.scheme not in ("http", "https"):
+                    error_msg = "URL은 http:// 또는 https://로 시작해야 합니다"
+                    logging.error(f"[execute_crawling] {error_msg}: {url}")
+                    print(f"❌ [ERROR] {error_msg}: {url}")
+                    completed_tasks.append({
+                        "url": url,
+                        "buyer": task.get("buyer", "N/A"),
+                        "status": "FAILED",
+                        "error": error_msg
+                    })
+                    continue
+            except Exception as e:
+                error_msg = f"URL 파싱 실패: {str(e)}"
+                logging.error(f"[execute_crawling] {error_msg}")
+                print(f"❌ [ERROR] {error_msg}")
                 completed_tasks.append({
                     "url": url,
                     "buyer": task.get("buyer", "N/A"),

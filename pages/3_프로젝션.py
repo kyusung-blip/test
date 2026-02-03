@@ -2,9 +2,11 @@ import streamlit as st
 from projection import execute_crawling  # projection.py에서 크롤링 함수 임포트
 import traceback
 import logging
+from urllib.parse import urlparse
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging only if not already configured
+if not logging.getLogger().hasHandlers():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # 페이지 설정
 st.set_page_config(page_title="프로젝션 관리", layout="wide")
@@ -52,8 +54,17 @@ if st.button("저장"):
     
     if not url:
         errors.append("URL을 입력해주세요")
-    elif not url.strip().startswith(("http://", "https://")):
-        errors.append("유효한 URL 형식이 아닙니다 (http:// 또는 https://로 시작해야 합니다)")
+    else:
+        # Proper URL validation
+        url_clean = url.strip()
+        try:
+            parsed_url = urlparse(url_clean)
+            if not parsed_url.scheme or not parsed_url.netloc:
+                errors.append("유효한 URL 형식이 아닙니다 (도메인이 없거나 프로토콜이 누락됨)")
+            elif parsed_url.scheme not in ("http", "https"):
+                errors.append("URL은 http:// 또는 https://로 시작해야 합니다")
+        except Exception as e:
+            errors.append(f"URL 파싱 오류: {str(e)}")
     
     if not buyer:
         errors.append("Buyer 이름을 입력해주세요")

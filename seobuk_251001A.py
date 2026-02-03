@@ -10,13 +10,13 @@ import warnings
 import re
 import traceback
 import json
-import io
 import logging
 
 warnings.filterwarnings(action='ignore')
 
-# Configure logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# Configure logging only if not already configured
+if not logging.getLogger().hasHandlers():
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 # =========================
 # 크롬 드라이버 생성
