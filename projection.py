@@ -1,4 +1,4 @@
-from seobuk_251001A import run_pipeline
+from seobuk_251001A import run_pipeline, convert_to_dict
 import traceback
 import logging
 from urllib.parse import urlparse
@@ -12,7 +12,7 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     대기 중 작업 목록을 받은 후 크롤링을 실행하고 결과를 반환.
     Args:
         waiting_list (list): 대기 중 작업 리스트 (sales_team, url, buyer)
-        gcp_secrets (dict): GCP Service Account 인증 정보
+        gcp_secrets (dict or AttrDict): GCP Service Account 인증 정보
         spreadsheet_name (str): 작업 대상 Google 스프레드시트 이름
     Returns:
         list: 완료된 작업의 결과 리스트
@@ -41,6 +41,18 @@ def execute_crawling(waiting_list, gcp_secrets, spreadsheet_name):
     if not spreadsheet_name:
         logging.error("[execute_crawling] spreadsheet_name이 비어있습니다")
         print(f"❌ [ERROR] spreadsheet_name이 비어있습니다")
+        return []
+    
+    # Convert gcp_secrets to dict if it's an AttrDict or other dict-like object
+    try:
+        logging.info("[execute_crawling] gcp_secrets를 딕셔너리로 변환 시도 중...")
+        gcp_secrets = convert_to_dict(gcp_secrets)
+        logging.info("[execute_crawling] gcp_secrets 딕셔너리 변환 성공")
+        print(f"✅ [DEBUG] gcp_secrets 딕셔너리 변환 성공")
+    except ValueError as e:
+        error_msg = f"gcp_secrets 변환 실패: {str(e)}"
+        logging.error(f"[execute_crawling] {error_msg}")
+        print(f"❌ [ERROR] {error_msg}")
         return []
     
     completed_tasks = []
