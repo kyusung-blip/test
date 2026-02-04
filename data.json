@@ -27,6 +27,15 @@
       "buyers": "2",
       "status": "waiting",
       "created_at": "2026-02-04 06:06:54"
+    },
+    {
+      "job_id": "6ef27dd1",
+      "user": "ANGEL",
+      "hd_id": "seobuk",
+      "links": "https://fem.encar.com/cars/detail/41420558?type=detail",
+      "buyers": "3",
+      "status": "waiting",
+      "created_at": "2026-02-04 06:07:05"
     }
   ]
 }
