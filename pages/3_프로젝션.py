@@ -7,7 +7,7 @@ def main():
     st.title("📊 프로젝션 관리")
 
     # --- 설정 ---
-    ACCESS_TOKEN = "oN2hf64A6kwNxs7qlC5ENiU6yyIPQu2BdLwZ"
+    ACCESS_TOKEN = st.secrets["GITHUB_TOKEN"]
     REPO_NAME = "kyusung-blip/test"
 
     # Form 시작
