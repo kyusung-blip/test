@@ -1,0 +1,18 @@
+name: Streamlit-to-Local-Exec
+
+on:
+  # 외부(Streamlit)에서 API로 호출할 수 있게 설정
+  workflow_dispatch:
+
+jobs:
+  run-on-my-pc:
+    # 아까 설정한 self-hosted 러너에서 실행하라는 뜻입니다.
+    runs-on: self-hosted
+
+    steps:
+      - name: 저장소 코드 체크아웃
+        uses: actions/checkout@v4
+
+      - name: 로컬 파이썬 파일 실행
+        run: |
+          python test.py
