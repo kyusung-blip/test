@@ -39,6 +39,15 @@
       "status": "completed",
       "created_at": "2026-02-04 06:07:05",
       "completed_at": "2026-02-04 15:10:30"
+    },
+    {
+      "job_id": "e6987cb0",
+      "user": "JINSU",
+      "hd_id": "seobuk",
+      "links": "https://fem.encar.com/cars/detail/41416007?type=detail",
+      "buyers": "ㅁ",
+      "status": "waiting",
+      "created_at": "2026-02-04 06:24:24"
     }
   ]
 }
