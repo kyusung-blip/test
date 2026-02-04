@@ -108,6 +108,15 @@
       "buyers": "ㅁ",
       "status": "processing",
       "created_at": "2026-02-04 06:42:44"
+    },
+    {
+      "job_id": "768dec9d",
+      "user": "JINSU",
+      "hd_id": "leeks21",
+      "links": "https://dealer.heydealer.com/cars/ym3X80vQ",
+      "buyers": "ㅁ",
+      "status": "waiting",
+      "created_at": "2026-02-04 06:43:29"
     }
   ]
 }
