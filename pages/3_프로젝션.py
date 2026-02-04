@@ -92,21 +92,42 @@ def main():
             processing_jobs = [j for j in all_jobs if j["status"] in ["waiting", "processing"]]
             if not processing_jobs:
                 st.write("진행 중인 작업이 없습니다.")
+            
             for job in processing_jobs:
-                status_color = "🔵 대기 중" if job["status"] == "waiting" else "🟠 실행 중"
-                with st.expander(f"{status_color} | #{job['job_id']} - {job['user']} ({job['created_at']})"):
-                    st.text(f"URL: {job['links']}")
-                    st.text(f"Buyers: {job['buyers']}")
-
-        with tab2:
-            completed_jobs = [j for j in all_jobs if j["status"] == "completed"]
-            if not completed_jobs:
-                st.write("완료된 작업이 없습니다.")
-            for job in completed_jobs:
-                st.success(f"#{job['job_id']} | {job['user']} - 완료됨 ({job.get('completed_at', '시간 미상')})")
-
-    except Exception as e:
-        st.info("작업 현황을 불러오는 중입니다...")
+                # 작업 상태에 따른 라벨 설정
+                status_label = "🔵 대기 중" if job["status"] == "waiting" else "🟠 실행 중"
+                
+                # 가로로 배치 (정보와 취소 버튼)
+                col_info, col_btn = st.columns([0.8, 0.2])
+                
+                with col_info:
+                    with st.expander(f"{status_label} | #{job['job_id']} - {job['user']} ({job['created_at']})"):
+                        st.text(f"URL: {job['links']}")
+                        st.text(f"Buyers: {job['buyers']}")
+                
+                with col_btn:
+                    # '대기 중'인 작업만 취소 버튼 활성화 (실행 중인 건 강제종료 위험 방지)
+                    if job["status"] == "waiting":
+                        if st.button("취소", key=f"cancel_{job['job_id']}"):
+                            try:
+                                # 1. 최신 data.json 다시 읽기
+                                contents = repo.get_contents("data.json")
+                                data = json.loads(contents.decoded_content.decode("utf-8"))
+                                
+                                # 2. 해당 job_id를 가진 작업 제거 (또는 status를 'cancelled'로 변경)
+                                data["jobs"] = [j for j in data["jobs"] if j["job_id"] != job["job_id"]]
+                                
+                                # 3. GitHub 업데이트
+                                repo.update_file(
+                                    contents.path, 
+                                    f"Cancel Job {job['job_id']}", 
+                                    json.dumps(data, ensure_ascii=False, indent=2), 
+                                    contents.sha
+                                )
+                                st.toast(f"작업 #{job['job_id']}가 취소되었습니다.")
+                                st.rerun() # 화면 새로고침
+                            except Exception as e:
+                                st.error(f"취소 실패: {e}")
 
 if __name__ == "__main__":
     main()
