@@ -68,6 +68,15 @@
       "buyers": "ㅁ",
       "status": "waiting",
       "created_at": "2026-02-04 06:33:02"
+    },
+    {
+      "job_id": "68e5e2b6",
+      "user": "JINSU",
+      "hd_id": "seobuk",
+      "links": "https://www.seobuk.org/search/detail/113461979",
+      "buyers": "ㄴ",
+      "status": "waiting",
+      "created_at": "2026-02-04 06:33:14"
     }
   ]
 }
