@@ -50,3 +50,10 @@ def main():
                 st.success(f"✅ 명령 전달 완료! 로컬 PC의 터미널(Runner)을 확인하세요.")
             except Exception as e:
                 st.error(f"GitHub 통신 오류: {e}")
+# ... 기존 코드 생략 ...
+            except Exception as e:
+                st.error(f"GitHub 통신 오류: {e}")
+
+# 👇 이 부분을 추가해야 화면이 그려집니다!
+if __name__ == "__main__":
+    main()
