@@ -5,12 +5,13 @@ import uuid
 from datetime import datetime
 
 def main():
-    st.title("📊 프로젝션 관리")
+    st.title("📊 프로젝션 관리 및 원격 제어")
 
     # --- 1. GitHub 설정 (Secrets 활용) ---
     try:
+        # Streamlit Secrets에 저장된 토큰 호출
         ACCESS_TOKEN = st.secrets["GITHUB_TOKEN"]
-        REPO_NAME = "kyusung-blip/test" # 본인의 저장소 경로로 수정
+        REPO_NAME = "kyusung-blip/test" 
         g = Github(ACCESS_TOKEN)
         repo = g.get_repo(REPO_NAME)
     except Exception as e:
@@ -30,6 +31,7 @@ def main():
         links = st.text_area("URLs (줄 바꿈으로 구분)", height=150)
         buyers = st.text_area("Buyer Names (줄 바꿈으로 구분)", height=150)
 
+        # st.form_submit_button 사용 필수
         submitted = st.form_submit_button("🚀 작업 큐에 추가 및 로컬 실행")
 
     # --- 3. 버튼 클릭 시 데이터 업데이트 및 실행 ---
@@ -43,24 +45,23 @@ def main():
                     contents = repo.get_contents("data.json")
                     current_data = json.loads(contents.decoded_content.decode("utf-8"))
                     
-                    # jobs 리스트가 없으면 초기화
                     if "jobs" not in current_data:
                         current_data["jobs"] = []
 
-                    # 새 작업 생성
+                    # 새 작업 객체 생성
                     new_job = {
                         "job_id": str(uuid.uuid4())[:8],
                         "user": selected_user,
                         "hd_id": selected_hd_id,
                         "links": links.strip(),
                         "buyers": buyers.strip(),
-                        "status": "waiting", # waiting -> processing -> completed
+                        "status": "waiting", # 상태: waiting -> processing -> completed
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
                     
                     current_data["jobs"].append(new_job)
 
-                    # GitHub에 파일 업데이트
+                    # GitHub 파일 업데이트
                     repo.update_file(
                         contents.path, 
                         f"Add Job {new_job['job_id']}", 
@@ -68,11 +69,12 @@ def main():
                         contents.sha
                     )
                     
-                    # Workflow 트리거
+                    # 로컬 PC의 Runner를 깨우기 위한 Workflow 트리거
                     workflow = repo.get_workflow("main.yml")
                     workflow.create_dispatch("main")
                     
-                    st.success(f"✅ 작업 #{new_job['job_id']} 등록 완료! 로컬 PC가 곧 시작합니다.")
+                    st.success(f"✅ 작업 #{new_job['job_id']} 등록 완료!")
+                    st.rerun() 
                 except Exception as e:
                     st.error(f"작업 등록 실패: {e}")
 
@@ -83,7 +85,7 @@ def main():
     tab1, tab2 = st.tabs(["⏳ 진행 중 / 대기", "✅ 완료 목록"])
 
     try:
-        # 최신 데이터 다시 불러오기
+        # 실시간 상태 확인을 위해 데이터 다시 로드
         contents = repo.get_contents("data.json")
         data = json.loads(contents.decoded_content.decode("utf-8"))
         all_jobs = data.get("jobs", [])[::-1] # 최신순 정렬
@@ -91,43 +93,36 @@ def main():
         with tab1:
             processing_jobs = [j for j in all_jobs if j["status"] in ["waiting", "processing"]]
             if not processing_jobs:
-                st.write("진행 중인 작업이 없습니다.")
-            
+                st.info("현재 대기 중인 작업이 없습니다.")
             for job in processing_jobs:
-                # 작업 상태에 따른 라벨 설정
-                status_label = "🔵 대기 중" if job["status"] == "waiting" else "🟠 실행 중"
+                status_color = "🔵 대기 중" if job["status"] == "waiting" else "🟠 실행 중"
                 
-                # 가로로 배치 (정보와 취소 버튼)
-                col_info, col_btn = st.columns([0.8, 0.2])
-                
+                col_info, col_btn = st.columns([0.85, 0.15])
                 with col_info:
-                    with st.expander(f"{status_label} | #{job['job_id']} - {job['user']} ({job['created_at']})"):
+                    with st.expander(f"{status_color} | #{job['job_id']} - {job['user']} ({job['created_at']})"):
                         st.text(f"URL: {job['links']}")
                         st.text(f"Buyers: {job['buyers']}")
                 
                 with col_btn:
-                    # '대기 중'인 작업만 취소 버튼 활성화 (실행 중인 건 강제종료 위험 방지)
+                    # 대기 중인 작업만 취소 가능하게 처리
                     if job["status"] == "waiting":
                         if st.button("취소", key=f"cancel_{job['job_id']}"):
-                            try:
-                                # 1. 최신 data.json 다시 읽기
-                                contents = repo.get_contents("data.json")
-                                data = json.loads(contents.decoded_content.decode("utf-8"))
-                                
-                                # 2. 해당 job_id를 가진 작업 제거 (또는 status를 'cancelled'로 변경)
-                                data["jobs"] = [j for j in data["jobs"] if j["job_id"] != job["job_id"]]
-                                
-                                # 3. GitHub 업데이트
-                                repo.update_file(
-                                    contents.path, 
-                                    f"Cancel Job {job['job_id']}", 
-                                    json.dumps(data, ensure_ascii=False, indent=2), 
-                                    contents.sha
-                                )
-                                st.toast(f"작업 #{job['job_id']}가 취소되었습니다.")
-                                st.rerun() # 화면 새로고침
-                            except Exception as e:
-                                st.error(f"취소 실패: {e}")
+                            # 취소 로직: 데이터에서 삭제 후 업데이트
+                            data["jobs"] = [j for j in data["jobs"] if j["job_id"] != job["job_id"]]
+                            repo.update_file(contents.path, f"Cancel Job {job['job_id']}", 
+                                             json.dumps(data, ensure_ascii=False, indent=2), contents.sha)
+                            st.toast(f"작업 #{job['job_id']} 취소됨")
+                            st.rerun()
+
+        with tab2:
+            completed_jobs = [j for j in all_jobs if j["status"] == "completed"]
+            if not completed_jobs:
+                st.write("완료된 내역이 없습니다.")
+            for job in completed_jobs:
+                st.success(f"#{job['job_id']} | {job['user']} - 완료 ({job.get('completed_at', '시간 미상')})")
+
+    except Exception as e:
+        st.info("데이터를 불러오는 중입니다...")
 
 if __name__ == "__main__":
     main()
