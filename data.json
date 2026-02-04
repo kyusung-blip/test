@@ -149,6 +149,15 @@
       "status": "completed",
       "created_at": "2026-02-04 08:01:41",
       "completed_at": "2026-02-04 17:03:05"
+    },
+    {
+      "job_id": "b8b105d5",
+      "user": "JINSU",
+      "hd_id": "seobuk",
+      "links": "https://www.seobuk.org/search/detail/113096048",
+      "buyers": "ㅁ",
+      "status": "waiting",
+      "created_at": "2026-02-04 08:03:42"
     }
   ]
 }
