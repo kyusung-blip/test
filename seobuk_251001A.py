@@ -528,10 +528,13 @@ def scrape_seobuk(driver, url, row_idx_hint):
     driver.get(f"https://www.seobuk.org/search/detail/{carId}")
     out["link"] = driver.current_url
 
-    time.sleep(2.5)
-    # 가격 스팬이 아직 안 보이면 1초만 더 대기 (과하지 않게)
-    if not try_find(driver, By.XPATH, '//*[@id="container"]/div[2]/div[1]/div[2]/div[1]/span', timeout=0.5):
-        time.sleep(1.0)
+    # [수정] 차량번호 요소(car-no)가 나타날 때까지 최대 10초 대기
+    try:
+        Wait(driver, 10).until(EC.presence_of_element_located((By.ID, 'car-no')))
+        time.sleep(1) # 표 내부 데이터가 채워질 짧은 추가 시간
+    except TimeoutException:
+        print(f"[SEOBUK] 페이지 로딩 타임아웃: {carId}")
+        return out
 
     # 기본 필드
     out["year"]     = safe_text(try_find(driver, By.XPATH, '//*[@id="car-detail-basic-div"]/div[1]/table/tbody/tr[1]/td[1]'))
