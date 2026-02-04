@@ -79,56 +79,68 @@ def main():
 
     st.divider()
 
-    # --- 4. 작업 상태 리스트 ---
-    st.subheader("📋 작업 현황")
-    tab1, tab2 = st.tabs(["⏳ 진행 중 / 대기", "✅ 완료 목록"])
+# --- 4. 작업 상태 리스트 ---
+st.subheader("📋 작업 현황")
+tab1, tab2 = st.tabs(["⏳ 진행 중 / 대기", "✅ 완료 목록"])
 
-    try:
-        # 화면 로드 시 최신 데이터 조회
-        contents = repo.get_contents("data.json")
-        data = json.loads(contents.decoded_content.decode("utf-8"))
-        all_jobs = data.get("jobs", [])[::-1] 
+try:
+    # 화면 로드 시 최신 데이터 조회
+    contents = repo.get_contents("data.json")
+    data = json.loads(contents.decoded_content.decode("utf-8"))
+    all_jobs = data.get("jobs", [])[::-1] 
 
-        with tab1:
-            processing_jobs = [j for j in all_jobs if j["status"] in ["waiting", "processing"]]
-            if not processing_jobs:
-                st.info("현재 대기 중인 작업이 없습니다.")
-            for job in processing_jobs:
-                status_color = "🔵 대기 중" if job["status"] == "waiting" else "🟠 실행 중"
-                
-                col_info, col_btn = st.columns([0.85, 0.15])
-                with col_info:
-                    with st.expander(f"{status_color} | #{job['job_id']} - {job['user']} ({job['created_at']})"):
-                        st.text(f"URL: {job['links']}")
-                        st.text(f"Buyers: {job['buyers']}")
-                
-                with col_btn:
-                    if job["status"] == "waiting":
-                        if st.button("취소", key=f"cancel_{job['job_id']}"):
-                            # [취소 시에도 409 방지] 최신 상태 다시 조회
-                            latest = repo.get_contents("data.json")
-                            latest_data = json.loads(latest.decoded_content.decode("utf-8"))
-                            latest_data["jobs"] = [j for j in latest_data["jobs"] if j["job_id"] != job["job_id"]]
-                            
-                            repo.update_file(
-                                latest.path, 
-                                f"Cancel Job {job['job_id']}", 
-                                json.dumps(latest_data, ensure_ascii=False, indent=2), 
-                                latest.sha
-                            )
-                            st.toast(f"작업 #{job['job_id']} 취소됨")
-                            time.sleep(1)
-                            st.rerun()
+    with tab1:
+        processing_jobs = [j for j in all_jobs if j["status"] in ["waiting", "processing"]]
+        if not processing_jobs:
+            st.info("현재 대기 중인 작업이 없습니다.")
+        for job in processing_jobs:
+            # 제목 구성을 위한 데이터 가공
+            user = job.get("user", "Unknown")
+            # 첫 번째 바이어와 URL 추출 (여러 개일 경우 대비)
+            first_buyer = job.get("buyers", "").splitlines()[0] if job.get("buyers") else "없음"
+            first_url = job.get("links", "").splitlines()[0] if job.get("links") else ""
+            
+            # URL 요약 (앞부분만 표시)
+            url_short = first_url[:30] + "..." if len(first_url) > 30 else first_url
+            
+            # 제목 문자열 생성: [사용자 / 바이어 / URL]
+            title_text = f"{user} / {first_buyer} / {url_short}"
+            
+            status_emoji = "🔵 대기" if job["status"] == "waiting" else "🟠 실행"
+            
+            col_info, col_btn = st.columns([0.85, 0.15])
+            with col_info:
+                # 수정된 제목 적용
+                with st.expander(f"{status_emoji} | {title_text}"):
+                    st.caption(f"등록시간: {job.get('created_at')}")
+                    st.text(f"전체 바이어: {job.get('buyers')}")
+                    st.text(f"전체 URL: {job.get('links')}")
+            
+            with col_btn:
+                if job["status"] == "waiting":
+                    if st.button("취소", key=f"cancel_{job['job_id']}"):
+                        # (취소 로직은 이전과 동일)
+                        latest = repo.get_contents("data.json")
+                        latest_data = json.loads(latest.decoded_content.decode("utf-8"))
+                        latest_data["jobs"] = [j for j in latest_data["jobs"] if j["job_id"] != job["job_id"]]
+                        repo.update_file(latest.path, f"Cancel Job {job['job_id']}", 
+                                         json.dumps(latest_data, ensure_ascii=False, indent=2), latest.sha)
+                        st.toast("작업이 취소되었습니다.")
+                        st.rerun()
 
-        with tab2:
-            completed_jobs = [j for j in all_jobs if j["status"] == "completed"]
-            if not completed_jobs:
-                st.write("완료된 내역이 없습니다.")
-            for job in completed_jobs:
-                st.success(f"#{job['job_id']} | {job['user']} - 완료 ({job.get('completed_at', '시간 미상')})")
+    with tab2:
+        completed_jobs = [j for j in all_jobs if j["status"] == "completed"]
+        if not completed_jobs:
+            st.write("완료된 내역이 없습니다.")
+        for job in completed_jobs:
+            user = job.get("user", "Unknown")
+            first_buyer = job.get("buyers", "").splitlines()[0] if job.get("buyers") else "없음"
+            title_text = f"{user} / {first_buyer}"
+            
+            st.success(f"✅ {title_text} - 완료 ({job.get('completed_at', '시간 미상')})")
 
-    except Exception as e:
-        st.info("데이터 동기화 중...")
+except Exception as e:
+    st.info("데이터 동기화 중...")
 
 if __name__ == "__main__":
     main()
