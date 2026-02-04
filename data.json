@@ -1,3 +1,13 @@
 {
-  "jobs": []
+  "jobs": [
+    {
+      "job_id": "7fb44c72",
+      "user": "JINSU",
+      "hd_id": "seobuk",
+      "links": "https://fem.encar.com/cars/detail/41408946?type=detail",
+      "buyers": "ㅁ",
+      "status": "waiting",
+      "created_at": "2026-02-04 05:24:09"
+    }
+  ]
 }
