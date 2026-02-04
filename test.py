@@ -1,52 +1,74 @@
-import sys
-import io
-
-# 터미널 출력 인코딩을 UTF-8로 고정 (이 코드를 파일 맨 위에 넣으세요)
-sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
-sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
-
 import json
 import os
+import sys
+import io
+from datetime import datetime
+from github import Github
 import seobuk_251001A as En
 
+# 터미널 인코딩 설정
+sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
+
+# --- GitHub 설정 (본인 토큰 입력) ---
+ACCESS_TOKEN = os.getenv("MY_GITHUB_TOKEN")
+REPO_NAME = "kyusung-blip/test"
+
 def run_local_task():
-    # 1. Streamlit이 저장한 data.json 읽기
-    if not os.path.exists("data.json"):
-        print("Error: data.json 파일을 찾을 수 없습니다.")
+    print(f"[{datetime.now()}] 작업 큐 확인 중...")
+    
+    g = Github(ACCESS_TOKEN)
+    repo = g.get_repo(REPO_NAME)
+    
+    # 1. GitHub에서 데이터 가져오기
+    contents = repo.get_contents("data.json")
+    data = json.loads(contents.decoded_content.decode("utf-8"))
+
+    # 2. 'waiting' 상태인 작업 찾기
+    jobs = data.get("jobs", [])
+    target_job = next((j for j in jobs if j["status"] == "waiting"), None)
+
+    if not target_job:
+        print("대기 중인 작업이 없습니다.")
         return
 
-    with open("data.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
+    job_id = target_job["job_id"]
+    print(f"🚀 작업 시작: JOB #{job_id}")
 
-    # 2. 데이터 파싱 (기존 MyThread.run 로직)
-    list_links = [line.strip() for line in data["links"].splitlines() if line.strip()]
-    list_buyers = [line.strip() for line in data["buyers"].splitlines() if line.strip()]
+    # 3. 상태를 'processing'으로 변경
+    target_job["status"] = "processing"
+    repo.update_file(contents.path, f"Processing {job_id}", 
+                     json.dumps(data, ensure_ascii=False, indent=2), contents.sha)
+
+    # 4. 데이터 파싱 (여기서 data["links"]를 쓰지 않습니다!)
+    links_str = target_job.get("links", "")
+    buyers_str = target_job.get("buyers", "")
+    
+    list_links = [line.strip() for line in links_str.splitlines() if line.strip()]
+    list_buyers = [line.strip() for line in buyers_str.splitlines() if line.strip()]
     list_pairs = list(zip(list_links, list_buyers))
 
-    selected_user = data["selected_user"]
-    selected_hd_id = data["selected_hd_id"]
-
-    print(f"Start Task: {selected_user} / HD ID: {selected_hd_id}")
-    print(f"작업 개수: {len(list_pairs)}개")
-
-    print(f"--- 작업 시작 ({selected_user}) ---")
-    total = len(list_pairs)
-    
-    for i, (url, buyer) in enumerate(list_pairs, 1):
-        print(f"[{i}/{total}] 처리 중: {url[:30]}... (Buyer: {buyer})")
-        # 한 개씩 처리되는 걸 확인하기 위해 루프 안에 로직을 넣거나
-        # run_pipeline 내부의 print문을 활용하세요.
-
+    # 5. 실행
     try:
         En.run_pipeline(
             list_pairs=list_pairs, 
-            user_name=selected_user, 
-            headless=False, # 창이 뜨는 걸 보고 싶다면 False
-            hd_login_id=selected_hd_id
+            user_name=target_job["user"], 
+            headless=True,
+            hd_login_id=target_job["hd_id"]
         )
-        print("--- 모든 작업 완료! 구글 시트를 확인하세요. ---")
+        
+        # 6. 완료 업데이트
+        contents = repo.get_contents("data.json")
+        data = json.loads(contents.decoded_content.decode("utf-8"))
+        for j in data["jobs"]:
+            if j["job_id"] == job_id:
+                j["status"] = "completed"
+                j["completed_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        repo.update_file(contents.path, f"Complete {job_id}", 
+                         json.dumps(data, ensure_ascii=False, indent=2), contents.sha)
+        print(f"✅ JOB #{job_id} 완료")
     except Exception as e:
-        print(f"--- 에러 발생: {e} ---")
+        print(f"❌ 오류: {e}")
 
 if __name__ == "__main__":
     run_local_task()
