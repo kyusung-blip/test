@@ -504,55 +504,70 @@ def scrape_encar(driver, url, row_idx_hint):
 def scrape_seobuk(driver, url, row_idx_hint):
     out = {
         "site": "SEOBUK",
-        "link": url,
-        "date": now_date(),
-        "year": "",
-        "name_ko": "",
-        "fuel_ko": "",
-        "engine": "-",
-        "mileage": "",
-        "plate": "",
-        "color_ko": "",
-        "phone": "-",
-        "location": "-",
-        "price": None,        # 원화 가격은 사용 안 함
-        "price_raw": None,    # ✅ USD Selling Price (정수) → AC에서 사용
-        "row": row_idx_hint,
+        "link": url, "date": now_date(),
+        "year": "", "name_ko": "", "fuel_ko": "", "engine": "-", "mileage": "",
+        "plate": "", "color_ko": "", "phone": "-", "location": "-", "price": None,
+        "price_raw": None, "row": row_idx_hint,
     }
 
+    # 1. URL에서 차량 ID 추출
     m = re.search(r'(\d{9})', url)
-    if not m:
-        return out
+    if not m: return out
     carId = m.group(1)
 
-    driver.get(f"https://www.seobuk.org/search/detail/{carId}")
-    out["link"] = driver.current_url
+    # 2. Headless 환경을 위해 창 크기 강제 설정 (요소가 숨겨지는 것 방지)
+    driver.set_window_size(1920, 1080)
 
-    # [수정] 차량번호 요소(car-no)가 나타날 때까지 최대 10초 대기
+    # 3. 데이터 로딩 대기 로직 (최대 2회 시도)
+    for attempt in range(2):
+        try:
+            driver.get(f"https://www.seobuk.org/search/detail/{carId}")
+            
+            # car-no가 나타날 때까지 대기
+            wait = Wait(driver, 15) # 대기 시간을 15초로 늘림
+            wait.until(EC.presence_of_element_located((By.ID, 'car-no')))
+            
+            # 번호가 비어있지 않은지 확인 (로딩 중엔 공백일 수 있음)
+            time.sleep(2) 
+            plate_text = safe_text(driver.find_element(By.ID, 'car-no'))
+            
+            if plate_text and len(plate_text) > 4:
+                out["plate"] = plate_text
+                break # 성공 시 루프 탈출
+        except Exception as e:
+            if attempt == 0:
+                print(f"[SEOBUK] 1차 시도 실패, 재시도 중... ({carId})")
+                driver.refresh()
+                time.sleep(3)
+            else:
+                print(f"[SEOBUK] 최종 로딩 타임아웃: {carId}")
+                return out
+
+    # 4. 데이터 추출 (더 견고한 Selector 사용)
     try:
-        Wait(driver, 10).until(EC.presence_of_element_located((By.ID, 'car-no')))
-        time.sleep(1) # 표 내부 데이터가 채워질 짧은 추가 시간
-    except TimeoutException:
-        print(f"[SEOBUK] 페이지 로딩 타임아웃: {carId}")
-        return out
+        # 모델명 추출
+        name_el = try_find(driver, By.CSS_SELECTOR, '.car-title-box p', timeout=3)
+        if name_el:
+            out["name_ko"] = safe_text(name_el).split(']')[-1].strip()
 
-    # 기본 필드
-    out["year"]     = safe_text(try_find(driver, By.XPATH, '//*[@id="car-detail-basic-div"]/div[1]/table/tbody/tr[1]/td[1]'))
-    name_full       = safe_text(try_find(driver, By.XPATH, '//*[@id="container"]/div[2]/div[1]/div[1]/div[1]/p'))
-    out["name_ko"]  = name_full.split(']')[-1] if name_full else name_full
-    out["fuel_ko"]  = safe_text(try_find(driver, By.XPATH, '//*[@id="car-detail-basic-div"]/div[1]/table/tbody/tr[2]/td[1]'))
-    out["mileage"]  = safe_text(try_find(driver, By.XPATH, '//*[@id="car-detail-basic-div"]/div[1]/table/tbody/tr[3]/td[2]'))
-    out["plate"]    = safe_text(try_find(driver, By.ID, 'car-no'))
-    out["color_ko"] = safe_text(try_find(driver, By.XPATH, '//*[@id="car-detail-basic-div"]/div[1]/table/tbody/tr[3]/td[1]'))
+        # 가격 추출
+        price_el = try_find(driver, By.CSS_SELECTOR, '.representativeColor', timeout=3)
+        if price_el:
+            digits = re.sub(r'[^\d]', '', safe_text(price_el))
+            if digits: out["price_raw"] = int(digits)
 
-    # ✅ USD Selling Price 추출 (표기 그대로, 쉼표 제거 → 정수)
-    price_el = (try_find(driver, By.XPATH, '//*[@id="container"]/div[2]/div[1]/div[2]/div[1]/span')
-                or try_find(driver, By.CSS_SELECTOR, 'span.representativeColor'))
-    if price_el:
-        raw = (price_el.get_attribute("innerText") or price_el.text or "").strip()  # "23,229"
-        digits = re.sub(r'[^\d]', '', raw)  # "23229"
-        if digits:
-            out["price_raw"] = int(digits)
+        # 상세 표 정보 (연식, 연료, 주행거리 등)
+        # XPath 대신 표의 텍스트 구조를 이용해 데이터 매칭
+        rows = driver.find_elements(By.CSS_SELECTOR, "table tr")
+        for row in rows:
+            th_text = safe_text(try_find(row, By.TAG_NAME, "th"))
+            td_text = safe_text(try_find(row, By.TAG_NAME, "td"))
+            if "연식" in th_text: out["year"] = td_text
+            elif "연료" in th_text: out["fuel_ko"] = td_text
+            elif "주행거리" in th_text: out["mileage"] = td_text
+            elif "색상" in th_text: out["color_ko"] = td_text
+    except Exception as e:
+        print(f"[SEOBUK] 필드 추출 중 오류: {e}")
 
     return out
 
