@@ -96,8 +96,9 @@
       "hd_id": "seobuk",
       "links": "https://fem.encar.com/cars/detail/41315918?type=detail",
       "buyers": "ㄴ",
-      "status": "processing",
-      "created_at": "2026-02-04 06:33:57"
+      "status": "completed",
+      "created_at": "2026-02-04 06:33:57",
+      "completed_at": "2026-02-04 15:38:15"
     }
   ]
 }
