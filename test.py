@@ -1,3 +1,10 @@
+import sys
+import io
+
+# 터미널 출력 인코딩을 UTF-8로 고정 (이 코드를 파일 맨 위에 넣으세요)
+sys.stdout = io.TextIOWrapper(sys.stdout.detach(), encoding='utf-8')
+sys.stderr = io.TextIOWrapper(sys.stderr.detach(), encoding='utf-8')
+
 import json
 import os
 import seobuk_251001A as En
@@ -19,7 +26,7 @@ def run_local_task():
     selected_user = data["selected_user"]
     selected_hd_id = data["selected_hd_id"]
 
-    print(f"🚀 실행 시작: {selected_user} / HD ID: {selected_hd_id}")
+    print(f"Start Task: {selected_user} / HD ID: {selected_hd_id}")
     print(f"작업 개수: {len(list_pairs)}개")
 
     # 3. 기존 파이프라인 실행 (GUI 없이 실행하므로 headless=True 권장)
