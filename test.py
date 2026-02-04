@@ -29,17 +29,24 @@ def run_local_task():
     print(f"Start Task: {selected_user} / HD ID: {selected_hd_id}")
     print(f"작업 개수: {len(list_pairs)}개")
 
-    # 3. 기존 파이프라인 실행 (GUI 없이 실행하므로 headless=True 권장)
+    print(f"--- 작업 시작 ({selected_user}) ---")
+    total = len(list_pairs)
+    
+    for i, (url, buyer) in enumerate(list_pairs, 1):
+        print(f"[{i}/{total}] 처리 중: {url[:30]}... (Buyer: {buyer})")
+        # 한 개씩 처리되는 걸 확인하기 위해 루프 안에 로직을 넣거나
+        # run_pipeline 내부의 print문을 활용하세요.
+
     try:
         En.run_pipeline(
             list_pairs=list_pairs, 
             user_name=selected_user, 
-            headless=True,  # 서버용이므로 창을 띄우지 않음
+            headless=False, # 창이 뜨는 걸 보고 싶다면 False
             hd_login_id=selected_hd_id
         )
-        print("✅ 모든 작업이 완료되었습니다.")
+        print("--- 모든 작업 완료! 구글 시트를 확인하세요. ---")
     except Exception as e:
-        print(f"❌ 실행 중 에러 발생: {e}")
+        print(f"--- 에러 발생: {e} ---")
 
 if __name__ == "__main__":
     run_local_task()
