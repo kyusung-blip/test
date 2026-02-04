@@ -2,67 +2,42 @@ import pandas as pd
 import requests
 import time
 import gspread
-import os
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-# Import auth module for client creation to avoid code duplication
-from auth import _get_client
+path = r'C:\SEOBUK_Python\#01_Vehicle Searching System'
+google_api_auth_file = r'{0}\seobuk-project-server-3a15c50b9073.json'.format(path)
+file_name = 'SEOBUK PROJECTION'
+sheet_original = 'NUEVO PROJECTION#2'
 
-# --- Environment Variables에서 Google 설정 가져오기 ---
-# Enhanced security through environment variables instead of hardcoding credentials
-spreadsheet_name = os.getenv("SPREADSHEET_NAME", "SEOBUK PROJECTION")  # Google Sheets 파일 이름
-worksheet_name = os.getenv("WORKSHEET_NAME", "NUEVO PROJECTION#2")  # 워크시트 이름
-
-# --- Google Sheets 연결 (지연 초기화를 위해 함수로 캡슐화) ---
-def _get_worksheet():
-    """내부용: 워크시트 객체를 가져옵니다."""
-    return _get_client().open(spreadsheet_name).worksheet(worksheet_name)
-
-# --- Retry 설정 ---
+# Retry 설정
 retry_strategy = Retry(
     total=3,
     allowed_methods=["HEAD", "GET", "OPTIONS"],
-    status_forcelist=[429, 500, 502, 503, 504],  # 재시도할 상태 코드
+    status_forcelist=[429, 500, 502, 503, 504],
 )
+
+# SSL 인증서 검증 무시 설정
 session = requests.Session()
 session.mount("https://", HTTPAdapter(max_retries=retry_strategy))
-session.verify = False  # SSL 인증서 검증 무시 (필요 시 활성화 가능)
+session.verify = False
 
-# --- 함수 정의 ---
-def get_gspread_client_for_personal():
-    """
-    Personal_path.py에서 사용하는 인증된 gspread 클라이언트를 반환합니다.
-    환경 변수 GCP_SERVICE_KEY를 사용하여 인증합니다.
-    
-    Returns:
-        gspread.Client: 인증된 gspread 클라이언트
-    """
-    return _get_client()
+gc = gspread.service_account(filename=google_api_auth_file).open(file_name).worksheet(sheet_original)
+
+def Google_API():
+    return google_api_auth_file
 
 def User():
-    """
-    사용자 이름을 반환합니다. (고정 값)
-    """
-    return "이규성"
+    User = "이규성"
+    return User
 
 def File_name():
-    """
-    Google 스프레드시트 이름을 반환합니다.
-    """
-    return spreadsheet_name
+    return file_name
 
 def Sheet_name():
-    """
-    Google 워크시트 이름을 반환합니다.
-    """
-    return worksheet_name
+    return sheet_original
 
 def Read_gspread():
-    """
-    Google Sheets 데이터를 읽어서 pandas DataFrame으로 변환합니다.
-    """
-    worksheet = _get_worksheet()
-    df_gspread = pd.DataFrame(worksheet.get_all_records())  # Google 워크시트 데이터를 읽기
+    df_gspread = pd.DataFrame(gc.get_all_records())
     time.sleep(0.1)
     return df_gspread
