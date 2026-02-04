@@ -77,6 +77,15 @@
       "buyers": "ㄴ",
       "status": "waiting",
       "created_at": "2026-02-04 06:33:14"
+    },
+    {
+      "job_id": "16dc5ec4",
+      "user": "JINSU",
+      "hd_id": "seobuk",
+      "links": "https://fem.encar.com/cars/detail/41439835?type=detail",
+      "buyers": "ㅇ",
+      "status": "waiting",
+      "created_at": "2026-02-04 06:33:27"
     }
   ]
 }
