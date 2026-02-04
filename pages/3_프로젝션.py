@@ -4,10 +4,10 @@ from github import Github
 import json
 
 def main():
-    st.title("📊 프로젝션 관리 및 원격 크롤링")
+    st.title("프로젝션")
     
     # --- 설정 ---
-    ACCESS_TOKEN = "ghp_your_token_here"
+    ACCESS_TOKEN = "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"
     REPO_NAME = "kyusung-blip/test"
 
     with st.form("crawling_form"):
