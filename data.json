@@ -18,6 +18,15 @@
       "buyers": "1",
       "status": "waiting",
       "created_at": "2026-02-04 06:06:47"
+    },
+    {
+      "job_id": "b2d79973",
+      "user": "MINJI",
+      "hd_id": "seobuk",
+      "links": "https://fem.encar.com/cars/detail/41430965?type=detail",
+      "buyers": "2",
+      "status": "waiting",
+      "created_at": "2026-02-04 06:06:54"
     }
   ]
 }
