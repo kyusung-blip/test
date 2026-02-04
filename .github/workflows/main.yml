@@ -3,6 +3,9 @@ name: Streamlit-to-Local-Exec
 on:
   workflow_dispatch:  # Streamlit에서 수동으로 트리거할 때 실행
 
+permissions:
+  contents: write  # 저장소 내용 수정 권한 부여
+
 jobs:
   run-on-my-pc:
     runs-on: self-hosted  # 로컬 PC의 Runner에서 실행
