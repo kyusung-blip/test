@@ -1,82 +1,52 @@
+# pages/3_프로젝션.py 파일 예시
 import streamlit as st
-import requests
-import pandas as pd
+from github import Github
+import json
 
-# Streamlit 세션 상태 초기화 (저장된 데이터를 유지)
-if "saved_data" not in st.session_state:
-    st.session_state["saved_data"] = []
+def main():
+    st.title("📊 프로젝션 관리 및 원격 크롤링")
+    
+    # --- 설정 ---
+    ACCESS_TOKEN = "ghp_your_token_here"
+    REPO_NAME = "kyusung-blip/test"
 
-# Streamlit UI (입력 섹션)
-st.title("Crawling Task Manager")
+    with st.form("crawling_form"):
+        st.subheader("🤖 로컬 PC 원격 실행 설정")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            selected_user = st.selectbox("세일즈팀 (User)", ["JINSU", "MINJI", "ANGEL", "OSW", "CORAL", "JEFF", "VIKTOR"])
+        with col2:
+            selected_hd_id = st.selectbox("HEYDEALER ID", ["seobuk", "inter77", "leeks21"])
 
-with st.form("input_form"):
-    sales_team = st.text_input("Enter Sales Team Name")       # 세일즈 팀 이름
-    url = st.text_area("Enter URLs (One URL per line)")       # URL (여러개 입력 가능)
-    buyer = st.text_input("Enter Buyer Name")                # 바이어 이름
-    submitted = st.form_submit_button("Save Task")           # 저장 버튼
+        links = st.text_area("URLs (줄 바꿈으로 구분)", height=150)
+        buyers = st.text_area("Buyer Names (줄 바꿈으로 구분)", height=150)
+
+        submitted = st.form_submit_with_button("🚀 로컬 PC에서 크롤링 시작")
 
     if submitted:
-        # URL을 새 줄 단위로 처리하여 저장
-        urls = [u.strip() for u in url.split("\n") if u.strip()]
-        for u in urls:
-            st.session_state["saved_data"].append(
-                {"sales_team": sales_team, "url": u, "buyer": buyer}
-            )
-        st.success("Task saved!")
-
-# 저장된 데이터 표시
-if st.session_state["saved_data"]:
-    st.write("### Saved Tasks")
-    st.dataframe(pd.DataFrame(st.session_state["saved_data"]))
-
-# Flask 서버로 작업 요청 전송
-if st.button("Start Crawling"):
-    try:
-        # Server로 POST 요청 전송
-        data = st.session_state["saved_data"]
-        if not data:
-            st.warning("No tasks to send. Please save a task first.")
+        if not links or not buyers:
+            st.error("URL과 바이어 이름을 모두 입력해주세요.")
         else:
-            response = requests.post(
-                "http://192.168.0.38:5000/start-tasks", json=data
-            )  # Flask 서버로 요청
-            if response.status_code == 200:
-                st.success("Crawling tasks started successfully!")
-            else:
-                st.error(f"Failed to start tasks. Status code: {response.status_code}")
-    except Exception as e:
-        st.error(f"Error: Could not connect to server. {e}")
+            data_to_send = {
+                "selected_user": selected_user,
+                "selected_hd_id": selected_hd_id,
+                "links": links.strip(),
+                "buyers": buyers.strip()
+            }
 
-# 작업 상태 확인
-if st.button("Check Status"):
-    try:
-        response = requests.get("http://192.168.0.38:5000/status")  # 상태 확인 요청
-        if response.status_code == 200:
-            status_data = response.json()
-            tasks = status_data.get("tasks", [])
-            if tasks:
-                # 진행 중 작업
-                in_progress = [t for t in tasks if t["status"] == "running"]
-                # 완료된 작업
-                completed = [t for t in tasks if t["status"] == "completed"]
-
-                st.write("### In-progress Tasks")
-                if in_progress:
-                    st.dataframe(pd.DataFrame(in_progress))
-                else:
-                    st.info("No tasks in progress.")
-
-                st.write("### Completed Tasks")
-                if completed:
-                    st.dataframe(pd.DataFrame(completed))
-                else:
-                    st.info("No tasks completed yet.")
-
-                # 프로그레스 바
-                st.progress(len(completed) / len(tasks))
-            else:
-                st.info("No tasks found.")
-        else:
-            st.error(f"Failed to fetch status. Status code: {response.status_code}")
-    except Exception as e:
-        st.error(f"Error fetching status: {e}")
+            try:
+                g = Github(ACCESS_TOKEN)
+                repo = g.get_repo(REPO_NAME)
+                
+                # data.json 업데이트
+                contents = repo.get_contents("data.json")
+                repo.update_file(contents.path, "Update from Streamlit", json.dumps(data_to_send, ensure_ascii=False), contents.sha)
+                
+                # Workflow 트리거
+                workflow = repo.get_workflow("main.yml")
+                workflow.create_dispatch("main")
+                
+                st.success(f"✅ 명령 전달 완료! 로컬 PC의 터미널(Runner)을 확인하세요.")
+            except Exception as e:
+                st.error(f"GitHub 통신 오류: {e}")
