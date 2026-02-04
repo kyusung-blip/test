@@ -3,13 +3,13 @@ from github import Github
 import json
 import uuid
 from datetime import datetime
+import time
 
 def main():
     st.title("📊 프로젝션 관리 및 원격 제어")
 
-    # --- 1. GitHub 설정 (Secrets 활용) ---
+    # --- 1. GitHub 설정 ---
     try:
-        # Streamlit Secrets에 저장된 토큰 호출
         ACCESS_TOKEN = st.secrets["GITHUB_TOKEN"]
         REPO_NAME = "kyusung-blip/test" 
         g = Github(ACCESS_TOKEN)
@@ -31,64 +31,63 @@ def main():
         links = st.text_area("URLs (줄 바꿈으로 구분)", height=150)
         buyers = st.text_area("Buyer Names (줄 바꿈으로 구분)", height=150)
 
-        # st.form_submit_button 사용 필수
         submitted = st.form_submit_button("🚀 작업 큐에 추가 및 로컬 실행")
 
-    # --- 3. 버튼 클릭 시 데이터 업데이트 및 실행 ---
+    # --- 3. 버튼 클릭 시 데이터 업데이트 (409 에러 방지 로직) ---
     if submitted:
         if not links or not buyers:
             st.error("URL과 바이어 이름을 모두 입력해주세요.")
         else:
-            with st.spinner("GitHub에 작업을 등록 중..."):
+            with st.spinner("GitHub와 동기화 중..."):
                 try:
-                    # 기존 data.json 불러오기
+                    # [핵심] 저장 직전에 최신 파일 상태를 다시 가져옴 (sha 갱신)
                     contents = repo.get_contents("data.json")
                     current_data = json.loads(contents.decoded_content.decode("utf-8"))
                     
                     if "jobs" not in current_data:
                         current_data["jobs"] = []
 
-                    # 새 작업 객체 생성
                     new_job = {
                         "job_id": str(uuid.uuid4())[:8],
                         "user": selected_user,
                         "hd_id": selected_hd_id,
                         "links": links.strip(),
                         "buyers": buyers.strip(),
-                        "status": "waiting", # 상태: waiting -> processing -> completed
+                        "status": "waiting",
                         "created_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                     }
                     
                     current_data["jobs"].append(new_job)
 
-                    # GitHub 파일 업데이트
+                    # 최신 sha 값을 사용하여 업데이트
                     repo.update_file(
                         contents.path, 
                         f"Add Job {new_job['job_id']}", 
                         json.dumps(current_data, ensure_ascii=False, indent=2), 
-                        contents.sha
+                        contents.sha  # 방금 get_contents로 가져온 최신 sha
                     )
                     
-                    # 로컬 PC의 Runner를 깨우기 위한 Workflow 트리거
+                    # Workflow 트리거
                     workflow = repo.get_workflow("main.yml")
                     workflow.create_dispatch("main")
                     
                     st.success(f"✅ 작업 #{new_job['job_id']} 등록 완료!")
+                    time.sleep(1)
                     st.rerun() 
                 except Exception as e:
                     st.error(f"작업 등록 실패: {e}")
 
     st.divider()
 
-    # --- 4. 작업 상태 리스트 (탭 구성) ---
+    # --- 4. 작업 상태 리스트 ---
     st.subheader("📋 작업 현황")
     tab1, tab2 = st.tabs(["⏳ 진행 중 / 대기", "✅ 완료 목록"])
 
     try:
-        # 실시간 상태 확인을 위해 데이터 다시 로드
+        # 화면 로드 시 최신 데이터 조회
         contents = repo.get_contents("data.json")
         data = json.loads(contents.decoded_content.decode("utf-8"))
-        all_jobs = data.get("jobs", [])[::-1] # 최신순 정렬
+        all_jobs = data.get("jobs", [])[::-1] 
 
         with tab1:
             processing_jobs = [j for j in all_jobs if j["status"] in ["waiting", "processing"]]
@@ -104,14 +103,21 @@ def main():
                         st.text(f"Buyers: {job['buyers']}")
                 
                 with col_btn:
-                    # 대기 중인 작업만 취소 가능하게 처리
                     if job["status"] == "waiting":
                         if st.button("취소", key=f"cancel_{job['job_id']}"):
-                            # 취소 로직: 데이터에서 삭제 후 업데이트
-                            data["jobs"] = [j for j in data["jobs"] if j["job_id"] != job["job_id"]]
-                            repo.update_file(contents.path, f"Cancel Job {job['job_id']}", 
-                                             json.dumps(data, ensure_ascii=False, indent=2), contents.sha)
+                            # [취소 시에도 409 방지] 최신 상태 다시 조회
+                            latest = repo.get_contents("data.json")
+                            latest_data = json.loads(latest.decoded_content.decode("utf-8"))
+                            latest_data["jobs"] = [j for j in latest_data["jobs"] if j["job_id"] != job["job_id"]]
+                            
+                            repo.update_file(
+                                latest.path, 
+                                f"Cancel Job {job['job_id']}", 
+                                json.dumps(latest_data, ensure_ascii=False, indent=2), 
+                                latest.sha
+                            )
                             st.toast(f"작업 #{job['job_id']} 취소됨")
+                            time.sleep(1)
                             st.rerun()
 
         with tab2:
@@ -122,7 +128,7 @@ def main():
                 st.success(f"#{job['job_id']} | {job['user']} - 완료 ({job.get('completed_at', '시간 미상')})")
 
     except Exception as e:
-        st.info("데이터를 불러오는 중입니다...")
+        st.info("데이터 동기화 중...")
 
 if __name__ == "__main__":
     main()
