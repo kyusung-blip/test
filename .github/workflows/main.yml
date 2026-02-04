@@ -1,18 +1,33 @@
 name: Streamlit-to-Local-Exec
 
 on:
-  # 외부(Streamlit)에서 API로 호출할 수 있게 설정
-  workflow_dispatch:
+  workflow_dispatch:  # Streamlit에서 수동으로 트리거할 때 실행
 
 jobs:
   run-on-my-pc:
-    # 아까 설정한 self-hosted 러너에서 실행하라는 뜻입니다.
-    runs-on: self-hosted
-
+    runs-on: self-hosted  # 로컬 PC의 Runner에서 실행
     steps:
-      - name: 저장소 코드 체크아웃
+      # 1. 체크아웃 최적화 (가장 중요한 부분)
+      - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1  # 최신 커밋 1개만 가져옴 (속도 개선 핵심)
 
-      - name: 로컬 파이썬 파일 실행
+      # 2. 파이썬 환경 설정 및 캐싱
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip' # 패키지 재설치 시간을 줄임
+
+      # 3. 라이브러리 설치 (변경사항이 없으면 캐시 사용)
+      - name: Install dependencies
         run: |
-          python test.py
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. 로컬 스크립트 실행
+      - name: Run python test.py
+        env:
+          MY_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # 필요한 경우 환경변수 설정
+        run: python test.py
