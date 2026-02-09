@@ -96,6 +96,32 @@ row2[3].button("송금완료")
 row2[4].button("계약금 송금완료")
 row2[5].button("오토위니/헤이딜러")
 
+st.subheader("📋 데이터 붙여넣기")
+raw_data = st.text_area("텍스트 정보를 여기에 붙여넣으세요", height=80)
+st.divider()
+
+# 메인 레이아웃 (좌/우)
+col_left, col_right = st.columns([1.5, 1])
+with col_left:
+    vehicle_num = st.text_input("차번호", value="12가3456") # 예시 데이터
+    model = st.text_input("차명", value="아반떼 CN7")
+with col_right:
+    price = st.text_input("합계금액", value="15,000,000")
+
+st.divider()
+
+# 2. 하단 실행 제어 버튼부
+st.markdown("### 🛠️ 실행 제어")
+row1 = st.columns(6)
+btn_confirm = row1[0].button("확인후")
+btn_sales = row1[1].button("세일즈팀")
+btn_sms = row1[3].button("문자")
+
+# 3. ✨ 결과 출력 섹션 (Output Section)
+st.markdown("---")
+st.markdown("### 📝 결과 출력")
+
+# 버튼 클릭 상태에 따라 다른 내용을 출력하도록 설정
 output_container = st.container()
 
 with output_container:
