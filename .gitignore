@@ -19,3 +19,14 @@ ENV/
 # OS
 .DS_Store
 Thumbs.db
+
+# Streamlit secrets
+.streamlit/secrets.toml
+
+# Backup files
+*.backup
+*.bak
+
+# Temporary files
+pages/*_new.py
+pages/*_temp.py

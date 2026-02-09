@@ -4,4 +4,9 @@ selenium
 google-auth
 oauth2client
 PyGithub
+google-generativeai
+Pillow
+pandas
+requests
+webdriver-manager
 
