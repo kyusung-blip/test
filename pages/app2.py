@@ -1,26 +1,25 @@
 import streamlit as st
 
-# 1. 10pt 폰트 및 스타일 설정
-st.set_page_config(layout="wide") # 화면을 넓게 사용
+# 1. 스타일 설정 (10pt 폰트 유지)
+st.set_page_config(layout="wide")
 st.markdown(
     """
     <style>
-    html, body, [class*="css"], .stTextInput, .stNumberInput, .stSelectbox {
+    html, body, [class*="css"], .stTextInput, .stTextArea, .stButton {
         font-size: 10pt !important;
     }
-    .stButton button {
-        font-size: 10pt !important;
-        width: 100%; /* 버튼 너비를 꽉 차게 */
-    }
-    /* 입력창 간격 조절 */
-    div.row-widget.stHorizontal {
-        gap: 0.5rem;
+    /* 출력창 배경색 및 테두리 설정 */
+    .output-box {
+        background-color: #f0f2f6;
+        padding: 15px;
+        border-radius: 5px;
+        border: 1px solid #d1d5db;
+        font-family: monospace;
     }
     </style>
     """,
     unsafe_allow_html=True
 )
-
 # 2. 상단: 정보 붙여넣기 섹션 (탭 구분 데이터 입력)
 st.subheader("📋 데이터 붙여넣기")
 raw_data = st.text_area("텍스트 정보를 여기에 붙여넣으세요 (탭 구분)", height=100)
@@ -96,3 +95,24 @@ row2[2].button("계약금")
 row2[3].button("송금완료")
 row2[4].button("계약금 송금완료")
 row2[5].button("오토위니/헤이딜러")
+
+output_container = st.container()
+
+with output_container:
+    if btn_confirm:
+        st.success("✅ 확인후 프로세스가 실행되었습니다.")
+        result_text = f"[{vehicle_num} / {model}] 확인 완료되었습니다."
+        st.code(result_text, language=None) # 복사하기 쉬운 코드 블록 형태
+        
+    elif btn_sales:
+        st.info("📨 세일즈팀 전달용 정보")
+        result_text = f"차량번호: {vehicle_num}\n모델명: {model}\n금액: {price}\n담당자: 세일즈 1팀"
+        st.text_area("복사용 텍스트", value=result_text, height=150)
+
+    elif btn_sms:
+        st.warning("📱 문자 발송 양식")
+        result_text = f"[광고] 안녕하세요. 요청하신 {vehicle_num} 차량 견적은 {price}원 입니다."
+        st.markdown(f'<div class="output-box">{result_text}</div>', unsafe_allow_html=True)
+        
+    else:
+        st.write("버튼을 누르면 이곳에 결과가 표시됩니다.")
