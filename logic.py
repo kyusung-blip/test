@@ -1,6 +1,7 @@
 # logic.py
 import re
 from mapping import VINYEAR_map, COLOR_map, ADDRESS_REGION_MAP
+import brand
 
 def parse_excel_data(raw_text):
     """탭으로 구분된 텍스트를 파싱하여 딕셔너리로 반환"""
