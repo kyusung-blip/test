@@ -46,7 +46,14 @@ def parse_excel_data(raw_text):
         if keyword in data['address']:
             data['region'] = region_name
             break
-            
+    # 데이터 추출 직후 브랜드 조회 로직 추가
+    vin = data['vin'].strip().upper()
+    if len(vin) >= 3:
+        # brand.py의 함수 호출
+        data['brand'] = brand.get_brand_from_vin(vin)
+    else:
+        data['brand'] = ""
+        
     return data
 
 def format_money(val):
