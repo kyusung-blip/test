@@ -1,13 +1,11 @@
 import streamlit as st
 from datetime import datetime
-# 추후 작성할 로직/컴포넌트 파일들 import
-# import logic as lg 
-# import components as cp
+import logic as lg  # 작성한 logic.py 임포트
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
-# CSS를 통한 폰트 및 버튼 스타일 미세 조정
+# CSS 스타일 유지
 st.markdown("""
     <style>
     .stButton>button { width: 100%; margin-bottom: 5px; }
@@ -15,13 +13,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 세션 상태 초기화 (메시지 출력용)
+# 세션 상태 초기화
 if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
-# --- 1. 상단: 데이터 입력칸 ---
+# --- 1. 상단: 데이터 입력칸 및 자동 파싱 ---
 st.subheader("📥 데이터 붙여넣기")
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
+
+# 데이터가 입력되면 즉시 파싱 수행
+parsed = lg.parse_excel_data(raw_input) if raw_input else {}
 
 st.divider()
 
@@ -32,52 +33,55 @@ col_info, col_list = st.columns([0.7, 0.3])
 with col_info:
     st.markdown("### 🚗 매입 정보")
     
-    # 가로 배치를 위한 컬럼 세분화
+    # R1: 차번호, 연식, 차명, 차명(송금용)
     r1_1, r1_2, r1_3, r1_4 = st.columns(4)
-    v_plate = r1_1.text_input("차번호")
-    v_year = r1_2.text_input("연식")
-    v_car_name = r1_3.text_input("차명")
-    v_car_name_remit = r1_4.text_input("차명(송금용)")
+    v_plate = r1_1.text_input("차번호", value=parsed.get('plate', ""))
+    v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
+    v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
+    v_car_name_remit = r1_4.text_input("차명(송금용)", value=parsed.get('car_name', ""))
 
+    # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
-    v_brand = r2_1.text_input("브랜드")
-    v_vin = r2_2.text_input("VIN")
-    v_km = r2_3.text_input("km")
-    v_color = r2_4.text_input("color")
+    v_brand = r2_1.text_input("브랜드", value="") # 브랜드는 별도 로직 필요시 추가
+    v_vin = r2_2.text_input("VIN", value=parsed.get('vin', ""))
+    v_km = r2_3.text_input("km", value=parsed.get('km', ""))
+    v_color = r2_4.text_input("color", value=parsed.get('color', ""))
 
+    # R3: 사이트, 세일즈팀, 바이어, 나라, 확인버튼
     r3_1, r3_2, r3_3, r3_4, r3_5 = st.columns([1.5, 1.5, 1.5, 1.5, 1])
-    v_site = r3_1.text_input("사이트")
-    v_sales = r3_2.text_input("세일즈팀")
-    v_buyer = r3_3.text_input("바이어")
-    v_country = r3_4.text_input("나라")
-    r3_5.write("") # 간격 맞추기용
+    v_site = r3_1.text_input("사이트", value=parsed.get('site', ""))
+    v_sales = r3_2.text_input("세일즈팀", value=parsed.get('sales', ""))
+    v_buyer = r3_3.text_input("바이어", value=parsed.get('buyer', ""))
+    v_country = r3_4.text_input("나라", value="")
+    r3_5.write("") 
     if r3_5.button("확인"):
         st.toast("정보가 확인되었습니다.")
 
+    # R4: 연락처, 지역, 주소
     r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
-    v_dealer_phone = r4_1.text_input("딜러연락처")
-    v_region = r4_2.text_input("지역")
-    v_address = r4_3.text_input("주소")
+    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
+    v_region = r4_2.text_input("지역", value=parsed.get('region', ""))
+    v_address = r4_3.text_input("주소", value=parsed.get('address', ""))
 
     # 딜러/판매자 정보 프레임
     with st.container(border=True):
         st.caption("🏢 딜러/판매자 정보")
         c1, c2 = st.columns(2)
-        v_biz_name = c1.text_input("상사명")
-        v_biz_num = c2.text_input("사업자번호")
+        v_biz_name = c1.text_input("상사명", value="") 
+        v_biz_num = c2.text_input("사업자번호", value="")
 
-    # 계좌 정보 섹션
+    # 계좌 정보 섹션 (금액은 lg.format_money로 콤마 추가)
     acc1, acc2 = st.columns([2, 3])
-    v_price = acc1.text_input("차량대")
-    v_acc_o = acc2.text_input("차량대 계좌")
+    v_price = acc1.text_input("차량대", value=lg.format_money(parsed.get('price', "")))
+    v_acc_o = acc2.text_input("차량대 계좌", value="")
 
     acc3, acc4 = st.columns([2, 3])
-    v_contract_x = acc3.text_input("계산서X")
-    v_acc_x = acc4.text_input("계산서X 계좌")
+    v_contract_x = acc3.text_input("계산서X", value=lg.format_money(parsed.get('contract', "")))
+    v_acc_x = acc4.text_input("계산서X 계좌", value="")
 
     acc5, acc6 = st.columns([2, 3])
-    v_fee = acc5.text_input("매도비")
-    v_acc_fee = acc6.text_input("매도비 계좌")
+    v_fee = acc5.text_input("매도비", value=lg.format_money(parsed.get('fee', "")))
+    v_acc_fee = acc6.text_input("매도비 계좌", value="")
 
     r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
     v_sender = r5_1.text_input("입금자명", value="서북인터")
@@ -86,31 +90,34 @@ with col_info:
     if r5_3.button("📝 정보 추가&수정", type="primary"):
         pass
 
-    # 하단 세부 정산 프레임들
+    # 하단 세부 정산 및 플랫폼 프레임
     row_bottom = st.columns(2)
     with row_bottom[0]:
         with st.container(border=True):
             st.caption("💰 세부정산")
             v_deposit = st.text_input("계약금(만원)", value="0")
-            v_balance = st.text_input("잔금")
+            v_balance = st.text_input("잔금", value=lg.format_money(parsed.get('balance', "")))
         
         with st.container(border=True):
             st.caption("📱 헤이딜러 정보")
-            v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"])
-            v_h_id = st.selectbox("헤이딜러 ID", ["선택 안함", "ID_1", "ID_2"])
-            v_h_deliv = st.text_input("헤이딜러 탁송")
+            # selectbox는 value 대신 index를 맞춰야 하므로 간단히 기본값 설정
+            v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"], index=0)
+            v_h_id = st.selectbox("헤이딜러 ID", ["선택 안함", "ID_1", "ID_2"], index=0)
+            v_h_deliv = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
 
     with row_bottom[1]:
         with st.container(border=True):
             st.caption("🌐 오토위니 (수출)")
-            v_company = st.text_input("업체명")
+            v_company = st.text_input("업체명", value="")
             c_ex1, c_ex2, c_ex3 = st.columns([2, 2, 1])
-            v_ex_date = c_ex1.text_input("환율기준일")
-            v_ex_rate = c_ex2.text_input("환율")
-            if c_ex3.button("조회"): pass
+            v_ex_date = c_ex1.text_input("환율기준일", value="")
+            v_ex_rate = c_ex2.text_input("환율", value="")
+            if c_ex3.button("조회"): 
+                # 여기서 lg.get_exchange_rate() 연동 가능
+                pass
             
-            v_usd = st.text_input("차량대금($)")
-            v_won = st.text_input("영세율금액(원)")
+            v_usd = st.text_input("차량대금($)", value="")
+            v_won = st.text_input("영세율금액(원)", value="")
 
 # --- [우측: 리스트탭 (30%)] ---
 with col_list:
