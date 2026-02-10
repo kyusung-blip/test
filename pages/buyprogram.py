@@ -42,7 +42,7 @@ with col_info:
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
-    v_brand = r2_1.text_input("브랜드", value="") # 브랜드는 별도 로직 필요시 추가
+    v_brand = r2_1.text_input("브랜드", value=parsed.get('brand', ""))
     v_vin = r2_2.text_input("VIN", value=parsed.get('vin', ""))
     v_km = r2_3.text_input("km", value=parsed.get('km', ""))
     v_color = r2_4.text_input("color", value=parsed.get('color', ""))
