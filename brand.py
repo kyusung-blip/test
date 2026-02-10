@@ -39,5 +39,6 @@ def get_brand_from_vin(vin):
         return "브랜드 미등록"
 
     except Exception as e:
+        print(f"상세 에러 내역: {e}")
         print(f"[브랜드 조회 오류] {e}")
         return "조회 오류"
