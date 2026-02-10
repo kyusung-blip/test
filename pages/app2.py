@@ -1,10 +1,9 @@
 import streamlit as st
 import os
-import sys
 import re
 from datetime import datetime
 
-# 크롤링 및 인증 관련
+# 크롤링 관련 (클라우드 환경 대응)
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -13,7 +12,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
-# --- 1. 설정 및 인덱스 정의 (GUI.py 기준) ---
+# --- 1. 설정 및 데이터 맵핑 ---
 IDX = {
     "site": 1, "sales": 2, "year": 5, "car_name": 6, "km": 9,
     "plate": 10, "vin": 11, "heydlr_delivery": 12, "color": 13,
@@ -29,10 +28,10 @@ VINYEAR_map = {
     "S": "2025", "T": "2026", "V": "2027"
 }
 
-color_map = {
-    "silver gray": "GRAY", "Silver gray": "GRAY", "sable": "BLACK", "rat color": "GRAY",
-    "pearl gray": "WHITE", "mouse gray": "GRAY", "흰색": "WHITE", "검정색": "BLACK",
-    "빨간색": "RED", "쥐색": "GRAY", "주황색": "ORANGE"
+COLOR_MAP = {
+    "silver gray": "GRAY", "sable": "BLACK", "rat color": "GRAY",
+    "pearl gray": "WHITE", "mouse gray": "GRAY", "흰색": "WHITE", 
+    "검정색": "BLACK", "빨간색": "RED", "쥐색": "GRAY", "주황색": "ORANGE"
 }
 
 ADDRESS_REGION_MAP = {
@@ -47,26 +46,36 @@ def format_number(value):
         val = int(str(value).replace(",", "").strip())
         return f"{val:,}"
     except:
-        return value
+        return "0"
 
 def parse_money(value):
     try:
-        return int(str(value).replace(",", "").replace("원", "").replace("만원", "0000").strip())
+        # 숫자가 아닌 문자 제거 후 정수 변환
+        clean_val = re.sub(r'[^0-9]', '', str(value))
+        return int(clean_val) if clean_val else 0
     except:
         return 0
 
-# --- 3. 환율 크롤링 함수 ---
+# --- 3. 환율 크롤링 (안정화 버전) ---
 def get_exchange_rate():
     options = Options()
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    # 깃허브/도커 환경에서 크롬 실행을 위한 필수 설정
     try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        service = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service, options=options)
         driver.get("https://spot.wooribank.com/pot/Dream?withyou=FXXRT0011")
-        driver.find_element(By.XPATH, '//*[@id="frm"]/fieldset/div/span/input').click()
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//td[text()='미국 달러']")))
-        rate = driver.find_element(By.XPATH, "//td[text()='미국 달러']/following-sibling::td[8]").text
+        
+        # 조회 버튼 클릭
+        WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//*[@id="frm"]/fieldset/div/span/input'))).click()
+        
+        # 환율 테이블 대기
+        target_xpath = "//td[text()='미국 달러']/following-sibling::td[8]"
+        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, target_xpath)))
+        
+        rate = driver.find_element(By.XPATH, target_xpath).text
         st.session_state['ex_rate'] = rate.replace(",", "")
         st.session_state['ex_date'] = datetime.today().strftime("%Y-%m-%d")
         st.toast("환율 정보 로드 완료!", icon="💰")
@@ -75,129 +84,129 @@ def get_exchange_rate():
     finally:
         if 'driver' in locals(): driver.quit()
 
-# --- 4. UI 설정 ---
-st.set_page_config(layout="wide", page_title="차량 매매 통합 시스템")
+# --- 4. 세션 상태 및 UI 초기화 ---
+st.set_page_config(layout="wide", page_title="차량 매매 통합 시스템", page_icon="🚘")
 
 if 'ex_rate' not in st.session_state: st.session_state['ex_rate'] = ""
 if 'ex_date' not in st.session_state: st.session_state['ex_date'] = ""
 
+# 스타일 적용 (폰트 크기 조절 및 레이아웃 최적화)
 st.markdown("""
     <style>
-    html, body, [class*="css"], .stTextInput, .stTextArea, .stButton { font-size: 10pt !important; }
-    .output-box { background-color: #f8f9fa; padding: 15px; border: 1px solid #dee2e6; border-radius: 5px; min-height: 850px; }
+    .stTextInput>div>div>input { font-size: 11pt !important; }
+    .output-box { background-color: #f0f2f6; padding: 20px; border-radius: 10px; border-left: 5px solid #ff4b4b; min-height: 500px; }
+    .stButton>button { width: 100%; border-radius: 5px; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 5. 데이터 파싱 로직 (GUI.py 스타일) ---
-parsed = {k: "" for k in IDX.keys()}
-st.subheader("📋 데이터 붙여넣기")
-raw_input = st.text_area("탭 구분 데이터를 여기에 붙여넣으세요", height=70)
+# --- 5. 데이터 파싱 로직 ---
+st.subheader("📋 데이터 입력 (Tab 구분)")
+raw_input = st.text_area("엑셀/구글시트에서 복사한 데이터를 붙여넣으세요", height=100, placeholder="여기에 붙여넣기...")
+
+# 파싱된 데이터를 담을 딕셔너리 초기화
+p = {k: "" for k in IDX.keys()}
 
 if raw_input:
     parts = raw_input.split('\t')
     for key, idx in IDX.items():
         if len(parts) > idx:
-            parsed[key] = parts[idx].strip()
+            p[key] = parts[idx].strip()
     
-    # VIN 기반 연도 자동 추출
-    if len(parsed['vin']) >= 10:
-        year_code = parsed['vin'][9].upper()
-        parsed['year'] = VINYEAR_map.get(year_code, parsed['year'])
+    # 로직: VIN 기반 연도 추출
+    if len(p['vin']) >= 10:
+        year_code = p['vin'][9].upper()
+        p['year'] = VINYEAR_map.get(year_code, p['year'])
     
-    # 컬러 맵핑
-    parsed['color'] = color_map.get(parsed['color'].lower(), parsed['color'].upper())
+    # 로직: 컬러 맵핑
+    p['color'] = COLOR_MAP.get(p['color'].lower(), p['color'])
     
-    # 주소 기반 지역 맵핑
+    # 로직: 주소 기반 지역 추출
     for keyword, region in ADDRESS_REGION_MAP.items():
-        if keyword in parsed['address']:
-            parsed['region'] = region
+        if keyword in p['address']:
+            p['region'] = region
             break
 
-# --- 6. 메인 화면 구성 (7:3 분할) ---
+# --- 6. 메인 화면 구성 ---
 col_left, col_right = st.columns([0.7, 0.3])
 
 with col_left:
-    L_main, R_main = st.columns([1.1, 1])
+    L_main, R_main = st.columns(2)
 
     with L_main:
-        st.markdown("**🚗 차량 기본 정보**")
-        v_plate = st.text_input("차번호", value=parsed['plate'])
-        v_year = st.text_input("연식", value=parsed['year'])
-        v_car_name = st.text_input("차명", value=parsed['car_name'])
-        v_vin = st.text_input("VIN", value=parsed['vin'])
+        st.markdown("### 🚗 차량 정보")
+        v_plate = st.text_input("차량 번호", value=p['plate'])
+        v_car_name = st.text_input("모델명", value=p['car_name'])
+        v_vin = st.text_input("차대번호(VIN)", value=p['vin'])
         
         c1, c2 = st.columns(2)
-        v_km = c1.text_input("km", value=parsed['km'])
-        v_color = c2.text_input("color", value=parsed['color'])
+        v_year = c1.text_input("연식", value=p['year'])
+        v_km = c2.text_input("주행거리(km)", value=p['km'])
         
-        v_addr = st.text_input("주소", value=parsed['address'])
         c3, c4 = st.columns(2)
-        v_phone = c3.text_input("딜러연락처", value=parsed['dealer_phone'])
-        v_region = c4.text_input("지역", value=parsed['region'])
+        v_color = c3.text_input("색상", value=p['color'])
+        v_region = c4.text_input("지역", value=p['region'])
+        
+        v_addr = st.text_input("상세 주소", value=p['address'])
+        v_phone = st.text_input("딜러 연락처", value=p['dealer_phone'])
 
-        with st.expander("🤝 딜러/판매자 정보", expanded=True):
-            st.columns(2)[0].text_input("상사명")
-            st.columns(2)[1].text_input("사업자번호")
-        
-        st.text_input("차량대계좌")
-        st.columns([2,1,1])[0].text_input("입금자명")
-        st.columns([2,1,1])[1].markdown("<br>", unsafe_allow_html=True)
-        st.columns([2,1,1])[1].button("계좌확인")
-        
-        st.columns([2,1,1])[0].text_input("바이어명", value=parsed['buyer'])
-        st.columns([2,1,1])[1].text_input("나라")
-        st.columns([2,1,1])[2].markdown("<br>", unsafe_allow_html=True)
-        st.columns([2,1,1])[2].button("확인")
+        with st.expander("👤 바이어 및 계좌 정보"):
+            v_buyer = st.text_input("바이어명", value=p['buyer'])
+            st.text_input("입금자명")
+            st.text_input("입금 계좌번호")
 
     with R_main:
-        st.markdown("**💰 정산 및 결제 정보**")
-        v_price = st.text_input("차량대", value=format_number(parsed['price']))
-        st.text_input("계산서X", value=format_number(parsed['contract']))
-        v_fee = st.text_input("매도비", value=format_number(parsed['fee']))
-        st.text_input("DECLARATION")
+        st.markdown("### 💰 정산 정보")
+        v_price = st.text_input("차량 대금", value=format_number(p['price']))
+        v_fee = st.text_input("매도비", value=format_number(p['fee']))
+        v_contract = st.text_input("계약금", value="0")
         
-        # 합계 계산
+        # 합계 자동 계산
         total_val = parse_money(v_price) + parse_money(v_fee)
-        st.text_input("합계금액", value=f"{total_val:,}")
-
-        with st.expander("세부 정산(Calculation)", expanded=True):
-            st.text_input("계약금(만원)")
-            st.text_input("잔금", value=format_number(parsed['balance']))
-            
-        with st.expander("⭐ 오토위니", expanded=True):
-            st.text_input("업체명")
-            st.text_input("환율기준일", value=st.session_state['ex_date'])
-            cex1, cex2 = st.columns([3, 1])
-            cex1.text_input("환율", value=st.session_state['ex_rate'])
-            cex2.markdown("<br>", unsafe_allow_html=True)
-            if cex2.button("환율"): get_exchange_rate(); st.rerun()
-
-        st.markdown("**🏷️ 플랫폼 정보**")
-        st.columns(2)[0].text_input("사이트", value=parsed['site'])
-        st.columns(2)[1].text_input("세일즈팀", value=parsed['sales'])
-        st.selectbox("헤이딜러 종류", ["선택 안함", "제로", "셀프"])
-        st.text_input("헤이딜러탁송", value=parsed['heydlr_delivery'])
+        st.markdown(f"**총 합계: {total_val:,} 원**")
+        
+        with st.expander("🌐 플랫폼 및 환율", expanded=True):
+            st.text_input("사이트", value=p['site'])
+            st.text_input("세일즈팀", value=p['sales'])
+            if st.button("🔄 우리은행 환율 가져오기"):
+                get_exchange_rate()
+                st.rerun()
+            st.text_input("현재 환율", value=st.session_state['ex_rate'])
+            st.caption(f"기준일자: {st.session_state['ex_date']}")
 
     st.divider()
-    st.markdown("**🛠️ 실행 제어**")
-    row1 = st.columns(6)
-    btn_confirm = row1[0].button("확인후")
-    btn_sales = row1[1].button("세일즈팀")
-    btn_sms = row1[3].button("문자")
-    
-    row2 = st.columns(6)
-    btn_remit = row2[3].button("송금완료")
-    btn_reset = row2[5].button("내용리셋", type="secondary")
+    # 하단 버튼 레이아웃
+    st.markdown("### 🛠️ 실행 메뉴")
+    b_col1, b_col2, b_col3, b_col4 = st.columns(4)
+    btn_confirm = b_col1.button("✅ 데이터 확정", use_container_width=True)
+    btn_sms = b_col2.button("📱 문자 발송 양식", use_container_width=True)
+    btn_remit = b_col3.button("💸 송금 요청", use_container_width=True)
+    btn_reset = b_col4.button("♻️ 내용 초기화", type="secondary", use_container_width=True)
 
 # --- 7. 우측 결과 출력 섹션 ---
 with col_right:
-    st.subheader("📝 결과 출력")
-    st.markdown('<div class="output-box">', unsafe_allow_html=True)
-    if btn_confirm:
-        st.success(f"[{v_plate}] 확인 완료")
-        st.code(f"차량명: {v_car_name}\n번호: {v_plate}\n지역: {v_region}", language=None)
-    elif btn_reset:
-        st.rerun()
-    else:
-        st.write("버튼을 클릭하면 결과가 표시됩니다.")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown("### 📝 결과 프리뷰")
+    output_container = st.container()
+    
+    with output_container:
+        if btn_confirm:
+            st.success("데이터가 정리되었습니다.")
+            res_text = f"""[차량 정보 확정]
+• 번호: {v_plate}
+• 모델: {v_car_name}
+• 연식: {v_year}
+• 주행: {v_km}km
+• 지역: {v_region}
+• 합계: {total_val:,}원"""
+            st.code(res_text, language=None)
+            st.button("📋 복사하기 (준비중)")
+        
+        elif btn_sms:
+            sms_text = f"[{v_plate}] 매입 진행합니다. {v_region} 탁송 기사님 배정 후 연락드리겠습니다."
+            st.info("문자 발송 양식")
+            st.code(sms_text, language=None)
+
+        elif btn_reset:
+            st.rerun()
+        
+        else:
+            st.markdown('<div class="output-box">왼쪽의 버튼을 클릭하면 결과가 생성됩니다.</div>', unsafe_allow_html=True)
