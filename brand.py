@@ -2,21 +2,18 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 
 def get_google_sheet():
-    """구글 스프레드시트 연결 설정"""
     scope = [
         "https://www.googleapis.com/auth/spreadsheets",
         "https://www.googleapis.com/auth/drive"
     ]
-    # JSON 키 파일 이름 (파일이 brand.py와 같은 경로에 있어야 함)
-    try:
-        creds = ServiceAccountCredentials.from_json_keyfile_name(
-            "concise-isotope-456307-n5-8cf3eb97b093.json", scope)
-        gc = gspread.authorize(creds)
-        spreadsheet = gc.open("Dealer Information")
-        return spreadsheet.worksheet("브랜드")
-    except Exception as e:
-        print(f"구글 시트 연결 실패: {e}")
-        return None
+    creds = ServiceAccountCredentials.from_json_keyfile_name(
+        "concise-isotope-456307-n5-8cf3eb97b093.json", scope)
+    
+    gc = gspread.authorize(creds)
+    # 📌 Sheet 이름은 사용자의 설정에 따라 다를 수 있음
+    spreadsheet = gc.open("Dealer Information")
+    sheet = spreadsheet.worksheet("브랜드")
+    return sheet
 
 def get_brand_from_vin(vin):
     """VIN 코드를 받아 브랜드를 반환"""
