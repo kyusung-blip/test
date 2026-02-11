@@ -24,8 +24,6 @@ if st.session_state["current_page"] != "buyprogram":
             del st.session_state[key]
     st.session_state["current_page"] = "buyprogram"
 
-if "inspection_status" not in st.session_state:
-    st.session_state["inspection_status"] = "X"
 # parsed 변수는 항상 루프 시작 시 빈 딕셔너리로 초기화
 parsed = {}
 
@@ -65,7 +63,8 @@ with top_col2:
         st.rerun()
         
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
-
+if "inspection_status" not in st.session_state:
+    st.session_state["inspection_status"] = "X"
 parsed = {}
 # --- 1. 상단 자동 파싱 로직 내부 ---
 if raw_input:
@@ -455,7 +454,7 @@ with col_list:
 
     with tab3:
         # 데이터 수집 (필요한 모든 위젯 변수 포함)
-        reg_data = {
+        ect_data = {
             "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
             "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
             "region": v_region, "sales": v_sales, "buyer": v_buyer, 
@@ -472,7 +471,7 @@ with col_list:
             st.rerun()
         if e_c2.button("🚀 정보등록", type="primary"):
             with st.spinner("시트에 등록 중..."):
-                res = inventoryenter.run_integrated_registration(reg_data)
+                res = inventoryenter.run_integrated_registration(ect_data)
                 if res["status"] in ["success", "partial"]:
                     st.success(res["message"])
                 else:
