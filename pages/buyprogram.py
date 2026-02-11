@@ -193,12 +193,6 @@ with col_list:
             if st.button("♻️ 내용리셋", key="rs1"):
                 st.session_state["out_tab1_final"] = ""
                 st.rerun()
-
-        # 내용 리셋 버튼 (세션 상태 직접 수정)
-        if b2.button("♻️ 내용리셋", key="rs1"):
-            st.session_state["out_tab1_final"] = ""  # 위젯의 key값을 초기화
-            st.rerun()
-
     with tab2:
     # 데이터 수집 (입력창 변수들)
         remit_data = {
