@@ -207,7 +207,7 @@ with col_info:
     v_total = st.text_input("합계금액", value=pm.format_number(total_val))
 
     r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
-    v_sender = st.text_input(
+    v_sender = r5_1.text_input(
     "입금자명", 
     value=d_data.get("sender", ""),
     key="sender_input"
