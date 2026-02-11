@@ -138,7 +138,7 @@ with col_info:
         st.caption("🏢 딜러/판매자 정보")
         c1, c2 = st.columns(2)
         v_biz_name = c1.text_input("상사명", value="") 
-        v_dealer_num = st.text_input(
+        v_biz_num = st.text_input(
         "사업자번호", 
         value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
         key="biz_num_input"
