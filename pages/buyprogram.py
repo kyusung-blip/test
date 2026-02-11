@@ -456,7 +456,7 @@ with col_list:
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
             st.rerun()
     
-        st.text_area("송금 요청 결과", height=450, key="out_tab2_final")
+        st.text_area("송금 요청 결과", height=600, key="out_tab2_final")
         content2 = st.session_state.get("out_tab2", "")
         if content2:
             st.caption("👇 우측 상단 복사 아이콘 클릭")
