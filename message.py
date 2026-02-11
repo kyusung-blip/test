@@ -26,26 +26,11 @@ def handle_confirm(data, m_type="confirm"):
 
     # 1. 아웃소싱 메시지
     if m_type == "outsource":
-        result = f"""요청자 : {data.get('sales', '')}
-차명 : {car_name}
-차량번호 : {plate}
-주소 : {data.get('address', '')}
-차주 연락처 : {data.get('dealer_phone', '')}
-
-{data.get('region', '')} 한대 부탁드립니다~!
-
-{data.get('site', '')}
-"""
+        result = f"요청자 : {data.get('sales', '')}\n차명 : {car_name}\n차량번호 : {plate}\n주소 : {data.get('address', '')}\n차주 연락처 : {data.get('dealer_phone', '')}\n\n{data.get('region', '')} 한대 부탁드립니다~!\n\n{data.get('site', '')}\n"
+    
     # 2. 주소공유 메시지
     elif m_type == "share_address":
-        result = f"""Sales Team : {data.get('sales', '')}
-Model : {car_name}
-Plate : {plate}
-Car Address : {data.get('address', '')}
-Dealer Phone : {data.get('dealer_phone', '')}
-
-{data.get('site', '')}
-"""
+        result = f"Sales Team : {data.get('sales', '')}\nModel : {car_name}\nPlate : {plate}\nCar Address : {data.get('address', '')}\nDealer Phone : {data.get('dealer_phone', '')}\n\n{data.get('site', '')}\n"
     
     # 3. 일반 안내 문자들 (수출말소기준)
     else:
