@@ -21,7 +21,7 @@ def run_integrated_registration(data):
         vin = data.get('vin', '').strip()
         year = data.get('year', '')
         car_name = data.get('car_name_remit', '') # 송금용 차명
-        inspection_val = data.get('inspection', '?')
+        inspection_val = data.get('inspection', '?').lower()
         
         # 2. 메인 시트(2026) 중복 검사
         sheet_main = gsm.get_main_2026_sheet()
