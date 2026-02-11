@@ -169,9 +169,9 @@ with col_info:
     final_address = sheet_address if sheet_address else parsed_address
     # 주소 (구글 시트 우선)
     v_address = r4_3.text_input(
-        "주소", 
-        value=st.session_state.get("dealer_data", {}).get("address") if st.session_state.get("dealer_data", {}).get("address") else parsed.get('address', ""),
-        key="v_address_key"
+    "주소", 
+    value=final_address,
+    key="v_address_key"
     )
 
     # 딜러/판매자 정보 프레임
