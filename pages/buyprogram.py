@@ -512,30 +512,32 @@ with col_list:
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
             
-        if st.button("📊 이카운트 ERP 입력", key="btn_ecount", type="secondary"):
-            if not v_plate:
-                st.warning("차량 번호가 없습니다. 데이터를 먼저 파싱해주세요.")
-            else:
-                with st.spinner("이카운트 전송 중..."):
-                    # 1. 세션 토큰 획득
+        if e_c1.button("📊 이카운트 품목등록", key="btn_ecount_item"):
+            with st.spinner("구글 시트 확인 및 이카운트 전송 중..."):
+                # 1. 먼저 구글 시트에 등록하고 결과를 받아옵니다 (기존 inventoryenter 활용)
+                res = inventoryenter.run_integrated_registration(ect_data)
+                
+                if res["status"] in ["success", "partial"]:
+                    # 구글 시트 B열의 값(순번)을 res에서 가져온다고 가정 (res에 해당 값이 포함되어 있어야 함)
+                    # 만약 res에 없다면 inventoryenter에서 반환하도록 수정이 필요합니다.
+                    sheet_no = res.get("sheet_b_value", "0") 
+                    
+                    # 2. 이카운트 세션 접속
+                    import ecount
                     session_id = ecount.get_session_id()
                     
                     if session_id:
-                        # 오늘 날짜 추가 (YYYYMMDD 형식)
-                        ect_data["date"] = datetime.now().strftime("%Y%m%d")
+                        # 3. 이카운트 품목 등록 실행
+                        item_res = ecount.register_item(ect_data, session_id, sheet_no)
                         
-                        # 2. 전표 등록 실행
-                        result = ecount.register_purchase(ect_data, session_id)
-                        
-                        # 3. 결과 처리
-                        if result.get("Status") == "200":
-                            st.success("✅ 이카운트 매입전표 등록 성공!")
-                            # 이카운트 전표 번호 등을 확인하고 싶다면: result['Data']['Datas']['Details'][0]['BILL_NO']
+                        if item_res.get("Status") == "200":
+                            st.success(f"✅ 이카운트 품목 등록 완료! (NO: {sheet_no})")
                         else:
-                            error_msg = result.get("Message", "알 수 없는 에러")
-                            st.error(f"❌ 등록 실패: {error_msg}")
+                            st.error(f"❌ 이카운트 오류: {item_res.get('Message')}")
                     else:
-                        st.error("❌ 이카운트 로그인 실패. (회사코드/키를 확인하세요)")    
+                        st.error("이카운트 로그인에 실패했습니다.")
+                else:
+                    st.error("구글 시트 등록에 실패하여 이카운트 전송을 중단합니다.") 
                     
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
