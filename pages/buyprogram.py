@@ -123,19 +123,14 @@ with col_info:
     v_region = r4_2.text_input(
     "지역", 
     value=st.session_state.get("detected_region", parsed.get('region', "")), 
-    key="region_input"
+    key="v_region_key"
     )
     
     # 주소 (구글 시트 우선)
     v_address = r4_3.text_input(
         "주소", 
         value=st.session_state.get("dealer_data", {}).get("address") if st.session_state.get("dealer_data", {}).get("address") else parsed.get('address', ""),
-        key="address_input"
-    )
-    v_address = st.text_input(
-    "주소", 
-    value=d_data.get("address") if d_data.get("address") else parsed.get('address', ""),
-    key="address_input"
+        key="v_address_key"
     )
 
     # 딜러/판매자 정보 프레임
