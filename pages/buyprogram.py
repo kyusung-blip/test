@@ -3,6 +3,7 @@ import re
 from datetime import datetime
 import logic as lg  # 작성한 logic.py 임포트
 import price_manager as pm # price_manager를 pm이라는 별칭으로 가져옵니다.
+import message as msg_logic
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
@@ -141,16 +142,32 @@ with col_list:
     tab1, tab2, tab3 = st.tabs(["💬 문자전송", "💵 송금요청", "➕ 기타"])
 
     with tab1:
-        # 버튼 배치 (2열)
+        input_data = {
+        "year": v_year, "car_name": v_car_name, "plate": v_plate,
+        "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
+        "sales": v_sales, "address": v_address, "dealer_phone": v_dealer_phone,
+        "region": v_region, "site": v_site
+        }
+
         m_c1, m_c2 = st.columns(2)
-        if m_c1.button("확인후"): pass
-        if m_c2.button("세일즈팀"): pass
-        if m_c1.button("검수자"): pass
-        if m_c2.button("문자"): pass
-        if m_c1.button("아웃소싱"): pass
-        if m_c2.button("주소공유"): pass
-        
-        st.text_area("문자 출력 결과", value=st.session_state.output_text, height=250, key="out_tab1")
+        if m_c1.button("확인후"):
+        st.session_state.output_text = msg_logic.handle_confirm(input_data, "confirm")
+        if m_c2.button("세일즈팀"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "salesteam")
+        if m_c1.button("검수자"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "inspection")
+        if m_c2.button("문자"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "sms")
+        if m_c1.button("아웃소싱"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
+        if m_c2.button("주소공유"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
+    
+        # 결과 출력창
+        st.session_state.output_text = st.text_area("문자 출력 결과", 
+                                                   value=st.session_state.output_text, 
+                                                   height=250, key="out_tab1_final")
+
         b1, b2 = st.columns(2)
         b1.button("📋 내용복사", key="cp1")
         b2.button("♻️ 내용리셋", key="rs1")
