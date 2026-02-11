@@ -24,42 +24,8 @@ if st.session_state["current_page"] != "buyprogram":
             del st.session_state[key]
     st.session_state["current_page"] = "buyprogram"
 
-# --- 1. 상단 자동 파싱 로직 내부 ---
-if raw_input:
-    parsed = lg.parse_excel_data(raw_input)
-    plate = parsed.get('plate', "").strip()
-    
-    # 💡 이 로직을 추가하세요
-    if plate and st.session_state.get('last_checked_plate') != plate:
-        with st.spinner("Inspection 상태 조회 중..."):
-            # 시트에서 C, X, S 중 하나를 가져옵니다.
-            insp_status = Inspectioncheck.fetch_inspection_status(plate)
-            st.session_state["inspection_status"] = insp_status
-            st.session_state["last_checked_plate"] = plate
-            
-# --- 좌측 매입 정보 위젯 부분 ---
-with insp_col:
-    # 1. 선택지 리스트 정의
-    insp_list = ["X", "S", "C"]
-    
-    # 2. 세션에서 현재 상태 가져오기 (없으면 기본값 "X")
-    current_insp = st.session_state.get("inspection_status", "X")
-    
-    # 3. 상태값에 맞는 인덱스 번호 계산 (X=0, S=1, C=2)
-    try:
-        insp_idx = insp_list.index(current_insp)
-    except ValueError:
-        insp_idx = 0
-
-    # 4. index=insp_idx를 넣어 위젯이 자동으로 바뀌게 설정
-    v_inspection = st.selectbox(
-        "Inspection", 
-        insp_list, 
-        index=insp_idx, 
-        key="v_inspection_key",
-        label_visibility="collapsed"
-    )
-
+if "inspection_status" not in st.session_state:
+    st.session_state["inspection_status"] = "X"
 # parsed 변수는 항상 루프 시작 시 빈 딕셔너리로 초기화
 parsed = {}
 
@@ -101,7 +67,41 @@ with top_col2:
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
 
 parsed = {}
+# --- 1. 상단 자동 파싱 로직 내부 ---
+if raw_input:
+    parsed = lg.parse_excel_data(raw_input)
+    plate = parsed.get('plate', "").strip()
+    
+    # 💡 이 로직을 추가하세요
+    if plate and st.session_state.get('last_checked_plate') != plate:
+        with st.spinner("Inspection 상태 조회 중..."):
+            # 시트에서 C, X, S 중 하나를 가져옵니다.
+            insp_status = Inspectioncheck.fetch_inspection_status(plate)
+            st.session_state["inspection_status"] = insp_status
+            st.session_state["last_checked_plate"] = plate
+            
+# --- 좌측 매입 정보 위젯 부분 ---
+with insp_col:
+    # 1. 선택지 리스트 정의
+    insp_list = ["X", "S", "C"]
+    
+    # 2. 세션에서 현재 상태 가져오기 (없으면 기본값 "X")
+    current_insp = st.session_state.get("inspection_status", "X")
+    
+    # 3. 상태값에 맞는 인덱스 번호 계산 (X=0, S=1, C=2)
+    try:
+        insp_idx = insp_list.index(current_insp)
+    except ValueError:
+        insp_idx = 0
 
+    # 4. index=insp_idx를 넣어 위젯이 자동으로 바뀌게 설정
+    v_inspection = st.selectbox(
+        "Inspection", 
+        insp_list, 
+        index=insp_idx, 
+        key="v_inspection_key",
+        label_visibility="collapsed"
+    )
 # 데이터가 입력되었을 때만 실행
 if raw_input:
     # 1. 엑셀 파싱
