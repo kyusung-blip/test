@@ -101,6 +101,14 @@ if raw_input:
                 res = country.handle_buyer_country(buyer, "")
                 if res["status"] == "fetched":
                     st.session_state["country_data"] = res["country"]
+            # [추가] 차명 매핑 데이터 가져오기
+            import google_sheet_manager as gsm
+            car_map = gsm.get_car_name_map()
+            
+            # [추가] 송금용 차명 자동 결정
+            original_car_name = parsed.get('car_name', "")
+            alt_name = lg.get_alt_car_name(original_car_name, car_map)
+            
             # [추가] 주소에서 지역 추출 로직
             parsed_address = parsed.get('address', "")
             detected = mapping.get_region_from_address(parsed_address)
@@ -180,7 +188,8 @@ with col_info:
     v_plate = r1_1.text_input("차번호", value=parsed.get('plate', ""))
     v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
     v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
-    v_car_name_remit = r1_4.text_input("차명(송금용)", value=parsed.get('car_name', ""))
+    default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
+    v_car_name_remit = r1_4.text_input("차명(송금용)", value=default_alt_name)
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
