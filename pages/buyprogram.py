@@ -164,7 +164,8 @@ with col_list:
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
         if m_c2.button("주소공유"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
-    
+        
+        st.divider()    
         # 결과 출력창
         st.text_area(
         "문자 출력 결과", 
