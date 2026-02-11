@@ -19,33 +19,32 @@ if "current_page" not in st.session_state:
 if st.session_state["current_page"] != "buyprogram":
     # 초기화할 위젯 키 (key="...") 리스트
     # 여기에 입력창에 부여한 모든 key 이름을 넣어야 칸이 비워집니다.
-    target_keys = [
-        "raw_input_main", "v_region_key", "v_address_key", 
-        "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
-        "acc_x_input", "acc_fee_input", "sender_input", 
-        "v_declaration_key", "v_inspection_key"
-    ]
-    
-    # 위젯 상태 강제 비우기
-    for k in target_keys:
+# --- 0. 모든 위젯 키 정의 (에러 방지용 리스트) ---
+# 리셋 시 비워야 할 모든 key 이름들입니다.
+ALL_WIDGET_KEYS = [
+    "raw_input_main", "v_region_key", "v_address_key", 
+    "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
+    "acc_x_input", "acc_fee_input", "sender_input", 
+    "v_declaration_key", "v_inspection_key"
+]
+
+# --- 1. 페이지 상태 초기화 ---
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "buyprogram"
+
+# 페이지가 바뀌었을 때 자동 리셋 로직
+if st.session_state["current_page"] != "buyprogram":
+    for k in ALL_WIDGET_KEYS:
         if k in st.session_state:
-            st.session_state[k] = "" # 또는 selectbox일 경우 기본값 설정
-            
-    # 데이터 바구니(딕셔너리 등) 초기화
+            st.session_state[k] = ""
+    
+    # 데이터 바구니 초기화
     st.session_state["dealer_data"] = {}
     st.session_state["detected_region"] = ""
-    st.session_state["country_data"] = ""
-    st.session_state["inspection_status"] = "X"
-    st.session_state["last_searched_phone"] = ""
-    st.session_state["last_checked_plate"] = ""
-
-    # 초기화 완료 후 현재 페이지를 'buyprogram'으로 갱신
     st.session_state["current_page"] = "buyprogram"
-    st.rerun() # 변경사항을 즉시 화면에 반영
-# parsed 변수는 항상 루프 시작 시 빈 딕셔너리로 초기화
-parsed = {}
+    st.rerun()
 
-# --- 0. 기본 설정 ---
+# --- 2. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
 # CSS 스타일 유지
