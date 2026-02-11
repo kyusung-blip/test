@@ -11,7 +11,7 @@ def get_spreadsheet():
     return gc.open("Dealer Information")
 
 def get_dealer_sheet():
-    return get_spreadsheet().sheet1
+    return get_spreadsheet().worksheet("시트1")
 
 def get_company_sheet():
     return get_spreadsheet().worksheet("상사정보")
