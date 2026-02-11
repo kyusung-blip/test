@@ -166,9 +166,12 @@ with col_list:
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
     
         # 결과 출력창
-        st.session_state.output_text = st.text_area("문자 출력 결과", 
-                                                   value=st.session_state.output_text, 
-                                                   height=250, key="out_tab1_final")
+        st.text_area(
+        "문자 출력 결과", 
+        value=st.session_state.output_text, 
+        height=250, 
+        key="out_tab1_final"
+        )
 
         b1, b2 = st.columns(2)
         b1.button("📋 내용복사", key="cp1")
