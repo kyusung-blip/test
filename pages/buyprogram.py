@@ -539,6 +539,25 @@ with col_list:
                     # 실패 원인을 정확히 출력
                     st.error(f"❌ 이카운트 오류 응답: {res_data.get('Message')}")
                     st.json(res_data) # 전체 응답 구조 확인
+        # 버튼 로직 내부에 잠시 넣어보세요
+        if st.button("🌐 네트워크 진단 테스트"):
+            target_host = "oapi.ecount.com"
+            try:
+                # 1. DNS가 주소를 찾을 수 있는지 확인
+                ip_address = socket.gethostbyname(target_host)
+                st.write(f"✅ DNS 확인 성공: {target_host} -> {ip_address}")
+                
+                # 2. 실제로 접속 시도 (timeout 5초)
+                import requests
+                test_res = requests.get(f"https://{target_host}", timeout=5)
+                st.write(f"✅ 접속 성공! 상태 코드: {test_res.status_code}")
+                
+            except socket.gaierror:
+                st.error(f"❌ DNS 에러: {target_host} 주소를 찾을 수 없습니다. (도메인 오타 가능성)")
+            except requests.exceptions.ConnectTimeout:
+                st.error(f"❌ 타임아웃: 서버가 응답하지 않습니다. (방화벽 차단 가능성)")
+            except Exception as e:
+                st.error(f"❌ 기타 에러: {str(e)}")
                     
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
