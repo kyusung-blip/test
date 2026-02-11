@@ -132,3 +132,23 @@ def run_integrated_registration(data):
 
     except Exception as e:
         return {"status": "error", "message": f"등록 실패: {str(e)}"}
+        
+def get_no_by_vin(vin_value):
+    """
+    구글 시트에서 VIN(E열)을 검색하여 해당 행의 NO(B열)를 반환합니다.
+    """
+    try:
+        # 1. 2026 시트의 모든 데이터를 가져옵니다. 
+        # (이미 정의된 시트 객체 이름을 사용하세요. 예: sheet_2026)
+        all_values = sheet_2026.get_all_values()
+        
+        # 2. 루프를 돌며 E열(index 4)에서 VIN을 찾습니다.
+        for row in all_values:
+            # row[4] 가 E열(VIN), row[1] 이 B열(NO) 입니다.
+            if len(row) > 4 and row[4] == vin_value:
+                return row[1] # 찾으면 B열 값 반환
+                
+        return None # 찾지 못하면 None 반환
+    except Exception as e:
+        print(f"시트 조회 중 오류 발생: {e}")
+        return None
