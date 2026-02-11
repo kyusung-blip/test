@@ -107,13 +107,13 @@ top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 1. 위젯과 연결된 모든 키 삭제 (오류 방지 핵심)
+        # 1. 위젯 키 삭제 (상단 입력칸 포함)
         for k in ALL_WIDGET_KEYS:
             if k in st.session_state:
                 del st.session_state[k]
         
-        # 2. 결과물 및 데이터 바구니 초기화
-        # 위젯 키 외의 커스텀 세션 키들을 정리합니다.
+        # 2. 파싱 방지 및 데이터 바구니 초기화
+        # 'last_raw_input'을 지워야 rerun 후 다시 파싱되지 않습니다.
         keys_to_reset = [
             "dealer_data", "detected_region", "country_data", 
             "inspection_status", "last_raw_input", "parsed_data",
@@ -122,11 +122,9 @@ with top_col2:
         
         for k in keys_to_reset:
             if k in st.session_state:
-                # 데이터 바구니는 삭제하거나 기본값으로 초기화
+                # 딕셔너리 형태는 빈 중괄호로, 나머지는 빈 값으로
                 if k in ["dealer_data", "parsed_data"]:
                     st.session_state[k] = {}
-                elif k == "inspection_status":
-                    st.session_state[k] = "X"
                 else:
                     st.session_state[k] = ""
         
