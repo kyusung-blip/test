@@ -194,10 +194,9 @@ with col_list:
             st.code(content1, language=None)
                 else:
                     st.toast("복사할 내용이 없습니다.", icon="⚠️")
-        with b2:
-            if st.button("♻️ 내용리셋", key="rs1"):
-                st.session_state["out_tab1_final"] = ""
-                st.rerun()
+        if st.button("♻️ 내용리셋", key="rs1"):
+            st.session_state["out_tab1_final"] = ""
+            st.rerun()
     with tab2:
     # 데이터 수집 (입력창 변수들)
         remit_data = {
