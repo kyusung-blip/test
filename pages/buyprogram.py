@@ -514,21 +514,30 @@ with col_list:
             st.rerun()
             
         # tab3 내부
-        if st.button("🔌 이카운트 접속 테스트"):
-            with st.spinner("이카운트 서버 응답 대기 중..."):
+        if st.button("📊 이카운트 품목 등록", key="btn_ecount_final"):
+            with st.spinner("이카운트 세션 획득 및 품목 등록 중..."):
                 import ecount
                 import importlib
                 importlib.reload(ecount)
                 
-                # 품목 등록은 하지 않고, 로그인 결과만 받아옴
-                result = ecount.get_session_id()
+                session_id = ecount.get_session_id()
                 
-                if result.get("Status") == "200":
-                    st.success("✅ 접속 성공!")
-                    st.json(result) # 성공 시 받은 토큰 정보를 보여줌
+                if session_id:
+                    # 1. 구글 시트 등록 결과에서 NO(B열) 가져오기
+                    # (기존에 정의된 inventoryenter 로직 실행)
+                    res = inventoryenter.run_integrated_registration(ect_data)
+                    sheet_no = res.get("sheet_b_value", "0") if res["status"] != "fail" else "0"
+                    
+                    # 2. 이카운트에 실제 품목 등록
+                    item_result = ecount.register_item(ect_data, session_id, sheet_no)
+                    
+                    if str(item_result.get("Status")) == "200":
+                        st.success(f"✅ 이카운트 품목 등록 성공! (NO: {sheet_no})")
+                    else:
+                        st.error(f"❌ 품목 등록 실패: {item_result.get('Message')}")
+                        st.json(item_result)
                 else:
-                    st.error("❌ 접속 실패")
-                    st.json(result) # 에러 메시지나 상세 내용을 보여줌
+                    st.error("❌ 이카운트 로그인 세션 획득에 실패했습니다.")
         # 버튼 로직 내부에 잠시 넣어보세요
         if st.button("🌐 네트워크 진단 테스트"):
             target_host = "oapi.ecount.com"
