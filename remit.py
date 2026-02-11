@@ -100,19 +100,7 @@ def handle_remit(data, r_type="일반매입"):
         else: # 제로, 바로낙찰
             message += f"\n차대금 송금 부탁드립니다~!\n\n차대금: {raw_price}\n입금계좌:\n{account}\n\n늦어도 탁송 출발 2시간 전까지 입금 부탁드립니다.\n일정: {h_delivery}"
 
-    # [일반매입 양식 (Default)]
-    else:
-        if not is_zero(raw_price) and not is_zero(raw_contract_x):
-            # 분리 매입
-            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n계산서(O): {raw_price}\n계산서(X): {raw_contract_x}\n"
-            if not is_zero(raw_fee): message += f"매도비: {raw_fee}\n"
-            message += f"합계: {raw_total}\n\n계좌\n계산서(O): {account}\n계산서(X): {notbill}\n"
-            if feeaccount and not is_zero(raw_fee): message += f"매도비: {feeaccount}\n"
-            message += f"\n{sender_name}{name_suffix} 송금 부탁드립니다."
-        else:
-            # 단일 매입
-            fee_line = "매도비포함" if is_zero(raw_fee) else f"매도비: {raw_fee}"
-            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
+       message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
             if feeaccount and not is_zero(raw_fee): message += f"매도비: {feeaccount}\n"
             message += f"\n{sender_name}{name_suffix} 송금 부탁드립니다."
 
