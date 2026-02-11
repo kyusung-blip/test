@@ -201,17 +201,17 @@ with col_list:
 
     with tab2:
     # 데이터 수집 (입력창 변수들)
-    remit_data = {
-        "plate": v_plate, "year": v_year, "car_name": v_car_name, "vin": v_vin,
-        "address": v_address, "dealer_phone": v_dealer_phone,
-        "price_acc": v_acc_o, "notbill_acc": v_acc_x, "fee_acc": v_acc_fee,
-        "sender_name": v_sender, "brand": v_brand, "dealer_number": v_dealer_num,
-        "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
-        "total": v_total, "deposit": v_deposit, "balance": v_balance,
-        "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
-        "usd_price": v_usd, "won_price": v_won,
-        "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
-    }
+        remit_data = {
+            "plate": v_plate, "year": v_year, "car_name": v_car_name, "vin": v_vin,
+            "address": v_address, "dealer_phone": v_dealer_phone,
+            "price_acc": v_acc_o, "notbill_acc": v_acc_x, "fee_acc": v_acc_fee,
+            "sender_name": v_sender, "brand": v_brand, "dealer_number": v_dealer_num,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
+            "total": v_total, "deposit": v_deposit, "balance": v_balance,
+            "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
+            "usd_price": v_usd, "won_price": v_won,
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
+        }
 
         r_c1, r_c2 = st.columns(2)
         if r_c1.button("일반매입 송금"):
