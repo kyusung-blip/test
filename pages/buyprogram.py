@@ -1,8 +1,8 @@
 import streamlit as st
 import re
 from datetime import datetime
-import logic as lg  # 작성한 logic.py 임포트
-import price_manager as pm # price_manager를 pm이라는 별칭으로 가져옵니다.
+import logic as lg  
+import price_manager as pm 
 import message as msg_logic
 import remit
 import etc
@@ -12,15 +12,7 @@ import mapping
 import inventoryenter
 import Inspectioncheck
 
-if "current_page" not in st.session_state:
-    st.session_state["current_page"] = "buyprogram"
-
-# 2. 만약 직전에 있던 페이지가 현재 페이지(buyprogram)가 아니라면 리셋 실행
-if st.session_state["current_page"] != "buyprogram":
-    # 초기화할 위젯 키 (key="...") 리스트
-    # 여기에 입력창에 부여한 모든 key 이름을 넣어야 칸이 비워집니다.
-# --- 0. 모든 위젯 키 정의 (에러 방지용 리스트) ---
-# 리셋 시 비워야 할 모든 key 이름들입니다.
+# --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
 ALL_WIDGET_KEYS = [
     "raw_input_main", "v_region_key", "v_address_key", 
     "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
@@ -28,23 +20,30 @@ ALL_WIDGET_KEYS = [
     "v_declaration_key", "v_inspection_key"
 ]
 
-# --- 1. 페이지 상태 초기화 ---
+# --- 1. 페이지 상태 및 리셋 로직 ---
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
 
-# 페이지가 바뀌었을 때 자동 리셋 로직
+# 만약 페이지가 바뀌었다면 초기화 실행
 if st.session_state["current_page"] != "buyprogram":
+    # 1. 위젯 상태 강제 비우기
     for k in ALL_WIDGET_KEYS:
         if k in st.session_state:
             st.session_state[k] = ""
-    
-    # 데이터 바구니 초기화
+            
+    # 2. 데이터 바구니 초기화
     st.session_state["dealer_data"] = {}
     st.session_state["detected_region"] = ""
+    st.session_state["country_data"] = ""
+    st.session_state["inspection_status"] = "X"
+    st.session_state["last_searched_phone"] = ""
+    st.session_state["last_checked_plate"] = ""
+
+    # 3. 현재 페이지 갱신 후 리런
     st.session_state["current_page"] = "buyprogram"
     st.rerun()
 
-# --- 2. 기본 설정 ---
+# --- 2. 기본 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
 # CSS 스타일 유지
