@@ -88,6 +88,10 @@ if raw_input:
                 res = country.handle_buyer_country(buyer, "")
                 if res["status"] == "fetched":
                     st.session_state["country_data"] = res["country"]
+            # [추가] 주소에서 지역 추출 로직
+            parsed_address = parsed.get('address', "")
+            detected = mapping.get_region_from_address(parsed_address)
+            st.session_state["detected_region"] = detected  # 찾은 지역 저장 (없으면 "")
 
             # 파싱된 결과를 세션에 저장하고 입력값 기록
             st.session_state["parsed_data"] = parsed
@@ -196,12 +200,7 @@ with col_info:
     # R4: 연락처, 지역, 주소
     r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
     v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
-    v_region = r4_2.text_input(
-    "지역", 
-    value=st.session_state.get("detected_region", ""), # parsed.get은 'detected_region'에 이미 포함되어 있으므로 단순화
-    key="v_region_key"
-    )
-        # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
+    # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
     d_data = st.session_state.get("dealer_data")
     if not isinstance(d_data, dict):
         d_data = {}
@@ -215,6 +214,18 @@ with col_info:
     "주소", 
     value=final_address,
     key="v_address_key"
+    )
+    # [수정] 주소가 변경되었을 때 실시간으로 지역을 다시 추출
+    if v_address:
+        new_detected = mapping.get_region_from_address(v_address)
+        if new_detected:
+            st.session_state["detected_region"] = new_detected
+    
+    # [결과] 지역 입력창
+    v_region = r4_2.text_input(
+        "지역", 
+        value=st.session_state.get("detected_region", ""), 
+        key="v_region_key"
     )
 
     # 딜러/판매자 정보 프레임
