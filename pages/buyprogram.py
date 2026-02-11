@@ -522,17 +522,14 @@ with col_list:
                 st.error("VIN(차대번호) 정보가 없습니다.")
             else:
                 with st.spinner("구글 시트에서 차량 정보를 확인 중..."):
-                    import ecount
+                    import inventoryenter
                     import importlib
-                    importlib.reload(ecount)
+                    importlib.reload(inventoryenter) # 수정된 함수를 인식하도록 리로드
                     
-                    # 1. 구글 시트(2026시트)의 E열에서 VIN 중복 검색
-                    # (해당 VIN이 있으면 B열의 NO를 반환하고, 없으면 None 반환하는 함수 호출)
-                    # 이 함수는 아래 'inventoryenter.py' 섹션에서 정의합니다.
+                    # 이제 AttributeError가 발생하지 않습니다.
                     existing_no = inventoryenter.get_no_by_vin(vin_to_check)
                     
                     if existing_no:
-                        # 구글에 등록된 차량이 확인됨 -> 이카운트 등록 진행
                         st.info(f"확인됨: 구글 시트 순번 NO.{existing_no}")
                         
                         session_id = ecount.get_session_id()
