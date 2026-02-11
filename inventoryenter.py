@@ -21,6 +21,7 @@ def run_integrated_registration(data):
         vin = data.get('vin', '').strip()
         year = data.get('year', '')
         car_name = data.get('car_name_remit', '') # 송금용 차명
+        inspection_val = data.get('inspection', '?')
         
         # 2. 메인 시트(2026) 중복 검사
         sheet_main = gsm.get_main_2026_sheet()
@@ -80,13 +81,14 @@ def run_integrated_registration(data):
             elif h_type == "제로": h_suffix = f" 헤이딜러제로:{h_id} 폐자원 {plate}"
             elif h_type == "바로낙찰": h_suffix = f" 헤이딜러바로:{h_id} 폐자원 {plate}"
             inventory_k_col = f"{km_val}{h_suffix}"
+        
 
         # Yard 시트 행 데이터 (A~Q)
         yard_row = [
             today, "1", data.get('region', ''), year, data.get('brand', ''),
             car_name, vin, data.get('color', '').upper(), inventory_i_col, 
             "", inventory_k_col, sales_mapped, data.get('country', '').upper(),
-            data.get('buyer', '').upper(), "", "-", data.get('inspection', '').lower()
+            data.get('buyer', '').upper(), "", "-", inspection_val
         ]
         
         # 4. Yard 시트 등록
