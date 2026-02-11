@@ -79,28 +79,7 @@ if raw_input:
             st.session_state["inspection_status"] = insp_status
             st.session_state["last_checked_plate"] = plate
             
-# --- 좌측 매입 정보 위젯 부분 ---
-with insp_col:
-    # 1. 선택지 리스트 정의
-    insp_list = ["X", "S", "C"]
-    
-    # 2. 세션에서 현재 상태 가져오기 (없으면 기본값 "X")
-    current_insp = st.session_state.get("inspection_status", "X")
-    
-    # 3. 상태값에 맞는 인덱스 번호 계산 (X=0, S=1, C=2)
-    try:
-        insp_idx = insp_list.index(current_insp)
-    except ValueError:
-        insp_idx = 0
 
-    # 4. index=insp_idx를 넣어 위젯이 자동으로 바뀌게 설정
-    v_inspection = st.selectbox(
-        "Inspection", 
-        insp_list, 
-        index=insp_idx, 
-        key="v_inspection_key",
-        label_visibility="collapsed"
-    )
 # 데이터가 입력되었을 때만 실행
 if raw_input:
     # 1. 엑셀 파싱
@@ -146,6 +125,28 @@ col_info, col_list = st.columns([0.7, 0.3])
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
     title_col, insp_col = st.columns([4, 1])
+    # --- 좌측 매입 정보 위젯 부분 ---
+    with insp_col:
+        # 1. 선택지 리스트 정의
+        insp_list = ["X", "S", "C"]
+        
+        # 2. 세션에서 현재 상태 가져오기 (없으면 기본값 "X")
+        current_insp = st.session_state.get("inspection_status", "X")
+        
+        # 3. 상태값에 맞는 인덱스 번호 계산 (X=0, S=1, C=2)
+        try:
+            insp_idx = insp_list.index(current_insp)
+        except ValueError:
+            insp_idx = 0
+    
+        # 4. index=insp_idx를 넣어 위젯이 자동으로 바뀌게 설정
+        v_inspection = st.selectbox(
+            "Inspection", 
+            insp_list, 
+            index=insp_idx, 
+            key="v_inspection_key",
+            label_visibility="collapsed"
+        )
     with title_col:
         st.markdown("### 🚗 매입 정보")
     with insp_col:
