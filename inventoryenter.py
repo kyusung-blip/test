@@ -97,7 +97,7 @@ def run_integrated_registration(data):
         # A열부터 Q열까지의 범위를 지정 (yard_row의 길이가 17이므로 A~Q)
         # 만약 데이터가 더 늘어난다면 범위를 조정하세요.
         yard_range = f"A{next_yard_row}:Q{next_yard_row}"
-        sheet_yard.append_row(yard_row, value_input_option="USER_ENTERED")
+        sheet_yard.update(yard_range, [yard_row], value_input_option="USER_ENTERED")
 
         # 5. 메인 시트(2026) 등록 (중복 아닐 때만)
         if not is_duplicate:
