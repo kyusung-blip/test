@@ -11,6 +11,7 @@ import country
 import mapping
 import inventoryenter
 import Inspectioncheck
+import socket
 
 # --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
 ALL_WIDGET_KEYS = [
