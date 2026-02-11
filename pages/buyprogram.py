@@ -513,33 +513,22 @@ with col_list:
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
             
-        if e_c1.button("📊 이카운트 품목등록", key="btn_ecount_item"):
-            with st.spinner("이카운트 로그인 시도 중..."):
+        # tab3 내부
+        if st.button("🔌 이카운트 접속 테스트"):
+            with st.spinner("이카운트 서버 응답 대기 중..."):
                 import ecount
-                import requests
-                import json
-        
-                # [디버깅] 직접 로그인 시도해서 에러 메시지 확인
-                login_url = f"https://api{ecount.ZONE}.ecount.com/OAPI/V2/Common/Token/GetToken"
-                payload = {
-                    "COM_CODE": ecount.COM_CODE,
-                    "USER_ID": ecount.USER_ID,
-                    "API_CERT_KEY": ecount.API_CERT_KEY
-                }
+                import importlib
+                importlib.reload(ecount)
                 
-                response = requests.post(login_url, data=json.dumps(payload), headers={'Content-Type': 'application/json'})
-                res_data = response.json()
-        
-                if res_data.get("Status") == "200":
-                    auth_res = res_data["Data"]["Datas"]["Token"]
-                    st.info("✅ 세션 획득 성공! 등록을 진행합니다.")
-                    
-                    # 이후 등록 로직 실행...
-                    # item_res = ecount.register_item(ect_data, auth_res, sheet_no)
+                # 품목 등록은 하지 않고, 로그인 결과만 받아옴
+                result = ecount.get_session_id()
+                
+                if result.get("Status") == "200":
+                    st.success("✅ 접속 성공!")
+                    st.json(result) # 성공 시 받은 토큰 정보를 보여줌
                 else:
-                    # 실패 원인을 정확히 출력
-                    st.error(f"❌ 이카운트 오류 응답: {res_data.get('Message')}")
-                    st.json(res_data) # 전체 응답 구조 확인
+                    st.error("❌ 접속 실패")
+                    st.json(result) # 에러 메시지나 상세 내용을 보여줌
         # 버튼 로직 내부에 잠시 넣어보세요
         if st.button("🌐 네트워크 진단 테스트"):
             target_host = "oapi.ecount.com"
