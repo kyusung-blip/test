@@ -12,9 +12,8 @@ API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
 ZONE = "AD" 
 
 def get_session_id():
-    """성공 확인된 SBO URL과 페이로드로 세션 획득"""
+    """로그인 세션 획득 (성공했던 sboapi 주소 유지)"""
     login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
-    
     payload = {
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
@@ -22,25 +21,20 @@ def get_session_id():
         "LAN_TYPE": "ko-KR",
         "ZONE": ZONE 
     }
-    
     try:
         response = requests.post(login_url, json=payload, verify=False, timeout=10)
         res_data = response.json()
-        
-        # [수정] 이카운트 응답의 Status는 숫자 200일 수 있으므로 유연하게 체크
         if str(res_data.get("Status")) == "200":
-            # 응답 구조: Data -> Datas -> SESSION_ID
             return res_data["Data"]["Datas"]["SESSION_ID"]
         return None
     except:
         return None
 
 def register_item(data, session_id, sheet_no):
-    """발급받은 SESSION_ID로 품목 등록"""
-    # 전표/품목 등록도 SBO 서버 주소를 사용해야 합니다.
-    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/InventoryItem/SaveInventoryItem?SESSION_ID={session_id}"
+    """알려주신 정확한 URL로 품목 등록 실행"""
+    # [수정] 알려주신 테스트용 엔드포인트 적용
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
     
-    # 숫자형 정제 (CMB 계산용)
     def to_float(val):
         try:
             import re
@@ -49,35 +43,36 @@ def register_item(data, session_id, sheet_no):
             return float(clean) if clean else 0.0
         except: return 0.0
 
-    l = to_float(data.get("length", 0))
-    w = to_float(data.get("width", 0))
-    h = to_float(data.get("height", 0))
+    l, w, h = to_float(data.get("length", 0)), to_float(data.get("width", 0)), to_float(data.get("height", 0))
     cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
 
-    # 요청하신 필드 매핑 적용
+    # API 전송 데이터 (이카운트 품목등록 표준 필드)
     payload = {
-        "InventoryItem": {
-            "PROD_CD": data.get("vin"),             # 품목코드: VIN
-            "PROD_DES": data.get("car_name_remit"), # 품목명: 차명(송금용)
+        "BasicProduct": {
+            "PROD_CD": data.get("vin"),             # 품목코드
+            "PROD_DES": data.get("car_name_remit"), # 품목명
             "UNIT": "EA",
-            "COL_1": data.get("brand"),             # BRAND (추가문자형식1)
-            "TXT_U_1": str(sheet_no),               # NO (문자형추가1)
-            "TXT_U_2": data.get("plate"),           # PLATE (문자형추가2)
-            "TXT_U_3": data.get("km"),              # km (문자형추가3)
-            "TXT_U_4": data.get("color"),           # COLOR (문자형추가4)
-            "TXT_U_5": data.get("year"),            # YEAR (문자형추가5)
-            "DT_1": datetime.now().strftime("%Y%m%d"), # DATE (추가일자1)
-            "NUM_U_2": l,                           # 길이
-            "NUM_U_3": w,                           # 너비
-            "NUM_U_4": h,                           # 높이
-            "NUM_U_6": cmb_val,                     # CMB
-            "NUM_U_7": 1,                           # 유로환율
-            "NUM_U_8": 1                            # 달러환율
+            "COL_1": data.get("brand"),             # 추가문자형식1
+            "TXT_U_1": str(sheet_no),               # 문자형추가항목1
+            "TXT_U_2": data.get("plate"),           # 문자형추가항목2
+            "TXT_U_3": data.get("km"),              # 문자형추가항목3
+            "TXT_U_4": data.get("color"),           # 문자형추가항목4
+            "TXT_U_5": data.get("year"),            # 문자형추가항목5
+            "TXT_U_6": "",                          # 제원관리번호 (빈칸)
+            "DT_1": datetime.now().strftime("%Y%m%d"), # 추가일자형식1
+            "NUM_U_2": l,                           # 숫자형추가항목2
+            "NUM_U_3": w,                           # 숫자형추가항목3
+            "NUM_U_4": h,                           # 숫자형추가항목4
+            "NUM_U_5": 0,                           # 숫자형추가항목5
+            "NUM_U_6": cmb_val,                     # 숫자형추가항목6 (CMB)
+            "NUM_U_7": 1,                           # 숫자형추가항목7
+            "NUM_U_8": 1                            # 숫자형추가항목8
         }
     }
     
     try:
-        # 품목 등록 시에도 json 인자를 사용하고 verify=False 적용
+        # 이카운트 V2는 보통 Bulk 형태의 요청을 받으므로 리스트로 감싸야 할 수도 있으나, 
+        # 단일 품목 등록 규격에 맞춰 전송합니다.
         response = requests.post(url, json=payload, verify=False, timeout=15)
         return response.json()
     except Exception as e:
