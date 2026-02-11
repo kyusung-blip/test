@@ -461,12 +461,12 @@ with col_list:
             "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
             "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
             "region": v_region, "sales": v_sales, "buyer": v_buyer, 
-            "country": v_country, "inspection": v_inspection, # v_inspection 위젯 필요
+            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
             "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
             "deposit": v_deposit, "company": v_company, # 오토위니 업체명
             "biz_name": v_biz_name, "biz_num": v_biz_num,
-            "declaration": v_declaration # 관세청 신고가 위젯 필요
+            "declaration": v_declaration
         }
         e_c1, e_c2 = st.columns(2)
         if e_c1.button("입고방 알림", key="btn_etc1"):
