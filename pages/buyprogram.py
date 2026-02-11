@@ -200,16 +200,40 @@ with col_list:
             st.rerun()
 
     with tab2:
+    # 데이터 수집 (입력창 변수들)
+    remit_data = {
+        "plate": v_plate, "year": v_year, "car_name": v_car_name, "vin": v_vin,
+        "address": v_address, "dealer_phone": v_dealer_phone,
+        "price_acc": v_acc_o, "notbill_acc": v_acc_x, "fee_acc": v_acc_fee,
+        "sender_name": v_sender, "brand": v_brand, "dealer_number": v_dealer_num,
+        "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
+        "total": v_total, "deposit": v_deposit, "balance": v_balance,
+        "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
+        "usd_price": v_usd, "won_price": v_won,
+        "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
+    }
+
         r_c1, r_c2 = st.columns(2)
-        if r_c1.button("일반매입"): pass
-        if r_c2.button("폐자원매입"): pass
-        if r_c1.button("계약금"): pass
-        if r_c2.button("송금완료"): pass
-        if r_c1.button("계약금송금완료"): pass
-        if r_c2.button("오토위니"): pass
-        if st.button("헤이딜러"): pass
-        
-        st.text_area("송금 메시지 결과", height=400, key="out_tab2")
+        if r_c1.button("일반매입 송금"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "일반매입")
+            st.rerun()
+        if r_c2.button("계약금 송금"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "계약금")
+            st.rerun()
+        if r_c1.button("폐자원 송금"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "폐자원매입")
+            st.rerun()
+        if r_c2.button("송금완료 확인"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "송금완료")
+            st.rerun()
+        if r_c1.button("오토위니 송금"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "오토위니")
+            st.rerun()
+        if r_c2.button("헤이딜러 송금"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
+            st.rerun()
+    
+        st.text_area("송금 요청 결과", height=300, key="out_tab2_final")
         b3, b4 = st.columns(2)
         if b3.button("📋 내용복사", key="cp2"):
             content_to_copy = st.session_state.get("out_tab1_final", "")
