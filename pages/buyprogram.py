@@ -264,7 +264,11 @@ with col_list:
         if e_c2.button("서류안내 문자", key="btn_etc2"):
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
-        if e_c2.button("사이트"): pass
+        # 사이트 이동 버튼 (방법 1 적용)
+        if v_site and v_site.startswith("http"):
+            e_c2.link_button("🌐 사이트 이동", v_site)
+        else:
+            e_c2.button("🌐 사이트 이동", disabled=True)
 
         st.text_area("기타 메시지 결과", height=400, key="out_tab3")
         b5, b6 = st.columns(2)
