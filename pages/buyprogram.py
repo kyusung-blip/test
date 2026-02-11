@@ -514,47 +514,49 @@ with col_list:
             st.rerun()
             
         # tab3 내부
-        if st.button("🚀 이카운트 정식키 발급을 위한 최종 검증", key="btn_ecount_verify_final"):
-            with st.spinner("샘플 데이터 전송 중..."):
-                import ecount
-                import importlib
-                importlib.reload(ecount)
-                
-                # 1. 세션 따오기
-                sid = ecount.get_session_id()
-                
-                if sid:
-                    # 2. 표준 샘플 데이터로 등록 시도
-                    verify_res = ecount.verify_registration(sid)
+        # tab3 내부 또는 등록 버튼 로직 위치
+        if st.button("📊 이카운트 품목 최종 등록", key="btn_ecount_real_final"):
+            if not ect_data.get("vin"):
+                st.error("VIN(차대번호) 정보가 없습니다. 먼저 차량 정보를 조회해주세요.")
+            else:
+                with st.spinner("구글 시트 저장 및 이카운트 ERP 동기화 중..."):
+                    import ecount
+                    import importlib
+                    importlib.reload(ecount)
                     
-                    if str(verify_res.get("Status")) == "200":
-                        st.success("✅ 샘플 데이터 전송 성공!")
-                        st.json(verify_res) # 이카운트의 성공 응답(SuccessCnt: 2) 확인
-                        st.info("이제 이카운트 ERP 화면에서 [키발급] 버튼을 눌러보세요.")
+                    # 1. 구글 시트 등록 실행 
+                    # (inventoryenter.run_integrated_registration 함수는 B열 값을 반환하도록 구성되어야 합니다)
+                    res = inventoryenter.run_integrated_registration(ect_data)
+                    
+                    if res.get("status") == "success":
+                        # 구글 시트에서 생성된 순번(NO) 가져오기
+                        sheet_no = res.get("sheet_b_value", "0") 
+                        
+                        # 2. 이카운트 세션 획득 (정식키 사용)
+                        session_id = ecount.get_session_id()
+                        
+                        if session_id:
+                            # 3. 이카운트 정식 품목 등록 (시트 NO 포함)
+                            item_res = ecount.register_item(ect_data, session_id, sheet_no)
+                            
+                            # 이카운트 응답 분석
+                            if str(item_res.get("Status")) == "200":
+                                data_part = item_res.get("Data", {})
+                                success_cnt = data_part.get("SuccessCnt", 0)
+                                
+                                if success_cnt > 0:
+                                    st.success(f"✅ 모든 등록 완료! (시트 NO: {sheet_no}, 이카운트 품목코드: {ect_data['vin']})")
+                                    st.balloons()
+                                else:
+                                    # 전송은 성공했으나 내부 로직 오류 (예: 중복 코드 등)
+                                    fail_msg = data_part.get("ResultDetails", [{}])[0].get("TotalError", "알 수 없는 오류")
+                                    st.error(f"❌ 이카운트 등록 실패: {fail_msg}")
+                            else:
+                                st.error(f"❌ 이카운트 서버 응답 오류: {item_res.get('Message')}")
+                        else:
+                            st.error("❌ 이카운트 로그인 세션 획득에 실패했습니다. (인증키 확인 필요)")
                     else:
-                        st.error("❌ 전송 실패")
-                        st.json(verify_res)
-                else:
-                    st.error("❌ 세션 획득 실패")
-        # 버튼 로직 내부에 잠시 넣어보세요
-        if st.button("🌐 네트워크 진단 테스트"):
-            target_host = "oapi.ecount.com"
-            try:
-                # 1. DNS가 주소를 찾을 수 있는지 확인
-                ip_address = socket.gethostbyname(target_host)
-                st.write(f"✅ DNS 확인 성공: {target_host} -> {ip_address}")
-                
-                # 2. 실제로 접속 시도 (timeout 5초)
-                import requests
-                test_res = requests.get(f"https://{target_host}", timeout=5)
-                st.write(f"✅ 접속 성공! 상태 코드: {test_res.status_code}")
-                
-            except socket.gaierror:
-                st.error(f"❌ DNS 에러: {target_host} 주소를 찾을 수 없습니다. (도메인 오타 가능성)")
-            except requests.exceptions.ConnectTimeout:
-                st.error(f"❌ 타임아웃: 서버가 응답하지 않습니다. (방화벽 차단 가능성)")
-            except Exception as e:
-                st.error(f"❌ 기타 에러: {str(e)}")
+                        st.error(f"❌ 구글 시트 저장 실패: {res.get('message')}")
                     
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
