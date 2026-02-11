@@ -56,5 +56,6 @@ def handle_confirm(data, m_type="confirm"):
             pass # 문자 버튼은 추가 문구 없음
         else: # 확인후 (confirm)
             result += "\n\n확인 후 연락드리겠습니다~!"
-
+    
+    print(f"DEBUG: 생성된 메시지 -> {result}")
     return result
