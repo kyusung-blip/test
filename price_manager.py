@@ -98,3 +98,25 @@ def get_clean_deposit(v_deposit):
         return int(clean) * 10000 if clean else 0
     except:
         return 0
+
+def calculate_declaration(price_str):
+    """
+    차량대금 기반 DECLARATION(관세청 신고가) 자동 계산 로직
+    - 백만 단위 절삭 금액의 10% 계산
+    - 최대 100,000원 제한
+    """
+    amount = parse_money(price_str)
+    
+    if amount <= 0:
+        return 0
+
+    # 로직 적용: 백만 단위 절삭 (예: 8,340,000 -> 8,000,000)
+    trimmed_amount = (amount // 1000000) * 1000000
+    
+    # 10% 계산 (예: 8,000,000 -> 800,000) -> 다시 단위 조정 로직 적용
+    # 기존 로직: (trimmed_amount * 0.1) // 10000 * 1000
+    # 예: 8,340,000원 -> 8,000,000원 -> 800,000원 -> 80,000원
+    declaration = (trimmed_amount * 0.1) // 10000 * 1000
+    
+    # 최대 10만원 제한
+    return int(min(declaration, 100000))
