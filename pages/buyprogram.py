@@ -121,6 +121,7 @@ if raw_input:
                 # 정보를 못 찾아도 빈 데이터로 초기화 (이전 데이터 남지 않게)
                 st.session_state["dealer_data"] = {}
                 st.session_state["last_searched_phone"] = contact
+            st.rerun()
                 
     final_address = st.session_state.get("dealer_data", {}).get("address")
     if not final_address:
