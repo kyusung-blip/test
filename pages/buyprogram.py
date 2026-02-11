@@ -86,22 +86,7 @@ with top_col2:
                 st.session_state[k] = ""  # 위젯 값을 강제로 빈칸으로 만듦
         
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
-if "inspection_status" not in st.session_state:
-    st.session_state["inspection_status"] = "X"
-parsed = {}
-# --- 1. 상단 자동 파싱 로직 내부 ---
-if raw_input:
-    parsed = lg.parse_excel_data(raw_input)
-    plate = parsed.get('plate', "").strip()
-    
-    # 💡 이 로직을 추가하세요
-    if plate and st.session_state.get('last_checked_plate') != plate:
-        with st.spinner("Inspection 상태 조회 중..."):
-            # 시트에서 C, X, S 중 하나를 가져옵니다.
-            insp_status = Inspectioncheck.fetch_inspection_status(plate)
-            st.session_state["inspection_status"] = insp_status
-            st.session_state["last_checked_plate"] = plate
-            
+
 
 # 데이터가 입력되었을 때만 실행
 if raw_input:
