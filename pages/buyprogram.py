@@ -29,7 +29,7 @@ if st.session_state["current_page"] != "buyprogram":
     # 1. 위젯 상태 강제 비우기
     for k in ALL_WIDGET_KEYS:
         if k in st.session_state:
-            st.session_state[k] = ""
+            del st.session_state[k]
             
     # 2. 데이터 바구니 초기화
     st.session_state["dealer_data"] = {}
@@ -59,6 +59,7 @@ if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
 # --- 1. 상단: 데이터 입력칸 및 자동 파싱 ---
+st.subheader("📥 데이터 붙여넣기")
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
@@ -106,17 +107,28 @@ top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 1. 데이터 바구니 초기화
-        st.session_state["dealer_data"] = {}
-        st.session_state["detected_region"] = ""
-        st.session_state["country_data"] = ""
-        st.session_state["inspection_status"] = "X"
-        st.session_state["last_raw_input"] = "" # 무한루프 방지용도 리셋
-        
-        # 2. 개별 입력 위젯 초기화 (NameError 해결 포인트)
+        # 1. 위젯과 연결된 모든 키 삭제 (오류 방지 핵심)
         for k in ALL_WIDGET_KEYS:
             if k in st.session_state:
-                st.session_state[k] = ""
+                del st.session_state[k]
+        
+        # 2. 결과물 및 데이터 바구니 초기화
+        # 위젯 키 외의 커스텀 세션 키들을 정리합니다.
+        keys_to_reset = [
+            "dealer_data", "detected_region", "country_data", 
+            "inspection_status", "last_raw_input", "parsed_data",
+            "out_tab1_final", "out_tab1", "out_tab2_final", "out_tab2", "out_tab3"
+        ]
+        
+        for k in keys_to_reset:
+            if k in st.session_state:
+                # 데이터 바구니는 삭제하거나 기본값으로 초기화
+                if k in ["dealer_data", "parsed_data"]:
+                    st.session_state[k] = {}
+                elif k == "inspection_status":
+                    st.session_state[k] = "X"
+                else:
+                    st.session_state[k] = ""
         
         st.rerun()
         
