@@ -101,26 +101,24 @@ with col_info:
 
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
-    # buyprogram.py 내 세부정산 섹션
+    ith row_bottom[0]:
+    # 첫 번째 프레임: 세부정산
     with st.container(border=True):
         st.caption("💰 세부정산")
+        v_deposit = st.text_input("계약금(만원 단위)", value="0")
         
-        # 사용자는 숫자만 입력 (예: 100)
-        v_deposit = st.text_input("계약금(만원 단위)", value="0")        
-        # 실시간 계산
-        # v_total은 위에서 계산된 합계금액 변수입니다.
-        balance_val = pm.calculate_balance(v_total, v_deposit)        
-        # 잔금 표시
+        # 실시간 잔금 계산 로직
+        balance_val = pm.calculate_balance(v_total, v_deposit)
         v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
         
-        # (선택사항) 실제 계약금이 얼마로 계산되었는지 작게 표시해줄 수 있습니다.
-        st.write(f"ℹ️ 적용된 계약금: {pm.format_number(int(re.sub(r'[^0-9]', '', v_deposit or '0')) * 10000)}")
+        # 계약금 확인용 안내 (import re 필요)
+        st.write(f"ℹ️ 적용된 계약금: {pm.format_number(pm.get_clean_deposit(v_deposit))}")
         
         with st.container(border=True):
             st.caption("📱 헤이딜러 정보")
             # selectbox는 value 대신 index를 맞춰야 하므로 간단히 기본값 설정
             v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"], index=0)
-            v_h_id = st.selectbox("헤이딜러 ID", ["선택 안함", "ID_1", "ID_2"], index=0)
+            v_h_id = st.selectbox("헤이딜러 ID", ["선택", "seobuk", "inter77", "leeks21"], index=0)
             v_h_deliv = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
 
     with row_bottom[1]:
