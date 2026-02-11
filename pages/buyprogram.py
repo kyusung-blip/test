@@ -154,16 +154,22 @@ with col_list:
         # 💡 아래 버튼들의 시작 라인을 m_c1과 동일하게 맞췄습니다.
         if m_c1.button("확인후"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "confirm")
+            st.session_state["out_tab1_final"] = result
         if m_c2.button("세일즈팀"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "salesteam")
+            st.session_state["out_tab1_final"] = result
         if m_c1.button("검수자"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "inspection")
+            st.session_state["out_tab1_final"] = result
         if m_c2.button("문자"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "sms")
+            st.session_state["out_tab1_final"] = result
         if m_c1.button("아웃소싱"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
+            st.session_state["out_tab1_final"] = result
         if m_c2.button("주소공유"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
+            st.session_state["out_tab1_final"] = result
         
         st.divider()    
         # 결과 출력창
@@ -175,8 +181,18 @@ with col_list:
         )
 
         b1, b2 = st.columns(2)
-        b1.button("📋 내용복사", key="cp1")
-        b2.button("♻️ 내용리셋", key="rs1")
+        if b1.button("📋 내용복사", key="cp1"):
+            content_to_copy = st.session_state.get("out_tab1_final", "")
+            if content_to_copy:
+                st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
+                st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
+            else:
+                st.warning("복사할 내용이 없습니다.")
+
+        # 내용 리셋 버튼 (세션 상태 직접 수정)
+        if b2.button("♻️ 내용리셋", key="rs1"):
+            st.session_state["out_tab1_final"] = ""  # 위젯의 key값을 초기화
+            st.rerun()
 
     with tab2:
         r_c1, r_c2 = st.columns(2)
@@ -190,8 +206,18 @@ with col_list:
         
         st.text_area("송금 메시지 결과", height=250, key="out_tab2")
         b3, b4 = st.columns(2)
-        b3.button("📋 내용복사", key="cp2")
-        b4.button("♻️ 내용리셋", key="rs2")
+        if b3.button("📋 내용복사", key="cp2"):
+            content_to_copy = st.session_state.get("out_tab1_final", "")
+            if content_to_copy:
+                st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
+                st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
+            else:
+                st.warning("복사할 내용이 없습니다.")
+
+        # 내용 리셋 버튼 (세션 상태 직접 수정)
+        if b4.button("♻️ 내용리셋", key="rs2"):
+            st.session_state["out_tab1_final"] = ""  # 위젯의 key값을 초기화
+            st.rerun()
 
     with tab3:
         e_c1, e_c2 = st.columns(2)
@@ -202,5 +228,15 @@ with col_list:
         
         st.text_area("기타 메시지 결과", height=250, key="out_tab3")
         b5, b6 = st.columns(2)
-        b5.button("📋 내용복사", key="cp3")
-        b6.button("♻️ 내용리셋", key="rs3")
+        if b5.button("📋 내용복사", key="cp3"):
+            content_to_copy = st.session_state.get("out_tab1_final", "")
+            if content_to_copy:
+                st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
+                st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
+            else:
+                st.warning("복사할 내용이 없습니다.")
+
+        # 내용 리셋 버튼 (세션 상태 직접 수정)
+        if b6.button("♻️ 내용리셋", key="rs3"):
+            st.session_state["out_tab1_final"] = ""  # 위젯의 key값을 초기화
+            st.rerun()
