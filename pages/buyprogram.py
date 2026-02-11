@@ -127,8 +127,6 @@ with top_col2:
 
 if "inspection_status" not in st.session_state:
     st.session_state["inspection_status"] = "X"
-parsed = {}
-
 st.divider()
 
 # --- 2. 메인 화면 구성 (70% : 30%) ---
