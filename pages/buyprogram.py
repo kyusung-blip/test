@@ -8,6 +8,7 @@ import remit
 import etc
 import dealerinfo
 import country
+import mapping
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
