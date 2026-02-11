@@ -9,6 +9,7 @@ import etc
 import dealerinfo
 import country
 import mapping
+import inventoryenter
 
 # --- 페이지 방문 체크 및 자동 리셋 (최상단) ---
 if "current_page" not in st.session_state:
@@ -398,17 +399,29 @@ with col_list:
             st.rerun()
 
     with tab3:
-        etc_data = {
-            "buyer": v_buyer, "region": v_region, "vin": v_vin, "km": v_km,
+        # 데이터 수집 (필요한 모든 위젯 변수 포함)
+        reg_data = {
             "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
-            "h_type": v_h_type, "h_id": v_h_id,
-            "auc_type": v_auc_type, "auc_region": v_auc_region
+            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "country": v_country, "inspection": v_inspection, # v_inspection 위젯 필요
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+            "deposit": v_deposit, "company": v_company, # 오토위니 업체명
+            "biz_name": v_biz_name, "biz_num": v_biz_num,
+            "declaration": v_declaration # 관세청 신고가 위젯 필요
         }
         e_c1, e_c2 = st.columns(2)
         if e_c1.button("입고방 알림", key="btn_etc1"):
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
             st.rerun()
-        if e_c2.button("정보등록"): pass
+        if e_c2.button("🚀 정보등록", type="primary"):
+            with st.spinner("시트에 등록 중..."):
+                res = inventoryenter.run_integrated_registration(reg_data)
+                if res["status"] in ["success", "partial"]:
+                    st.success(res["message"])
+                else:
+                    st.error(res["message"])
         if e_c2.button("서류안내 문자", key="btn_etc2"):
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
