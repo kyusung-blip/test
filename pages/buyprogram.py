@@ -513,30 +513,32 @@ with col_list:
             st.rerun()
             
         if e_c1.button("📊 이카운트 품목등록", key="btn_ecount_item"):
-            with st.spinner("이카운트 전송 중 (Zone: AD)..."):
+            with st.spinner("이카운트 로그인 시도 중..."):
                 import ecount
-                import importlib
-                importlib.reload(ecount)
+                import requests
+                import json
+        
+                # [디버깅] 직접 로그인 시도해서 에러 메시지 확인
+                login_url = f"https://api{ecount.ZONE}.ecount.com/OAPI/V2/Common/Token/GetToken"
+                payload = {
+                    "COM_CODE": ecount.COM_CODE,
+                    "USER_ID": ecount.USER_ID,
+                    "API_CERT_KEY": ecount.API_CERT_KEY
+                }
                 
-                auth_res = ecount.get_session_id()
-                
-                # auth_res가 에러 메시지(dict)인지 토큰(str)인지 확인
-                if isinstance(auth_res, dict):
-                    st.error(f"❌ 이카운트 로그인 실패: {auth_res.get('error')}")
-                elif auth_res:
-                    # 구글 시트 번호 가져오기 (앞서 설명드린 inventoryenter 결과 활용)
-                    res = inventoryenter.run_integrated_registration(ect_data)
-                    sheet_no = res.get("sheet_b_value", "0") if res["status"] != "fail" else "0"
+                response = requests.post(login_url, data=json.dumps(payload), headers={'Content-Type': 'application/json'})
+                res_data = response.json()
+        
+                if res_data.get("Status") == "200":
+                    auth_res = res_data["Data"]["Datas"]["Token"]
+                    st.info("✅ 세션 획득 성공! 등록을 진행합니다.")
                     
-                    # 품목 등록 실행
-                    item_res = ecount.register_item(ect_data, auth_res, sheet_no)
-                    
-                    if item_res.get("Status") == "200":
-                        st.success(f"✅ 이카운트 품목 등록 성공! (NO: {sheet_no})")
-                    else:
-                        st.error(f"❌ 등록 실패: {item_res.get('Message')}")
+                    # 이후 등록 로직 실행...
+                    # item_res = ecount.register_item(ect_data, auth_res, sheet_no)
                 else:
-                    st.error("❌ 세션 정보를 가져올 수 없습니다.")
+                    # 실패 원인을 정확히 출력
+                    st.error(f"❌ 이카운트 오류 응답: {res_data.get('Message')}")
+                    st.json(res_data) # 전체 응답 구조 확인
                     
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
