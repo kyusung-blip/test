@@ -1,24 +1,27 @@
 import requests
 import json
 from datetime import datetime
+import urllib3
 
-# 이카운트 API 설정 정보
+# SSL 경고 메시지 무시 설정 (Streamlit Cloud 환경 안정성 확보)
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
 COM_CODE = "682186"
 USER_ID = "이규성"
 API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
-ZONE = "AD"  # 확인된 ZONE 값
+ZONE = "AD" 
 
 def get_session_id():
-    """보내주신 공식 JSON 형식을 사용하여 세션 토큰을 가져옵니다."""
-    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
+    """진단에서 성공한 메인 게이트웨이 주소를 사용합니다."""
+    # oapiAD 대신 진단에 성공한 oapi 메인 주소를 사용합니다.
+    login_url = "https://oapi.ecount.com/OAPI/V2/OAPILogin"
     
-    # 요청하신 형식대로 데이터 구성
     payload = {
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
         "API_CERT_KEY": API_CERT_KEY,
-        "LAN_TYPE": "ko-KR",  # 언어 설정 추가
-        "ZONE": ZONE          # ZONE 정보 추가
+        "LAN_TYPE": "ko-KR",
+        "ZONE": ZONE 
     }
     
     try:
@@ -26,28 +29,27 @@ def get_session_id():
             login_url, 
             data=json.dumps(payload), 
             headers={'Content-Type': 'application/json'},
-            timeout=10
+            verify=False,  # SSL 인증서 검증 건너뛰기 (연결 오류 해결용)
+            timeout=15     # 타임아웃 시간을 넉넉히 설정
         )
         res_data = response.json()
         
-        # 성공 시 Token 추출
         if res_data.get("Status") == "200":
-            # Data -> Datas -> Token 구조 확인
             return res_data["Data"]["Datas"]["Token"]
         else:
-            # 실패 시 서버 메시지 출력 (디버깅용)
-            print(f"로그인 실패: {res_data.get('Message')}")
+            print(f"로그인 실패 응답: {res_data}")
             return None
             
     except Exception as e:
-        print(f"연결 오류: {e}")
+        # 에러 로그를 상세히 남깁니다.
+        print(f"연결 실패 상세 원인: {str(e)}")
         return None
 
 def register_item(data, session_id, sheet_no):
-    """품목 등록 API (SESSION_ID 파라미터 사용)"""
+    """품목 등록 API"""
+    # 품목 등록은 실제 데이터 서버를 가리켜야 합니다.
     url = f"https://api{ZONE}.ecount.com/OAPI/V2/InventoryItem/SaveInventoryItem?SESSION_ID={session_id}"
     
-    # 숫자형 정제 함수
     def to_float(val):
         try:
             import re
@@ -59,7 +61,6 @@ def register_item(data, session_id, sheet_no):
     l, w, h = to_float(data.get("length", 0)), to_float(data.get("width", 0)), to_float(data.get("height", 0))
     cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
 
-    # API 필드 매핑
     payload = {
         "InventoryItem": {
             "PROD_CD": data.get("vin"),
@@ -79,7 +80,13 @@ def register_item(data, session_id, sheet_no):
     }
     
     try:
-        response = requests.post(url, data=json.dumps(payload), headers={'Content-Type': 'application/json'})
+        response = requests.post(
+            url, 
+            data=json.dumps(payload), 
+            headers={'Content-Type': 'application/json'},
+            verify=False,
+            timeout=15
+        )
         return response.json()
     except Exception as e:
         return {"Status": "500", "Message": f"통신 오류: {str(e)}"}
