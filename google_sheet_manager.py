@@ -40,3 +40,28 @@ def get_inspection_data_sheet():
     """인스펙션 상세 내용 시트 반환"""
     # 스프레드시트 이름과 워크시트 이름을 정확히 지정합니다.
     return get_spreadsheet_open("Inspection Organization (24-23)").worksheet("인스팩션내용")
+
+# google_sheet_manager.py
+
+@st.cache_data(ttl=600)  # 10분간 캐시 유지
+def get_car_name_map():
+    """'차명' 시트에서 매핑 정보를 읽어 딕셔너리로 반환"""
+    try:
+        # 기존 정의된 get_spreadsheet 사용
+        spreadsheet = get_spreadsheet() 
+        sheet = spreadsheet.worksheet("차명")
+        all_values = sheet.get_all_values()
+
+        if len(all_values) < 2:
+            return {}
+
+        # { "검색키": "변환될이름" } 형태의 딕셔너리 생성
+        car_name_map = {}
+        for row in all_values[1:]:  # 헤더 제외
+            if len(row) >= 2 and row[0].strip() and row[1].strip():
+                car_name_map[row[0].strip().upper()] = row[1].strip()
+        
+        return car_name_map
+    except Exception as e:
+        st.error(f"차명 매핑 로드 실패: {e}")
+        return {}
