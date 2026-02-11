@@ -115,7 +115,7 @@ with top_col2:
         # 2. 파싱 방지 및 데이터 바구니 초기화
         # 'last_raw_input'을 지워야 rerun 후 다시 파싱되지 않습니다.
         keys_to_reset = [
-            "dealer_data", "detected_region", "country_data", 
+            "raw_input", "dealer_data", "detected_region", "country_data", 
             "inspection_status", "last_raw_input", "parsed_data",
             "out_tab1_final", "out_tab1", "out_tab2_final", "out_tab2", "out_tab3"
         ]
