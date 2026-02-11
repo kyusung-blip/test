@@ -1,25 +1,26 @@
 import requests
 import json
+from datetime import datetime
 import urllib3
 
-# SSL 인증서 관련 경고 무시
+# SSL 경고 무시
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 설정 정보
+# [설정] 발급받으신 정식 정보 적용
 COM_CODE = "682186"
 USER_ID = "이규성"
-API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
-ZONE = "AD"
+API_CERT_KEY = "2dac8e71fcd314e77af2ce35eb89185442" # 정식 인증키
+ZONE = "AD" 
 
 def get_session_id():
-    """검증용 SBO 서버 로그인"""
-    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
+    """정식 운영 서버(oapi) 세션 획득"""
+    login_url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
     payload = {
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
         "API_CERT_KEY": API_CERT_KEY,
         "LAN_TYPE": "ko-KR",
-        "ZONE": ZONE
+        "ZONE": ZONE 
     }
     try:
         response = requests.post(login_url, json=payload, verify=False, timeout=10)
@@ -27,65 +28,58 @@ def get_session_id():
         if str(res_data.get("Status")) == "200":
             return res_data["Data"]["Datas"]["SESSION_ID"]
         return None
-    except:
+    except Exception as e:
+        print(f"로그인 통신 오류: {e}")
         return None
 
-def verify_registration(session_id):
-    """이카운트 매뉴얼 표준 샘플 데이터를 전송하여 검증 완료"""
-    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
+def register_item(data, session_id, sheet_no):
+    """정식 URL을 사용하여 실제 차량 데이터를 품목으로 등록"""
+    # 정식 URL 적용
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
     
-    # 매뉴얼에서 제공된 BulkDatas 표준 샘플 구조 그대로 사용
+    # 숫자형 데이터 정제 함수
+    def to_float(val):
+        try:
+            import re
+            if not val: return 0.0
+            clean = re.sub(r'[^0-9.]', '', str(val))
+            return float(clean) if clean else 0.0
+        except: return 0.0
+
+    # 길이, 너비, 높이 및 CMB 계산
+    l = to_float(data.get("length", 0))
+    w = to_float(data.get("width", 0))
+    h = to_float(data.get("height", 0))
+    cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
+
+    # 이카운트 BulkDatas 표준 필드 매핑
     payload = {
         "ProductList": [
             {
                 "BulkDatas": {
-                    "PROD_CD": "00001",
-                    "PROD_DES": "Test Product",
-                    "SIZE_FLAG": "", "SIZE_DES": "", "UNIT": "", "PROD_TYPE": "",
-                    "SET_FLAG": "", "BAL_FLAG": "", "WH_CD": "", "IN_PRICE": "",
-                    "IN_PRICE_VAT": "", "OUT_PRICE": "", "OUT_PRICE_VAT": "",
-                    "REMARKS_WIN": "", "CLASS_CD": "", "CLASS_CD2": "", "CLASS_CD3": "",
-                    "BAR_CODE": "", "TAX": "", "VAT_RATE_BY": "", "CS_FLAG": "",
-                    "REMARKS": "", "INSPECT_TYPE_CD": "", "INSPECT_STATUS": "",
-                    "SAMPLE_PERCENT": "", "EXCH_RATE": "", "DENO_RATE": "",
-                    "SAFE_A0001": "", "SAFE_A0002": "", "SAFE_A0003": "", "SAFE_A0004": "",
-                    "SAFE_A0005": "", "SAFE_A0006": "", "SAFE_A0007": "", "CSORD_C0001": "",
-                    "CSORD_TEXT": "", "CSORD_C0003": "", "IN_TERM": "", "MIN_QTY": "",
-                    "CUST": "", "OUT_PRICE1": "", "OUT_PRICE1_VAT_YN": "", "OUT_PRICE2": "",
-                    "OUT_PRICE2_VAT_YN": "", "OUT_PRICE3": "", "OUT_PRICE3_VAT_YN": "",
-                    "OUT_PRICE4": "", "OUT_PRICE4_VAT_YN": "", "OUT_PRICE5": "",
-                    "OUT_PRICE5_VAT_YN": "", "OUT_PRICE6": "", "OUT_PRICE6_VAT_YN": "",
-                    "OUT_PRICE7": "", "OUT_PRICE7_VAT_YN": "", "OUT_PRICE8": "",
-                    "OUT_PRICE8_VAT_YN": "", "OUT_PRICE9": "", "OUT_PRICE9_VAT_YN": "",
-                    "OUT_PRICE10": "", "OUT_PRICE10_VAT_YN": "", "OUTSIDE_PRICE": "",
-                    "OUTSIDE_PRICE_VAT": "", "LABOR_WEIGHT": "", "EXPENSES_WEIGHT": "",
-                    "MATERIAL_COST": "", "EXPENSE_COST": "", "LABOR_COST": "", "OUT_COST": "",
-                    "CONT1": "", "CONT2": "", "CONT3": "", "CONT4": "", "CONT5": "", "CONT6": "",
-                    "NO_USER1": "", "NO_USER2": "", "NO_USER3": "", "NO_USER4": "", "NO_USER5": "",
-                    "NO_USER6": "", "NO_USER7": "", "NO_USER8": "", "NO_USER9": "", "NO_USER10": "",
-                    "ITEM_TYPE": "", "SERIAL_TYPE": "", "PROD_SELL_TYPE": "",
-                    "PROD_WHMOVE_TYPE": "", "QC_BUY_TYPE": "", "QC_YN": ""
-                }
-            },
-            {
-                "BulkDatas": {
-                    "PROD_CD": "00002",
-                    "PROD_DES": "Test Product1",
-                    # (중략 - 00001과 동일한 구조의 빈 필드들)
-                    "PROD_WHMOVE_TYPE": "", "QC_BUY_TYPE": "", "QC_YN": ""
+                    "PROD_CD": str(data.get("vin", "")),             # 품목코드: VIN
+                    "PROD_DES": str(data.get("car_name_remit", "")),    # 품목명: 차명(송금용)
+                    "UNIT": "EA",
+                    "CONT1": str(data.get("brand", "")),             # 추가문자형식1: BRAND
+                    "CONT2": str(sheet_no),                          # 문자형추가항목1: NO (구글시트 순번)
+                    "CONT3": str(data.get("plate", "")),             # 문자형추가항목2: PLATE (차량번호)
+                    "CONT4": str(data.get("km", "")),                # 문자형추가항목3: km (주행거리)
+                    "CONT5": str(data.get("color", "")),             # 문자형추가항목4: COLOR (색상)
+                    "CONT6": str(data.get("year", "")),              # 문자형추가항목5: YEAR (연식)
+                    "DT_1": datetime.now().strftime("%Y%m%d"),        # 추가일자형식1: 등록일자
+                    "NO_USER2": l,                                   # 숫자형추가항목2: 길이
+                    "NO_USER3": w,                                   # 숫자형추가항목3: 너비
+                    "NO_USER4": h,                                   # 숫자형추가항목4: 높이
+                    "NO_USER6": round(cmb_val, 4),                   # 숫자형추가항목6: CMB
+                    "NO_USER7": 1,                                   # 숫자형추가항목7: 유로환율 (기본값 1)
+                    "NO_USER8": 1                                    # 숫자형추가항목8: 달러환율 (기본값 1)
                 }
             }
         ]
     }
     
-    # 00002 데이터 채우기 (생략된 필드들을 00001과 동일하게 맞춰 전송)
-    # 실제 전송 시에는 모든 필드를 명시하는 것이 안전합니다.
-    for key in payload["ProductList"][0]["BulkDatas"]:
-        if key not in payload["ProductList"][1]["BulkDatas"]:
-            payload["ProductList"][1]["BulkDatas"][key] = ""
-
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
         return response.json()
     except Exception as e:
-        return {"Status": "500", "Message": str(e)}
+        return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
