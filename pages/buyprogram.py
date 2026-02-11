@@ -88,6 +88,8 @@ with col_info:
     # 💡 [핵심] 실시간 합계 계산
     # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
+    # 3. 합계금액 입력창을 만듭니다. (이때 v_total 변수가 생성됨)
+    v_total = st.text_input("합계금액", value=pm.format_number(total_val))
 
     r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
     v_sender = r5_1.text_input("입금자명", value="서북인터")
@@ -103,12 +105,10 @@ with col_info:
         st.caption("💰 세부정산")
         
         # 사용자는 숫자만 입력 (예: 100)
-        v_deposit = st.text_input("계약금(만원 단위)", value="0")
-        
+        v_deposit = st.text_input("계약금(만원 단위)", value="0")        
         # 실시간 계산
         # v_total은 위에서 계산된 합계금액 변수입니다.
-        balance_val = pm.calculate_balance(v_total, v_deposit)
-        
+        balance_val = pm.calculate_balance(v_total, v_deposit)        
         # 잔금 표시
         v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
         
