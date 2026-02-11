@@ -121,7 +121,7 @@ with col_info:
             # selectbox는 value 대신 index를 맞춰야 하므로 간단히 기본값 설정
             v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"], index=0)
             v_h_id = st.selectbox("헤이딜러 ID", ["선택", "seobuk", "inter77", "leeks21"], index=0)
-            v_h_deliv = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
+            v_h_delivery = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
 
     with row_bottom[1]:
         with st.container(border=True):
