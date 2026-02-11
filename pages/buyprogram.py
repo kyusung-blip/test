@@ -10,6 +10,7 @@ import dealerinfo
 import country
 import mapping
 import inventoryenter
+import Inspectioncheck
 
 # --- 페이지 방문 체크 및 자동 리셋 (최상단) ---
 if "current_page" not in st.session_state:
@@ -22,6 +23,37 @@ if st.session_state["current_page"] != "buyprogram":
         if key in st.session_state:
             del st.session_state[key]
     st.session_state["current_page"] = "buyprogram"
+
+# --- 1. 상단 자동 파싱 로직 내부 ---
+if raw_input:
+    parsed = lg.parse_excel_data(raw_input)
+    plate = parsed.get('plate', "").strip()
+    
+    if plate and st.session_state.get('last_checked_plate') != plate:
+        with st.spinner("Inspection 상태 조회 중..."):
+            insp_status = Inspectioncheck.fetch_inspection_status(plate)
+            st.session_state["inspection_status"] = insp_status
+            st.session_state["last_checked_plate"] = plate
+            
+# --- 좌측 매입 정보 위젯 부분 ---
+with insp_col:
+    # 세션에 저장된 값을 기본값(index)으로 설정
+    insp_list = ["X", "S", "C"]
+    current_insp = st.session_state.get("inspection_status", "X")
+    
+    # 상태값에 따른 인덱스 찾기 (없으면 0번 'X')
+    try:
+        insp_idx = insp_list.index(current_insp)
+    except:
+        insp_idx = 0
+
+    v_inspection = st.selectbox(
+        "Inspection", 
+        insp_list, 
+        index=insp_idx, 
+        key="v_inspection_key",
+        label_visibility="collapsed"
+    )
 
 # parsed 변수는 항상 루프 시작 시 빈 딕셔너리로 초기화
 parsed = {}
@@ -109,15 +141,13 @@ col_info, col_list = st.columns([0.7, 0.3])
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
-    st.markdown("### 🚗 매입 정보")
-    # 타이틀과 검수유무를 한 줄에 배치
     title_col, insp_col = st.columns([4, 1])
     with title_col:
         st.markdown("### 🚗 매입 정보")
     with insp_col:
         v_inspection = st.selectbox(
-            "검수유무", 
-            ["미검수", "검수완료", "검수불가"], 
+            "Inspection", 
+            ["X", "S", "C"], 
             index=0, 
             key="v_inspection_key",
             label_visibility="collapsed" # 타이틀 옆이므로 라벨 숨김 (깔끔함)
