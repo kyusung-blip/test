@@ -101,18 +101,18 @@ with col_info:
 
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
-    ith row_bottom[0]:
-    # 첫 번째 프레임: 세부정산
-    with st.container(border=True):
-        st.caption("💰 세부정산")
-        v_deposit = st.text_input("계약금(만원 단위)", value="0")
-        
-        # 실시간 잔금 계산 로직
-        balance_val = pm.calculate_balance(v_total, v_deposit)
-        v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
-        
-        # 계약금 확인용 안내 (import re 필요)
-        st.write(f"ℹ️ 적용된 계약금: {pm.format_number(pm.get_clean_deposit(v_deposit))}")
+    with row_bottom[0]:
+        # 첫 번째 프레임: 세부정산
+        with st.container(border=True):
+            st.caption("💰 세부정산")
+            v_deposit = st.text_input("계약금(만원 단위)", value="0")
+            
+            # 실시간 잔금 계산 로직
+            balance_val = pm.calculate_balance(v_total, v_deposit)
+            v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
+            
+            # 계약금 확인용 안내 (import re 필요)
+            st.write(f"ℹ️ 적용된 계약금: {pm.format_number(pm.get_clean_deposit(v_deposit))}")
         
         with st.container(border=True):
             st.caption("📱 헤이딜러 정보")
