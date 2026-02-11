@@ -158,7 +158,15 @@ with col_info:
     value=st.session_state.get("detected_region", parsed.get('region', "")), 
     key="v_region_key"
     )
-    d_data = st.session_state.get("dealer_data", {})
+        # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
+    d_data = st.session_state.get("dealer_data")
+    if not isinstance(d_data, dict):
+        d_data = {}
+    
+    # 주소 결정 (구글 시트 우선 -> 없으면 엑셀 파싱 데이터)
+    sheet_address = d_data.get("address", "")
+    parsed_address = parsed.get('address', "")
+    final_address = sheet_address if sheet_address else parsed_address
     # 주소 (구글 시트 우선)
     v_address = r4_3.text_input(
         "주소", 
