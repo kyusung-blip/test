@@ -107,7 +107,6 @@ with col_info:
                 st.info("정보가 이미 일치합니다.")
             else:
                 st.error(res.get("message", "오류가 발생했습니다."))
-    v_country = r3_4.text_input("나라", value="")
     r3_5.write("") 
     if r3_5.button("확인"):
         st.toast("정보가 확인되었습니다.")
