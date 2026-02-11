@@ -110,18 +110,15 @@ top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 1. 세션의 모든 데이터 초기화
-        keys_to_reset = [
-            "dealer_data", "detected_region", "country_data", 
-            "inspection_status", "last_raw_input", "out_tab1_final",
-            "out_tab2_final", "out_tab3"
-        ]
-        for k in keys_to_reset:
-            if k in st.session_state:
-                st.session_state[k] = "" if "out" in k else {}
-
-        # 2. 위젯 키 초기화 (st.text_area의 key인 raw_input_main 포함)
-        for k in widget_keys:
+        # 1. 데이터 바구니 초기화
+        st.session_state["dealer_data"] = {}
+        st.session_state["detected_region"] = ""
+        st.session_state["country_data"] = ""
+        st.session_state["inspection_status"] = "X"
+        st.session_state["last_raw_input"] = "" # 무한루프 방지용도 리셋
+        
+        # 2. 개별 입력 위젯 초기화 (NameError 해결 포인트)
+        for k in ALL_WIDGET_KEYS:
             if k in st.session_state:
                 st.session_state[k] = ""
         
