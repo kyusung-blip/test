@@ -1,6 +1,7 @@
 import streamlit as st
 from datetime import datetime
 import logic as lg  # 작성한 logic.py 임포트
+import price_manager as pm # price_manager를 pm이라는 별칭으로 가져옵니다.
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
@@ -70,18 +71,23 @@ with col_info:
         v_biz_name = c1.text_input("상사명", value="") 
         v_biz_num = c2.text_input("사업자번호", value="")
 
-    # 계좌 정보 섹션 (금액은 lg.format_money로 콤마 추가)
+    # 계좌 정보 섹션
     acc1, acc2 = st.columns([2, 3])
-    v_price = acc1.text_input("차량대", value=lg.format_money(parsed.get('price', "")))
+    # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
+    v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
     v_acc_o = acc2.text_input("차량대 계좌", value="")
 
     acc3, acc4 = st.columns([2, 3])
-    v_contract_x = acc3.text_input("계산서X", value=lg.format_money(parsed.get('contract', "")))
+    v_contract_x = acc3.text_input("계산서X", value=pm.format_number(parsed.get('contract', "")))
     v_acc_x = acc4.text_input("계산서X 계좌", value="")
 
     acc5, acc6 = st.columns([2, 3])
-    v_fee = acc5.text_input("매도비", value=lg.format_money(parsed.get('fee', "")))
+    v_fee = acc5.text_input("매도비", value=pm.format_number(parsed.get('fee', "")))
     v_acc_fee = acc6.text_input("매도비 계좌", value="")
+
+    # 💡 [핵심] 실시간 합계 계산
+    # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
+    total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
 
     r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
     v_sender = r5_1.text_input("입금자명", value="서북인터")
@@ -90,13 +96,16 @@ with col_info:
     if r5_3.button("📝 정보 추가&수정", type="primary"):
         pass
 
-    # 하단 세부 정산 및 플랫폼 프레임
+    # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
     with row_bottom[0]:
         with st.container(border=True):
             st.caption("💰 세부정산")
             v_deposit = st.text_input("계약금(만원)", value="0")
-            v_balance = st.text_input("잔금", value=lg.format_money(parsed.get('balance', "")))
+            
+            # 💡 [핵심] 잔금 계산: (위에서 계산한 합계) - (방금 입력한 계약금)
+            balance_val = pm.calculate_balance(v_total, v_deposit)
+            v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
         
         with st.container(border=True):
             st.caption("📱 헤이딜러 정보")
