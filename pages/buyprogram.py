@@ -4,6 +4,7 @@ from datetime import datetime
 import logic as lg  # 작성한 logic.py 임포트
 import price_manager as pm # price_manager를 pm이라는 별칭으로 가져옵니다.
 import message as msg_logic
+import remit
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
@@ -199,7 +200,7 @@ with col_list:
             "plate": v_plate, "year": v_year, "car_name": v_car_name, "vin": v_vin,
             "address": v_address, "dealer_phone": v_dealer_phone,
             "price_acc": v_acc_o, "notbill_acc": v_acc_x, "fee_acc": v_acc_fee,
-            "sender_name": v_sender, "brand": v_brand, "dealer_number": v_dealer_num,
+            "sender_name": v_sender, "brand": v_brand, "dealer_number": v_biz_num,
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
             "total": v_total, "deposit": v_deposit, "balance": v_balance,
             "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
@@ -230,7 +231,7 @@ with col_list:
         st.text_area("송금 요청 결과", height=300, key="out_tab2_final")
         b3, b4 = st.columns(2)
         if b3.button("📋 내용복사", key="cp2"):
-            content_to_copy = st.session_state.get("out_tab1_final", "")
+            content_to_copy = st.session_state.get("out_tab2_final", "")
             if content_to_copy:
                 st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
                 st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
@@ -239,7 +240,7 @@ with col_list:
 
         # 내용 리셋 버튼 (세션 상태 직접 수정)
         if b4.button("♻️ 내용리셋", key="rs2"):
-            st.session_state["out_tab1_final"] = ""  # 위젯의 key값을 초기화
+            st.session_state["out_tab2_final"] = ""  # 위젯의 key값을 초기화
             st.rerun()
 
     with tab3:
@@ -252,7 +253,7 @@ with col_list:
         st.text_area("기타 메시지 결과", height=400, key="out_tab3")
         b5, b6 = st.columns(2)
         if b5.button("📋 내용복사", key="cp3"):
-            content_to_copy = st.session_state.get("out_tab1_final", "")
+            content_to_copy = st.session_state.get("out_tab3_final", "")
             if content_to_copy:
                 st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
                 st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
@@ -261,5 +262,5 @@ with col_list:
 
         # 내용 리셋 버튼 (세션 상태 직접 수정)
         if b6.button("♻️ 내용리셋", key="rs3"):
-            st.session_state["out_tab1_final"] = ""  # 위젯의 key값을 초기화
+            st.session_state["out_tab3_final"] = ""  # 위젯의 key값을 초기화
             st.rerun()
