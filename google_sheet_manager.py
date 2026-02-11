@@ -35,3 +35,8 @@ def get_spreadsheet_open(name):
     creds = ServiceAccountCredentials.from_json_keyfile_name(json_file, scope)
     gc = gspread.authorize(creds)
     return gc.open(name)
+# google_sheet_manager.py 에 추가
+def get_inspection_data_sheet():
+    """인스펙션 상세 내용 시트 반환"""
+    # 스프레드시트 이름과 워크시트 이름을 정확히 지정합니다.
+    return get_spreadsheet_open("Inspection Organization (24-23)").worksheet("인스팩션내용")
