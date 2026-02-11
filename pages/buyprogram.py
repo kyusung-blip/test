@@ -500,6 +500,7 @@ with col_list:
         if e_c1.button("입고방 알림", key="btn_etc1"):
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
             st.rerun()
+            
         if e_c2.button("🚀 정보등록", type="primary"):
             with st.spinner("시트에 등록 중..."):
                 res = inventoryenter.run_integrated_registration(ect_data)
@@ -510,6 +511,32 @@ with col_list:
         if e_c2.button("서류안내 문자", key="btn_etc2"):
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
+            
+        if st.button("📊 이카운트 ERP 입력", key="btn_ecount", type="secondary"):
+        if not v_plate:
+            st.warning("차량 번호가 없습니다. 데이터를 먼저 파싱해주세요.")
+        else:
+            with st.spinner("이카운트 전송 중..."):
+                # 1. 세션 토큰 획득
+                session_id = ecount.get_session_id()
+                
+                if session_id:
+                    # 오늘 날짜 추가 (YYYYMMDD 형식)
+                    ect_data["date"] = datetime.now().strftime("%Y%m%d")
+                    
+                    # 2. 전표 등록 실행
+                    result = ecount.register_purchase(ect_data, session_id)
+                    
+                    # 3. 결과 처리
+                    if result.get("Status") == "200":
+                        st.success("✅ 이카운트 매입전표 등록 성공!")
+                        # 이카운트 전표 번호 등을 확인하고 싶다면: result['Data']['Datas']['Details'][0]['BILL_NO']
+                    else:
+                        error_msg = result.get("Message", "알 수 없는 에러")
+                        st.error(f"❌ 등록 실패: {error_msg}")
+                else:
+                    st.error("❌ 이카운트 로그인 실패. (회사코드/키를 확인하세요)")    
+                    
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
             e_c2.link_button("🌐 사이트 이동", v_site)
