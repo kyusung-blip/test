@@ -122,6 +122,12 @@ with col_info:
             v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"], index=0)
             v_h_id = st.selectbox("헤이딜러 ID", ["선택", "seobuk", "inter77", "leeks21"], index=0)
             v_h_delivery = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
+    with row_bottom[0]: # 기존 헤이딜러 정보 container 아래에 추가하거나 새로 생성
+            with st.container(border=True):
+                st.caption("🔨 경매(옥션) 정보")
+                auc_c1, auc_c2 = st.columns(2)
+                v_auc_type = auc_c1.selectbox("옥션 타입", ["선택", "현대글로비스", "오토허브", "롯데", "K car"], index=0)
+                v_auc_region = auc_c2.text_input("옥션 지역(회차)", value="")
 
     with row_bottom[1]:
         with st.container(border=True):
@@ -244,12 +250,22 @@ with col_list:
             st.rerun()
 
     with tab3:
+        etc_data = {
+            "buyer": v_buyer, "region": v_region, "vin": v_vin, "km": v_km,
+            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+            "h_type": v_h_type, "h_id": v_h_id,
+            "auc_type": v_auc_type, "auc_region": v_auc_region
+        }
         e_c1, e_c2 = st.columns(2)
-        if e_c1.button("입고방"): pass
+        if e_c1.button("입고방 알림", key="btn_etc1"):
+            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
+            st.rerun()
         if e_c2.button("정보등록"): pass
-        if e_c1.button("서류문자"): pass
+        if e_c2.button("서류안내 문자", key="btn_etc2"):
+            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
+            st.rerun()
         if e_c2.button("사이트"): pass
-        
+
         st.text_area("기타 메시지 결과", height=400, key="out_tab3")
         b5, b6 = st.columns(2)
         if b5.button("📋 내용복사", key="cp3"):
