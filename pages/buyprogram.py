@@ -107,27 +107,24 @@ top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 1. 위젯 키 삭제 (상단 입력칸 포함)
+        # 1. 위젯 연결 키 완전 삭제 (상단 입력칸 'raw_input_main' 포함)
         for k in ALL_WIDGET_KEYS:
             if k in st.session_state:
                 del st.session_state[k]
         
-        # 2. 파싱 방지 및 데이터 바구니 초기화
-        # 'last_raw_input'을 지워야 rerun 후 다시 파싱되지 않습니다.
-        keys_to_reset = [
-            "raw_input", "dealer_data", "detected_region", "country_data", 
-            "inspection_status", "last_raw_input", "parsed_data",
-            "out_tab1_final", "out_tab1", "out_tab2_final", "out_tab2", "out_tab3"
-        ]
+        # 2. 파싱 기록 및 데이터 바구니 초기화
+        st.session_state["last_raw_input"] = ""  # 비교 대상 초기화
+        st.session_state["parsed_data"] = {}
+        st.session_state["dealer_data"] = {}
+        st.session_state["detected_region"] = ""
+        st.session_state["country_data"] = ""
+        st.session_state["inspection_status"] = "X"
         
-        for k in keys_to_reset:
-            if k in st.session_state:
-                # 딕셔너리 형태는 빈 중괄호로, 나머지는 빈 값으로
-                if k in ["dealer_data", "parsed_data"]:
-                    st.session_state[k] = {}
-                else:
-                    st.session_state[k] = ""
-        
+        # 3. 결과 메시지창들도 초기화
+        for out_key in ["out_tab1_final", "out_tab2_final", "out_tab3"]:
+            st.session_state[out_key] = ""
+
+        # 4. 즉시 리런하여 깨끗한 상태로 렌더링
         st.rerun()
         
 
