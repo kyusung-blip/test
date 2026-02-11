@@ -233,6 +233,13 @@ with col_info:
     acc1, acc2 = st.columns([2, 3])
     # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
     v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
+    # 2. DECLARATION 자동 계산 로직 적용
+    # 엑셀에서 가져온 값이 있으면 그것을 쓰고, 없으면 차량대금 기반으로 자동 계산
+    excel_decl = parsed.get('declaration', "0")
+    if excel_decl and excel_decl != "0":
+        auto_decl_val = pm.parse_money(excel_decl)
+    else:
+        auto_decl_val = pm.calculate_declaration(v_price)
     v_acc_o = acc2.text_input("차량대 계좌", value=d_data.get("acc_o", ""), key="acc_o_input")
 
     acc3, acc4 = st.columns([2, 3])
@@ -251,9 +258,9 @@ with col_info:
     v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
     
     v_declaration = r5_2.text_input(
-        "DECLARATION", 
-        value=pm.format_number(parsed.get('declaration', "0")), 
-        key="v_declaration_key"
+    "DECLARATION", 
+    value=pm.format_number(auto_decl_val), # 계산된 값을 포맷팅해서 표시
+    key="v_declaration_key"
     )
     
     v_sender = r5_3.text_input(
