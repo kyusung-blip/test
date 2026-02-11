@@ -24,3 +24,12 @@ ADDRESS_REGION_MAP = {
     "천안": "천안", "전주": "전주", "순천": "순천", "포항": "포항",
     "경주": "경주", "창원": "창원", "진주": "진주", "양산": "양산", "광주": "광주"
 }
+def get_region_from_address(address):
+    """주소 문자열에서 매핑된 지역명을 찾아 반환"""
+    if not address:
+        return ""
+    
+    for keyword, region_name in ADDRESS_REGION_MAP.items():
+        if keyword in address:
+            return region_name
+    return ""
