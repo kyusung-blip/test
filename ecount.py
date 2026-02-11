@@ -3,7 +3,7 @@ import json
 from datetime import datetime
 import urllib3
 
-# SSL 경고 메시지 무시 설정 (Streamlit Cloud 환경 안정성 확보)
+# SSL 인증서 경고 무시 (테스트 서버 연결 안정성 확보)
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 COM_CODE = "682186"
@@ -12,9 +12,9 @@ API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
 ZONE = "AD" 
 
 def get_session_id():
-    """진단에서 성공한 메인 게이트웨이 주소를 사용합니다."""
-    # oapiAD 대신 진단에 성공한 oapi 메인 주소를 사용합니다.
-    login_url = "https://oapi.ecount.com/OAPI/V2/OAPILogin"
+    """테스트용 SBO API 엔드포인트를 사용하여 세션을 가져옵니다."""
+    # 운영 서버 oapi 대신 알려주신 sboapi 주소를 사용합니다.
+    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
     
     payload = {
         "COM_CODE": COM_CODE,
@@ -29,27 +29,27 @@ def get_session_id():
             login_url, 
             data=json.dumps(payload), 
             headers={'Content-Type': 'application/json'},
-            verify=False,  # SSL 인증서 검증 건너뛰기 (연결 오류 해결용)
-            timeout=15     # 타임아웃 시간을 넉넉히 설정
+            verify=False, # 테스트 서버는 인증서 이슈가 잦으므로 False 권장
+            timeout=15
         )
         res_data = response.json()
         
         if res_data.get("Status") == "200":
             return res_data["Data"]["Datas"]["Token"]
         else:
-            print(f"로그인 실패 응답: {res_data}")
+            print(f"로그인 실패 응답: {res_data.get('Message')}")
             return None
             
     except Exception as e:
-        # 에러 로그를 상세히 남깁니다.
-        print(f"연결 실패 상세 원인: {str(e)}")
+        print(f"테스트 서버 연결 오류: {e}")
         return None
 
 def register_item(data, session_id, sheet_no):
-    """품목 등록 API"""
-    # 품목 등록은 실제 데이터 서버를 가리켜야 합니다.
-    url = f"https://api{ZONE}.ecount.com/OAPI/V2/InventoryItem/SaveInventoryItem?SESSION_ID={session_id}"
+    """품목 등록 API (테스트 서버용)"""
+    # 등록 주소도 sboapi로 맞춰야 합니다.
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/InventoryItem/SaveInventoryItem?SESSION_ID={session_id}"
     
+    # 숫자형 정제 (CMB)
     def to_float(val):
         try:
             import re
