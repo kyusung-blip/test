@@ -93,7 +93,17 @@ if raw_input:
             contact = parsed.get('dealer_phone', "")
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
-                st.session_state["dealer_data"] = dealer_res if dealer_res["status"] == "success" else {}
+                if dealer_res["status"] == "success":
+                    st.session_state["dealer_data"] = dealer_res
+                    # --- [중요] 위젯 키에 직접 할당 ---
+                    st.session_state["v_address_key"] = dealer_res.get("address", "")
+                    st.session_state["v_biz_name_input"] = dealer_res.get("company", "")
+                    st.session_state["v_biz_num_input"] = dealer_res.get("biz_num", "")
+                    st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
+                    st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
+                    st.session_state["sender_input"] = dealer_res.get("sender", "")
+                else:
+                    st.session_state["dealer_data"] = {}
 
             # 3. 바이어 국가 조회
             buyer = parsed.get('buyer', "").strip()
