@@ -1,286 +1,220 @@
 import streamlit as st
-import os
 import re
 from datetime import datetime
+import logic as lg
+import price_manager as pm
+import message as msg_logic
+import remit
+import etc
+import dealerinfo
+import country
+import mapping
+import inventoryenter
+import Inspectioncheck
 
-# 크롤링 관련 라이브러리
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
+# --- 0. 기본 설정 및 세션 초기화 ---
+st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
-# --- 1. 설정 및 인덱스 정의 (기존 유지) ---
-IDX = {
-    "site": 1, "sales": 2, "year": 5, "car_name": 6, "km": 9,
-    "plate": 10, "vin": 11, "heydlr_delivery": 12, "color": 13,
-    "address": 16, "dealer_phone": 18, "region": 19, "price": 22,
-    "contract": 23, "fee": 24, "balance": 21, "buyer": 32
-}
+# 페이지 방문 체크 및 자동 리셋
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "buyprogram"
+if st.session_state["current_page"] != "buyprogram":
+    keys_to_delete = ["dealer_data", "last_searched_phone", "detected_region", "country_data", "last_searched_buyer", "raw_input_main", "inspection_status"]
+    for key in keys_to_delete:
+        if key in st.session_state: del st.session_state[key]
+    st.session_state["current_page"] = "buyprogram"
 
-VINYEAR_map = {
-    "1": "2001", "2": "2002", "3": "2003", "4": "2004", "5": "2005", "6": "2006",
-    "7": "2007", "8": "2008", "9": "2009", "A": "2010", "B": "2011", "C": "2012",
-    "D": "2013", "E": "2014", "F": "2015", "G": "2016", "H": "2017", "J": "2018",
-    "K": "2019", "L": "2020", "M": "2021", "N": "2022", "P": "2023", "R": "2024",
-    "S": "2025", "T": "2026", "V": "2027"
-}
+if "dealer_data" not in st.session_state: st.session_state["dealer_data"] = {}
+if "inspection_status" not in st.session_state: st.session_state["inspection_status"] = "X"
 
-color_map = {
-    "silver gray": "GRAY", "Silver gray": "GRAY", "sable": "BLACK", "rat color": "GRAY",
-    "pearl gray": "WHITE", "mouse gray": "GRAY", "흰색": "WHITE", "검정색": "BLACK",
-    "빨간색": "RED", "쥐색": "GRAY", "주황색": "ORANGE"
-}
+# CSS
+st.markdown("<style>.stButton>button { width: 100%; margin-bottom: 5px; }</style>", unsafe_allow_html=True)
 
-ADDRESS_REGION_MAP = {
-    "서울": "서울", "인천": "인천", "김포": "김포", "양주": "양주", "용인": "용인",
-    "광명": "광명", "의정부": "의정부", "부천": "부천", "수원": "수원", "부산": "부산",
-    "대구": "대구", "대전": "대전", "울산": "울산", "세종": "세종", "광주": "광주"
-}
+# --- 1. 상단: 데이터 입력칸 ---
+st.subheader("📥 데이터 붙여넣기")
+top_col1, top_col2 = st.columns([8, 1])
 
-# --- 2. 유틸리티 함수 ---
-def format_number(value):
-    try:
-        val = int(str(value).replace(",", "").strip())
-        return f"{val:,}"
-    except: return str(value)
-
-def parse_money(value):
-    try:
-        return int(re.sub(r'[^0-9]', '', str(value)))
-    except: return 0
-
-def get_exchange_rate():
-    options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--no-sandbox")
-    options.add_argument("--disable-dev-shm-usage")
-    try:
-        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        driver.get("https://spot.wooribank.com/pot/Dream?withyou=FXXRT0011")
-        driver.find_element(By.XPATH, '//*[@id="frm"]/fieldset/div/span/input').click()
-        WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//td[text()='미국 달러']")))
-        rate = driver.find_element(By.XPATH, "//td[text()='미국 달러']/following-sibling::td[8]").text
-        st.session_state['ex_rate'] = rate.replace(",", "")
-        st.session_state['ex_date'] = datetime.today().strftime("%Y-%m-%d")
-        st.toast("환율 정보 로드 완료!", icon="💰")
-    except Exception as e:
-        st.error(f"환율 조회 실패: {e}")
-    finally:
-        if 'driver' in locals(): driver.quit()
-
-# --- 3. 메시지 생성 핵심 로직 (기존 Tkinter 이식) ---
-def generate_message(m_type, d, category="msg"):
-    year = d['year']
-    car_name = d['car_name'] or "차량명"
-    plate = d['plate']
-    
-    # 값 정규화
-    raw_p = d['price'].strip()
-    raw_p_norm = "" if re.fullmatch(r'0|0원|0만원', raw_p) else raw_p
-    raw_f = d['fee'].strip()
-    raw_f_norm = "" if re.fullmatch(r'0|0원|0만원', raw_f) else raw_f
-    raw_c = d['contract_x'].strip()
-    raw_c_norm = "" if re.fullmatch(r'0|0원|0만원', raw_c) else raw_c
-
-    title_line = f"{year} {car_name}"
-    name_line = f"{d['sender']}로" if d['sender'] == "차량번호" else f"{d['sender']}으로"
-
-    # [Category 1: 일반 메시지 출력]
-    if category == "msg":
-        if m_type == "아웃소싱":
-            return f"요청자 : {d['sales']}\n차명 : {d['car_name']}\n차량번호 : {d['plate']}\n주소 : {d['address']}\n차주 연락처 : {d['phone']}\n\n{d['region']} 한대 부탁드립니다~!\n\n{d['site']}\n"
-        elif m_type == "주소공유":
-            return f"Sales Team : {d['sales']}\nModel : {d['car_name']}\nPlate : {d['plate']}\nCar Address : {d['address']}\nDealer Phone : {d['phone']}\n\n{d['site']}\n"
-        elif m_type == "서류문자":
-            return "필요서류: 자동차등록증 원본, 사업자등록증 사본(있는경우), 인감증명서(자동차매도용)입니다."
-        else:
-            # 확인후, 세일즈팀, 검수자, 문자 공통 로직
-            if raw_p_norm and raw_f_norm and raw_c_norm:
-                res = f"{title_line}\n{plate}\n\n수출말소기준\n계산서(O) : {raw_p}\n계산서(X) : {raw_c}\n매도비 : {raw_f}"
-            elif raw_p_norm and raw_c_norm and not raw_f_norm:
-                res = f"{title_line}\n{plate}\n\n수출말소기준\n계산서(O) : {raw_p}\n계산서(X) : {raw_c}"
-            elif raw_p_norm and raw_f_norm and not raw_c_norm:
-                res = f"{title_line}\n{plate}\n\n수출말소기준\n차량대 : {raw_p}\n매도비 : {raw_f}\n세금계산서 전액발행"
-            else:
-                fee_txt = f"매도비 : {raw_f}" if raw_f_norm else f"매도비포함 {raw_p}"
-                res = f"{title_line}\n{plate}\n\n수출말소기준\n{fee_txt}\n세금계산서 전액발행"
-            
-            if m_type == "세일즈팀": res += "\n\n세일즈팀에서 금일 방문 예정입니다~!"
-            elif m_type == "검수자": res += "\n\n검수자 배정 후 연락드리겠습니다~!"
-            elif m_type == "확인후": res += "\n\n확인 후 연락드리겠습니다~!"
-            return res
-
-    # [Category 2: 송금 요청]
-    elif category == "remit":
-        price_val = parse_money(raw_p_norm)
-        deposit_val = parse_money(d['deposit'])
-        calc_minus_deposit = price_val - (deposit_val * 10000 if deposit_val < 5000 else deposit_val)
-        raw_calc_minus_deposit = format_number(calc_minus_deposit)
-
-        msg = "*서북인터내셔널"
-        if m_type in ["계약금", "일반매입", "송금완료", "폐자원매입", "계약금 송금완료"]:
-            msg += f" 주식회사*\n\n"
-            if m_type == "폐자원매입": msg += "@@@폐자원매입@@@\n\n"
-            elif "완료" in m_type: msg += "@@@송금완료@@@\n\n"
-            
-            msg += f"차번호: {plate} // {title_line}\nVIN: {d['vin']}\n\n사업자번호: {d['biz_num']}\n주소: {d['address']}\n번호: {d['phone']}\n\n"
-            
-            if raw_p_norm and raw_c_norm: # 분리매입
-                msg += f"계산서(O): {raw_p}\n계산서(X): {raw_c}\n"
-                if raw_f_norm: msg += f"매도비: {raw_f}\n"
-                msg += f"합계: {d['total']}\n\n계좌\n계산서(O): {d['acc_o']}\n계산서(X): {d['acc_x']}\n"
-            else: # 일반매입
-                fee_line = f"매도비: {raw_f}" if raw_f_norm else "매도비포함"
-                msg += f"차량대: {raw_p}\n{fee_line}\n합계: {d['total']}\n\n계좌\n차량대: {d['acc_o']}\n"
-            
-            if raw_f_norm and d['acc_fee']: msg += f"매도비: {d['acc_fee']}\n"
-            
-            if "계약금" in m_type:
-                fee_part = f"+{raw_f}" if raw_f_norm else ""
-                contract_part = f"+{raw_c}" if raw_c_norm else ""
-                final_calc = f"{raw_calc_minus_deposit}{contract_part}{fee_part}"
-                msg += f"\n{name_line} 계약금 송금 부탁드립니다.\n\n@@@계약금 {d['deposit']} " + ("/ 송금완료" if "완료" in m_type else "") + f"\n@@@잔금 {final_calc if '완료' not in m_type else d['final_bal']}"
-            else:
-                msg += f"\n{name_line} 송금 부탁드립니다."
-            return msg
-
-        elif m_type == "오토위니":
-            return f"-{d['company']}*\n*서북인터내셔널-{d['company']}*\n\n모델: {year} {d['brand']} {car_name}\nVIN: {d['vin']}\n\n회사: {d['company']}\n번호: {d['phone']}\n차량대금: {d['carprice_usd']} USD\n\nUSD 외화\n{d['acc_o']}\n영세율 계산서 거래\n구매확인서 발급\n\n영세율 계산서 금액\n{d['ex_date']} 기준환율 {d['ex_rate']}원\n{d['ex_rate']} * ${d['carprice_usd']} ={d['zerotax']}원"
-
-        elif m_type == "헤이딜러":
-            h_type = d['heydlr_type']
-            h_id = d['heydlr_id'] if d['heydlr_id'] != "선택 안함" else "ID 미선택"
-            msg = "*서북인터내셔널 주식회사*\n\n@@@폐자원매입@@@\n\n"
-            msg += f"헤이딜러 {h_type} (사전판매완료 id: {h_id})\n차번호: {plate} // {title_line}\nVIN: {d['vin']}\n"
-            if h_type == "일반":
-                msg += f"주소: {d['address']}\n번호: {d['phone']}\n\n차량가: {raw_p}\n계좌: {d['acc_o']}\n\n차량번호로 송금 부탁드립니다."
-            else:
-                msg += f"\n차대금 송금 부탁드립니다~!\n차대금: {raw_p}\n입금계좌:\n{d['acc_o']}\n\n탁송 출발 2시간 전 입금 요망\n일정: {d['heydlr_deliv']}"
-            return msg
-    return ""
-
-# --- 4. UI 구성 ---
-st.set_page_config(layout="wide", page_title="서북인터내셔널 차량 매매 시스템")
-
-# 세션 상태 초기화
-for key in ['ex_rate', 'ex_date', 'output_text']:
-    if key not in st.session_state: st.session_state[key] = ""
-
-st.markdown("""
-    <style>
-    html, body, [class*="css"], .stTextInput, .stTextArea, .stButton { font-size: 10pt !important; }
-    .stButton>button { width: 100%; border-radius: 4px; height: 38px; margin-bottom: 2px; background-color: #f0f2f6; }
-    .stTabs [data-baseweb="tab-list"] { gap: 8px; }
-    </style>
-""", unsafe_allow_html=True)
-
-# [상단] 데이터 입력란
-st.subheader("📋 데이터 붙여넣기")
-raw_input = st.text_area("엑셀 데이터를 붙여넣으세요", height=70)
-
-parsed = {k: "" for k in IDX.keys()}
-if raw_input:
-    parts = raw_input.split('\t')
-    for key, idx in IDX.items():
-        if len(parts) > idx: parsed[key] = parts[idx].strip()
-    if len(parsed['vin']) >= 10:
-        parsed['year'] = VINYEAR_map.get(parsed['vin'][9].upper(), parsed['year'])
-    parsed['color'] = color_map.get(parsed['color'].lower(), parsed['color'].upper())
-    for kw, reg in ADDRESS_REGION_MAP.items():
-        if kw in parsed['address']: 
-            parsed['region'] = reg
-            break
-
-# [메인] 35% : 35% : 30% 레이아웃
-col_car, col_pay, col_res = st.columns([0.35, 0.35, 0.30])
-
-with col_car:
-    st.markdown("### 🚗 차량 정보")
-    v_plate = st.text_input("차번호", value=parsed['plate'])
-    v_car_name = st.text_input("차명", value=parsed['car_name'])
-    v_year = st.text_input("연식", value=parsed['year'])
-    v_vin = st.text_input("차대번호(VIN)", value=parsed['vin'])
-    v_addr = st.text_input("주소", value=parsed['address'])
-    v_phone = st.text_input("딜러연락처", value=parsed['dealer_phone'])
-    v_region = st.text_input("지역", value=parsed['region'])
-    v_biz_num = st.text_input("사업자번호", value="")
-
-with col_pay:
-    st.markdown("### 💰 정산 및 계좌")
-    v_price = st.text_input("계산서(O) / 차량대", value=parsed['price'])
-    v_contract_x = st.text_input("계산서(X)", value=parsed['contract'])
-    v_fee = st.text_input("매도비", value=parsed['fee'])
-    v_total = st.text_input("합계금액", value=format_number(parse_money(v_price)+parse_money(v_fee)))
-    
-    with st.expander("💳 송금 계좌 정보", expanded=True):
-        v_acc_o = st.text_input("차량대 계좌", value="")
-        v_acc_x = st.text_input("계산서(X) 계좌", value="")
-        v_acc_fee = st.text_input("매도비 계좌", value="")
-        v_sender = st.text_input("입금자명", value="서북인터")
-
-    with st.expander("🌐 플랫폼 및 환율"):
-        v_site = st.text_input("사이트", value=parsed['site'])
-        v_sales = st.text_input("세일즈팀", value=parsed['sales'])
-        c_ex1, c_ex2 = st.columns([2, 1])
-        c_ex1.text_input("현재환율", value=st.session_state['ex_rate'])
-        if c_ex2.button("환율조회"): get_exchange_rate(); st.rerun()
-        v_deposit = st.text_input("계약금(만원)", value="0")
-        v_final_bal = st.text_input("잔금", value=parsed['balance'])
-
-# 데이터 통합 팩 (메시지 함수 전달용)
-d = {
-    'plate': v_plate, 'year': v_year, 'car_name': v_car_name, 'vin': v_vin,
-    'address': v_addr, 'phone': v_phone, 'region': v_region, 'biz_num': v_biz_num,
-    'price': v_price, 'fee': v_fee, 'contract_x': v_contract_x, 'total': v_total,
-    'acc_o': v_acc_o, 'acc_x': v_acc_x, 'acc_fee': v_acc_fee, 'sender': v_sender,
-    'sales': v_sales, 'site': v_site, 'deposit': v_deposit, 'final_bal': v_final_bal,
-    'heydlr_type': st.sidebar.selectbox("헤이딜러 타입", ["일반", "제로", "바로낙찰"], index=1),
-    'heydlr_id': st.sidebar.text_input("헤이딜러 ID", value="ID 미선택"),
-    'heydlr_deliv': parsed['heydlr_delivery'],
-    'company': "회사명", 'brand': "브랜드", 'carprice_usd': "0", 
-    'ex_date': st.session_state['ex_date'], 'ex_rate': st.session_state['ex_rate'], 'zerotax': "0"
-}
-
-with col_res:
-    st.markdown("### 📝 리스트 탭")
-    t_msg, t_remit, t_etc = st.tabs(["메시지출력", "송금요청", "기타"])
-    
-    with t_msg:
-        m1, m2 = st.columns(2)
-        if m1.button("확인후"): st.session_state.output_text = generate_message("확인후", d)
-        if m2.button("세일즈팀"): st.session_state.output_text = generate_message("세일즈팀", d)
-        m3, m4 = st.columns(2)
-        if m3.button("검수자"): st.session_state.output_text = generate_message("검수자", d)
-        if m4.button("문자"): st.session_state.output_text = generate_message("문자", d)
-        m5, m6 = st.columns(2)
-        if m5.button("아웃소싱"): st.session_state.output_text = generate_message("아웃소싱", d)
-        if m6.button("주소공유"): st.session_state.output_text = generate_message("주소공유", d)
-        if st.button("서류문자"): st.session_state.output_text = generate_message("서류문자", d)
-
-    with t_remit:
-        r1, r2 = st.columns(2)
-        if r1.button("일반매입"): st.session_state.output_text = generate_message("일반매입", d, "remit")
-        if r2.button("폐자원매입"): st.session_state.output_text = generate_message("폐자원매입", d, "remit")
-        r3, r4 = st.columns(2)
-        if r3.button("계약금"): st.session_state.output_text = generate_message("계약금", d, "remit")
-        if r4.button("송금완료"): st.session_state.output_text = generate_message("송금완료", d, "remit")
-        r5, r6 = st.columns(2)
-        if r5.button("계약금 송금완료"): st.session_state.output_text = generate_message("계약금 송금완료", d, "remit")
-        if r6.button("오토위니"): st.session_state.output_text = generate_message("오토위니", d, "remit")
-        if st.button("헤이딜러"): st.session_state.output_text = generate_message("헤이딜러", d, "remit")
-
-    with t_etc:
-        if st.button("입고방"): st.session_state.output_text = f"입고알림: {v_plate} ({v_car_name})"
-        if st.button("사이트 공유"): st.session_state.output_text = f"사이트: {v_site}\n딜러: {v_phone}"
-
-    st.divider()
-    st.session_state.output_text = st.text_area("출력 결과", value=st.session_state.output_text, height=300)
-    
-    b1, b2 = st.columns(2)
-    if b1.button("📋 내용복사"): st.toast("Ctrl+C를 눌러 복사하세요")
-    if b2.button("♻️ 내용리셋"):
-        st.session_state.output_text = ""
+with top_col2:
+    if st.button("♻️ 전체 리셋"):
+        keys_to_clear = ["dealer_data", "last_searched_phone", "detected_region", "country_data", "last_searched_buyer", "raw_input_main", "inspection_status", "last_checked_plate"]
+        for key in keys_to_clear:
+            if key in st.session_state: del st.session_state[key]
         st.rerun()
+
+with top_col1:
+    raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
+
+# 데이터 파싱 및 자동 조회 로직 (raw_input 생성 후 배치)
+parsed = {}
+if raw_input:
+    parsed = lg.parse_excel_data(raw_input)
+    
+    # 딜러 조회
+    contact = parsed.get('dealer_phone', "")
+    if contact and st.session_state.get('last_searched_phone') != contact:
+        dealer_res = dealerinfo.search_dealer_info(contact)
+        if dealer_res["status"] == "success":
+            st.session_state["dealer_data"] = dealer_res
+            st.session_state["last_searched_phone"] = contact
+            
+    # Inspection 조회
+    plate = parsed.get('plate', "").strip()
+    if plate and st.session_state.get('last_checked_plate') != plate:
+        insp_status = Inspectioncheck.fetch_inspection_status(plate)
+        st.session_state["inspection_status"] = insp_status
+        st.session_state["last_checked_plate"] = plate
+
+    # 지역 및 바이어 나라 조회 (기존 로직 유지)
+    d_data = st.session_state.get("dealer_data", {})
+    final_addr = d_data.get("address") if d_data.get("address") else parsed.get("address", "")
+    st.session_state["detected_region"] = mapping.get_region_from_address(final_addr)
+    
+    buyer_val = parsed.get('buyer', "").strip()
+    if buyer_val and st.session_state.get('last_searched_buyer') != buyer_val:
+        res = country.handle_buyer_country(buyer_val, "")
+        if res["status"] == "fetched":
+            st.session_state["country_data"] = res["country"]
+            st.session_state["last_searched_buyer"] = buyer_val
+
+st.divider()
+
+# --- 2. 메인 화면 구성 ---
+col_info, col_list = st.columns([0.7, 0.3])
+
+with col_info:
+    d_data = st.session_state.get("dealer_data", {})
+    
+    # 타이틀 + Inspection
+    title_col, insp_col = st.columns([4, 1])
+    title_col.markdown("### 🚗 매입 정보")
+    
+    insp_list = ["X", "S", "C"]
+    current_insp = st.session_state.get("inspection_status", "X")
+    insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
+    v_inspection = insp_col.selectbox("Inspection", insp_list, index=insp_idx, key="v_inspection_key", label_visibility="collapsed")
+
+    # R1~R4 위젯 (기존 코드와 동일하게 배치하되 NameError 방지를 위해 순서 준수)
+    r1_1, r1_2, r1_3, r1_4 = st.columns(4)
+    v_plate = r1_1.text_input("차번호", value=parsed.get('plate', ""))
+    v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
+    v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
+    v_car_name_remit = r1_4.text_input("차명(송금용)", value=parsed.get('car_name', ""))
+
+    r2_1, r2_2, r2_3, r2_4 = st.columns(4)
+    v_brand = r2_1.text_input("브랜드", value=parsed.get('brand', ""))
+    v_vin = r2_2.text_input("VIN", value=parsed.get('vin', ""))
+    v_km = r2_3.text_input("km", value=parsed.get('km', ""))
+    v_color = r2_4.text_input("color", value=parsed.get('color', ""))
+
+    r3_1, r3_2, r3_3, r3_4, r3_5 = st.columns([1.5, 1.5, 1.5, 1.5, 1])
+    v_site = r3_1.text_input("사이트", value=parsed.get('site', ""))
+    v_sales = r3_2.text_input("세일즈팀", value=parsed.get('sales', ""))
+    v_buyer = r3_3.text_input("바이어", value=parsed.get('buyer', ""))
+    v_country = r3_4.text_input("나라", value=st.session_state.get("country_data", ""))
+    if r3_5.button("확인", key="btn_country_confirm"):
+        res = country.handle_buyer_country(v_buyer, v_country)
+        if res["status"] == "fetched": st.session_state["country_data"] = res["country"]; st.rerun()
+
+    r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
+    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
+    v_region = r4_2.text_input("지역", value=st.session_state.get("detected_region", parsed.get('region', "")), key="v_region_key")
+    v_address = r4_3.text_input("주소", value=d_data.get("address") if d_data.get("address") else parsed.get('address', ""), key="v_address_key")
+
+    with st.container(border=True):
+        st.caption("🏢 딜러/판매자 정보")
+        biz_c1, biz_c2 = st.columns(2)
+        v_biz_name = biz_c1.text_input("상사명", value=d_data.get("company", ""), key="v_biz_name_input")
+        v_biz_num = biz_c2.text_input("사업자번호", value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""), key="v_biz_num_input")
+
+    acc_col1, acc_col2 = st.columns([2, 3])
+    v_price = acc_col1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
+    v_acc_o = acc_col2.text_input("차량대 계좌", value=d_data.get("acc_o", ""), key="acc_o_input")
+    
+    # 계산서X, 매도비 위젯 추가 (생략됨을 방지)
+    acc3, acc4 = st.columns([2, 3])
+    v_contract_x = acc3.text_input("계산서X", value=pm.format_number(parsed.get('contract', "")))
+    v_acc_x = acc4.text_input("계산서X 계좌", value=d_data.get("acc_x", ""), key="acc_x_input")
+    acc5, acc6 = st.columns([2, 3])
+    v_fee = acc5.text_input("매도비", value=pm.format_number(parsed.get('fee', "")))
+    v_acc_fee = acc6.text_input("매도비 계좌", value=d_data.get("acc_fee", ""), key="acc_fee_input")
+
+    total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
+    r5_1, r5_2, r5_3 = st.columns([2, 2, 2])
+    v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
+    v_declaration = r5_2.text_input("DECLARATION", value=pm.format_number(parsed.get('declaration', "0")), key="v_declaration_key")
+    v_sender = r5_3.text_input("입금자명", value=d_data.get("sender", "서북인터"), key="sender_input")
+
+    btn_c1, btn_c2 = st.columns(2)
+    if btn_c1.button("🏦 계좌확인"):
+        res = dealerinfo.search_dealer_info(v_dealer_phone)
+        if res["status"] == "success": st.session_state["dealer_data"] = res; st.rerun()
+    if btn_c2.button("📝 정보 추가&수정", type="primary"):
+        save_data = {"phone": v_dealer_phone, "biz_num": v_biz_num, "biz_name": v_biz_name, "address": v_address, "acc_o": v_acc_o, "acc_fee": v_acc_fee, "sender": v_sender}
+        res = dealerinfo.save_or_update_dealer(save_data)
+        if res["status"] == "success": st.success(res["message"])
+
+    # 하단 세부 정산 (기존 레이아웃 유지)
+    row_bottom = st.columns(2)
+    with row_bottom[0]:
+        with st.container(border=True):
+            v_deposit = st.text_input("계약금(만원)", value="0")
+            v_balance = st.text_input("잔금", value=pm.format_number(pm.calculate_balance(v_total, v_deposit)))
+        with st.container(border=True):
+            v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"], index=0)
+            v_h_id = st.selectbox("헤이딜러 ID", ["선택", "seobuk", "inter77", "leeks21"], index=0)
+            v_h_delivery = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
+        with st.container(border=True):
+            auc_c1, auc_c2 = st.columns(2)
+            v_auc_type = auc_c1.selectbox("옥션 타입", ["선택", "현대", "오토허브", "롯데", "K car"], index=0)
+            v_auc_region = auc_c2.text_input("옥션 지역(회차)", value="")
+
+    with row_bottom[1]:
+        with st.container(border=True):
+            v_company = st.text_input("업체명(오토위니)", value="")
+            v_ex_date = st.text_input("환율기준일", value="")
+            v_ex_rate = st.text_input("환율", value="")
+            v_usd = st.text_input("차량대금($)", value="")
+            v_won = st.text_input("영세율금액(원)", value="")
+
+# --- [우측: 리스트탭 (30%)] ---
+with col_list:
+    st.markdown("### 📋 리스트 탭")
+    tab1, tab2, tab3 = st.tabs(["💬 문자전송", "💵 송금요청", "➕ 기타"])
+
+    # 공통 데이터 수집 (모든 탭에서 사용)
+    reg_data = {
+        "plate": v_plate, "year": v_year, "car_name": v_car_name, "car_name_remit": v_car_name_remit,
+        "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+        "region": v_region, "sales": v_sales, "buyer": v_buyer, "country": v_country,
+        "inspection": v_inspection, "site": v_site, "dealer_phone": v_dealer_phone,
+        "price": v_price, "fee": v_fee, "contract_x": v_contract_x, "total": v_total,
+        "deposit": v_deposit, "balance": v_balance, "acc_o": v_acc_o, "acc_x": v_acc_x, "acc_fee": v_acc_fee,
+        "biz_name": v_biz_name, "biz_num": v_biz_num, "address": v_address, "sender": v_sender,
+        "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+        "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate, "usd_price": v_usd, "won_price": v_won,
+        "auc_type": v_auc_type, "auc_region": v_auc_region, "declaration": v_declaration
+    }
+
+    with tab1:
+        m_c1, m_c2 = st.columns(2)
+        if m_c1.button("확인후", key="btn_confirm"): st.session_state["out_tab1_final"] = msg_logic.handle_confirm(reg_data, "confirm"); st.rerun()
+        if m_c2.button("세일즈팀", key="btn_sales"): st.session_state["out_tab1_final"] = msg_logic.handle_confirm(reg_data, "salesteam"); st.rerun()
+        st.text_area("결과", height=300, key="out_tab1_final")
+
+    with tab2:
+        r_c1, r_c2 = st.columns(2)
+        if r_c1.button("일반매입 송금"): st.session_state["out_tab2_final"] = remit.handle_remit(reg_data, "일반매입"); st.rerun()
+        if r_c2.button("계약금 송금"): st.session_state["out_tab2_final"] = remit.handle_remit(reg_data, "계약금"); st.rerun()
+        st.text_area("결과", height=300, key="out_tab2_final")
+
+    with tab3:
+        e_c1, e_c2 = st.columns(2)
+        if e_c1.button("입고방 알림"): st.session_state["out_tab3_final"] = etc.handle_etc(reg_data, "입고방"); st.rerun()
+        if e_c2.button("🚀 정보등록", type="primary"):
+            with st.spinner("등록 중..."):
+                res = inventoryenter.run_integrated_registration(reg_data)
+                if res["status"] in ["success", "partial"]: st.success(res["message"])
+                else: st.error(res["message"])
+        if e_c1.button("서류안내 문자"): st.session_state["out_tab3_final"] = etc.handle_etc(reg_data, "서류문자"); st.rerun()
+        if v_site and v_site.startswith("http"): st.link_button("🌐 사이트 이동", v_site)
+        st.text_area("결과", height=300, key="out_tab3_final")
