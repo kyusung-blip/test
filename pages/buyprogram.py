@@ -10,21 +10,20 @@ import dealerinfo
 import country
 import mapping
 
-# --- 페이지 방문 체크 및 자동 리셋 ---
-# 현재 페이지가 아닌 다른 페이지에서 왔을 때 세션을 초기화합니다.
+# --- 페이지 방문 체크 및 자동 리셋 (최상단) ---
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
 
+# 다른 페이지에서 넘어온 경우 세션 초기화
 if st.session_state["current_page"] != "buyprogram":
-    # 초기화할 키 목록
-    reset_keys = [
-        "dealer_data", "last_searched_phone", "detected_region", 
-        "country_data", "last_searched_buyer", "raw_input_key"
-    ]
-    for key in reset_keys:
+    keys_to_delete = ["dealer_data", "last_searched_phone", "detected_region", "country_data", "last_searched_buyer", "raw_input_main"]
+    for key in keys_to_delete:
         if key in st.session_state:
             del st.session_state[key]
     st.session_state["current_page"] = "buyprogram"
+
+# parsed 변수는 항상 루프 시작 시 빈 딕셔너리로 초기화
+parsed = {}
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
@@ -49,16 +48,16 @@ top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 세션 데이터 삭제
-        reset_keys = [
+        # 삭제할 세션 키 리스트
+        keys_to_clear = [
             "dealer_data", "last_searched_phone", "detected_region", 
-            "country_data", "last_searched_buyer"
+            "country_data", "last_searched_buyer", "raw_input_main"
         ]
-        for key in reset_keys:
+        for key in keys_to_clear:
             if key in st.session_state:
-                st.session_state[key] = "" if "data" in key else None
+                del st.session_state[key] # 빈 문자열이 아니라 아예 삭제!
         
-        # text_area를 비우기 위해 쿼리 파라미터나 rerun 사용
+        # 텍스트 에어리어 등 위젯 상태 강제 초기화
         st.rerun()
         
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
