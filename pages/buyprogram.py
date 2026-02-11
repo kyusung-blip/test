@@ -29,24 +29,29 @@ if raw_input:
     parsed = lg.parse_excel_data(raw_input)
     plate = parsed.get('plate', "").strip()
     
+    # 💡 이 로직을 추가하세요
     if plate and st.session_state.get('last_checked_plate') != plate:
         with st.spinner("Inspection 상태 조회 중..."):
+            # 시트에서 C, X, S 중 하나를 가져옵니다.
             insp_status = Inspectioncheck.fetch_inspection_status(plate)
             st.session_state["inspection_status"] = insp_status
             st.session_state["last_checked_plate"] = plate
             
 # --- 좌측 매입 정보 위젯 부분 ---
 with insp_col:
-    # 세션에 저장된 값을 기본값(index)으로 설정
+    # 1. 선택지 리스트 정의
     insp_list = ["X", "S", "C"]
+    
+    # 2. 세션에서 현재 상태 가져오기 (없으면 기본값 "X")
     current_insp = st.session_state.get("inspection_status", "X")
     
-    # 상태값에 따른 인덱스 찾기 (없으면 0번 'X')
+    # 3. 상태값에 맞는 인덱스 번호 계산 (X=0, S=1, C=2)
     try:
         insp_idx = insp_list.index(current_insp)
-    except:
+    except ValueError:
         insp_idx = 0
 
+    # 4. index=insp_idx를 넣어 위젯이 자동으로 바뀌게 설정
     v_inspection = st.selectbox(
         "Inspection", 
         insp_list, 
