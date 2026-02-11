@@ -177,23 +177,20 @@ with col_info:
     # 딜러/판매자 정보 프레임
     with st.container(border=True):
         st.caption("🏢 딜러/판매자 정보")
-        c1, c2 = st.columns(2)
-        v_biz_name = c1.text_input("상사명", value=d_data.get("company", ""), key="v_biz_name_input")
-        v_biz_num = st.text_input(
-        "사업자번호", 
-        value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
-        key="biz_num_input"
+        biz_c1, biz_c2 = st.columns(2) # 2개 컬럼 생성
+        v_biz_name = biz_c1.text_input("상사명", value=d_data.get("company", ""), key="v_biz_name_input")
+        # 변수명을 v_biz_num으로 통일하여 NameError 방지
+        v_biz_num = biz_c2.text_input(
+            "사업자번호", 
+            value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
+            key="v_biz_num_input"
         )
 
     # 계좌 정보 섹션
     acc1, acc2 = st.columns([2, 3])
     # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
     v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
-    v_acc_o = st.text_input(
-    "차량대 계좌", 
-    value=d_data.get("acc_o", ""),
-    key="acc_o_input"
-    )
+    v_acc_o = acc2.text_input("차량대 계좌", value=d_data.get("acc_o", ""), key="acc_o_input")
 
     acc3, acc4 = st.columns([2, 3])
     v_contract_x = acc3.text_input("계산서X", value=pm.format_number(parsed.get('contract', "")))
@@ -203,8 +200,7 @@ with col_info:
     v_fee = acc5.text_input("매도비", value=pm.format_number(parsed.get('fee', "")))
     v_acc_fee = acc6.text_input("매도비 계좌", value=d_data.get("acc_fee", ""))
 
-    # 💡 [핵심] 실시간 합계 계산
-    # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
+        # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
     # 3. 합계금액 입력창을 만듭니다. (이때 v_total 변수가 생성됨)
     v_total = st.text_input("합계금액", value=pm.format_number(total_val))
@@ -212,7 +208,7 @@ with col_info:
     r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
     v_sender = st.text_input(
     "입금자명", 
-    value=d_data.get("sender", "서북인터"),
+    value=d_data.get("sender", ""),
     key="sender_input"
     )
     
