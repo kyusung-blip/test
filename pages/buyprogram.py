@@ -514,30 +514,28 @@ with col_list:
             st.rerun()
             
         # tab3 내부
-        if st.button("📊 이카운트 품목 등록", key="btn_ecount_final"):
-            with st.spinner("이카운트 세션 획득 및 품목 등록 중..."):
+        if st.button("🚀 이카운트 정식키 발급을 위한 최종 검증", key="btn_ecount_verify_final"):
+            with st.spinner("샘플 데이터 전송 중..."):
                 import ecount
                 import importlib
                 importlib.reload(ecount)
                 
-                session_id = ecount.get_session_id()
+                # 1. 세션 따오기
+                sid = ecount.get_session_id()
                 
-                if session_id:
-                    # 1. 구글 시트 등록 결과에서 NO(B열) 가져오기
-                    # (기존에 정의된 inventoryenter 로직 실행)
-                    res = inventoryenter.run_integrated_registration(ect_data)
-                    sheet_no = res.get("sheet_b_value", "0") if res["status"] != "fail" else "0"
+                if sid:
+                    # 2. 표준 샘플 데이터로 등록 시도
+                    verify_res = ecount.verify_registration(sid)
                     
-                    # 2. 이카운트에 실제 품목 등록
-                    item_result = ecount.register_item(ect_data, session_id, sheet_no)
-                    
-                    if str(item_result.get("Status")) == "200":
-                        st.success(f"✅ 이카운트 품목 등록 성공! (NO: {sheet_no})")
+                    if str(verify_res.get("Status")) == "200":
+                        st.success("✅ 샘플 데이터 전송 성공!")
+                        st.json(verify_res) # 이카운트의 성공 응답(SuccessCnt: 2) 확인
+                        st.info("이제 이카운트 ERP 화면에서 [키발급] 버튼을 눌러보세요.")
                     else:
-                        st.error(f"❌ 품목 등록 실패: {item_result.get('Message')}")
-                        st.json(item_result)
+                        st.error("❌ 전송 실패")
+                        st.json(verify_res)
                 else:
-                    st.error("❌ 이카운트 로그인 세션 획득에 실패했습니다.")
+                    st.error("❌ 세션 획득 실패")
         # 버튼 로직 내부에 잠시 넣어보세요
         if st.button("🌐 네트워크 진단 테스트"):
             target_host = "oapi.ecount.com"
