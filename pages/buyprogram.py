@@ -49,6 +49,15 @@ if raw_input:
                 st.session_state["dealer_data"] = {}
                 st.session_state["last_searched_phone"] = contact
                 
+    final_address = st.session_state.get("dealer_data", {}).get("address")
+    if not final_address:
+        final_address = parsed.get("address", "")
+    
+    # 판별된 지역을 세션에 저장
+    detected_region = mapping.get_region_from_address(final_address)
+    if detected_region:
+        st.session_state["detected_region"] = detected_region
+                
     buyer = parsed.get('buyer', "").strip()
     if buyer and st.session_state.get('last_searched_buyer') != buyer:
         res = country.handle_buyer_country(buyer, "") # 나라 정보 조회
@@ -110,7 +119,18 @@ with col_info:
     # R4: 연락처, 지역, 주소
     r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
     v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
-    v_region = r4_2.text_input("지역", value=parsed.get('region', ""))
+    v_region = r4_2.text_input(
+    "지역", 
+    value=st.session_state.get("detected_region", parsed.get('region', "")), 
+    key="region_input"
+    )
+    
+    # 주소 (구글 시트 우선)
+    v_address = r4_3.text_input(
+        "주소", 
+        value=st.session_state.get("dealer_data", {}).get("address") if st.session_state.get("dealer_data", {}).get("address") else parsed.get('address', ""),
+        key="address_input"
+    )
     v_address = st.text_input(
     "주소", 
     value=d_data.get("address") if d_data.get("address") else parsed.get('address', ""),
