@@ -12,18 +12,36 @@ import mapping
 import inventoryenter
 import Inspectioncheck
 
-# --- 페이지 방문 체크 및 자동 리셋 (최상단) ---
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
 
-# 다른 페이지에서 넘어온 경우 세션 초기화
+# 2. 만약 직전에 있던 페이지가 현재 페이지(buyprogram)가 아니라면 리셋 실행
 if st.session_state["current_page"] != "buyprogram":
-    keys_to_delete = ["dealer_data", "last_searched_phone", "detected_region", "country_data", "last_searched_buyer", "raw_input_main"]
-    for key in keys_to_delete:
-        if key in st.session_state:
-            del st.session_state[key]
-    st.session_state["current_page"] = "buyprogram"
+    # 초기화할 위젯 키 (key="...") 리스트
+    # 여기에 입력창에 부여한 모든 key 이름을 넣어야 칸이 비워집니다.
+    target_keys = [
+        "raw_input_main", "v_region_key", "v_address_key", 
+        "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
+        "acc_x_input", "acc_fee_input", "sender_input", 
+        "v_declaration_key", "v_inspection_key"
+    ]
+    
+    # 위젯 상태 강제 비우기
+    for k in target_keys:
+        if k in st.session_state:
+            st.session_state[k] = "" # 또는 selectbox일 경우 기본값 설정
+            
+    # 데이터 바구니(딕셔너리 등) 초기화
+    st.session_state["dealer_data"] = {}
+    st.session_state["detected_region"] = ""
+    st.session_state["country_data"] = ""
+    st.session_state["inspection_status"] = "X"
+    st.session_state["last_searched_phone"] = ""
+    st.session_state["last_checked_plate"] = ""
 
+    # 초기화 완료 후 현재 페이지를 'buyprogram'으로 갱신
+    st.session_state["current_page"] = "buyprogram"
+    st.rerun() # 변경사항을 즉시 화면에 반영
 # parsed 변수는 항상 루프 시작 시 빈 딕셔너리로 초기화
 parsed = {}
 
@@ -50,17 +68,22 @@ top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 삭제할 세션 키 리스트
-        keys_to_clear = [
-            "dealer_data", "last_searched_phone", "detected_region", 
-            "country_data", "last_searched_buyer", "raw_input_main"
-        ]
-        for key in keys_to_clear:
-            if key in st.session_state:
-                del st.session_state[key] # 빈 문자열이 아니라 아예 삭제!
+        # 1. 데이터 바구니들 초기화
+        st.session_state["dealer_data"] = {}
+        st.session_state["detected_region"] = ""
+        st.session_state["country_data"] = ""
+        st.session_state["inspection_status"] = "X"
         
-        # 텍스트 에어리어 등 위젯 상태 강제 초기화
-        st.rerun()
+        # 2. 개별 입력 위젯들의 Key 상태값 초기화
+        # 위젯 생성 시 부여한 'key' 이름들을 여기에 넣으세요.
+        widget_keys = [
+            "raw_input_main", "v_region_key", "v_address_key", 
+            "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
+            "acc_x_input", "acc_fee_input", "sender_input", "v_declaration_key"
+        ]
+        for k in widget_keys:
+            if k in st.session_state:
+                st.session_state[k] = ""  # 위젯 값을 강제로 빈칸으로 만듦
         
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
 if "inspection_status" not in st.session_state:
