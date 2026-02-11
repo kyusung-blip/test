@@ -7,7 +7,7 @@ from datetime import datetime
 COM_CODE = "682186"
 USER_ID = "이규성"
 API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
-ZONE = "ko-KR" 
+ZONE = "CN" 
 
 def get_session_id():
     """이카운트 API 세션 토큰을 가져옵니다."""
