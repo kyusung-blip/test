@@ -58,8 +58,19 @@ st.markdown("""
 if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
-# --- 1. 상단: 데이터 입력칸 및 자동 파싱 ---
-st.subheader("📥 데이터 붙여넣기")
+label_col, delete_col = st.columns([7, 1])
+
+with label_col:
+    st.subheader("📥 데이터 붙여넣기")
+
+with delete_col:
+    # 입력칸만 비우는 전용 버튼
+    if st.button("🗑️ 입력 삭제"):
+        if "raw_input_main" in st.session_state:
+            st.session_state["raw_input_main"] = ""  # 값을 직접 빈 문자열로 강제 주입
+        st.session_state["last_raw_input"] = ""      # 비교용 데이터도 초기화
+        st.session_state["parsed_data"] = {}         # 파싱된 바구니도 비움
+        st.rerun()
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
@@ -94,9 +105,8 @@ if raw_input:
             detected = mapping.get_region_from_address(parsed_address)
             st.session_state["detected_region"] = detected  # 찾은 지역 저장 (없으면 "")
 
-            # 파싱된 결과를 세션에 저장하고 입력값 기록
-            st.session_state["parsed_data"] = parsed
             st.session_state["last_raw_input"] = raw_input
+            st.session_state["parsed_data"] = parsed
             st.rerun()
 
 # 현재 화면에서 사용할 parsed 데이터 로드
