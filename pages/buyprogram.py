@@ -516,47 +516,39 @@ with col_list:
         # tab3 내부
         # tab3 내부 또는 등록 버튼 로직 위치
         if st.button("📊 이카운트 품목 최종 등록", key="btn_ecount_real_final"):
-            if not ect_data.get("vin"):
-                st.error("VIN(차대번호) 정보가 없습니다. 먼저 차량 정보를 조회해주세요.")
+            vin_to_check = ect_data.get("vin")
+            
+            if not vin_to_check:
+                st.error("VIN(차대번호) 정보가 없습니다.")
             else:
-                with st.spinner("구글 시트 저장 및 이카운트 ERP 동기화 중..."):
+                with st.spinner("구글 시트에서 차량 정보를 확인 중..."):
                     import ecount
                     import importlib
                     importlib.reload(ecount)
                     
-                    # 1. 구글 시트 등록 실행 
-                    # (inventoryenter.run_integrated_registration 함수는 B열 값을 반환하도록 구성되어야 합니다)
-                    res = inventoryenter.run_integrated_registration(ect_data)
+                    # 1. 구글 시트(2026시트)의 E열에서 VIN 중복 검색
+                    # (해당 VIN이 있으면 B열의 NO를 반환하고, 없으면 None 반환하는 함수 호출)
+                    # 이 함수는 아래 'inventoryenter.py' 섹션에서 정의합니다.
+                    existing_no = inventoryenter.get_no_by_vin(vin_to_check)
                     
-                    if res.get("status") == "success":
-                        # 구글 시트에서 생성된 순번(NO) 가져오기
-                        sheet_no = res.get("sheet_b_value", "0") 
+                    if existing_no:
+                        # 구글에 등록된 차량이 확인됨 -> 이카운트 등록 진행
+                        st.info(f"확인됨: 구글 시트 순번 NO.{existing_no}")
                         
-                        # 2. 이카운트 세션 획득 (정식키 사용)
                         session_id = ecount.get_session_id()
-                        
                         if session_id:
-                            # 3. 이카운트 정식 품목 등록 (시트 NO 포함)
-                            item_res = ecount.register_item(ect_data, session_id, sheet_no)
+                            item_res = ecount.register_item(ect_data, session_id, existing_no)
                             
-                            # 이카운트 응답 분석
                             if str(item_res.get("Status")) == "200":
-                                data_part = item_res.get("Data", {})
-                                success_cnt = data_part.get("SuccessCnt", 0)
-                                
-                                if success_cnt > 0:
-                                    st.success(f"✅ 모든 등록 완료! (시트 NO: {sheet_no}, 이카운트 품목코드: {ect_data['vin']})")
-                                    st.balloons()
-                                else:
-                                    # 전송은 성공했으나 내부 로직 오류 (예: 중복 코드 등)
-                                    fail_msg = data_part.get("ResultDetails", [{}])[0].get("TotalError", "알 수 없는 오류")
-                                    st.error(f"❌ 이카운트 등록 실패: {fail_msg}")
+                                st.success(f"✅ 이카운트 동기화 완료! (순번: {existing_no})")
+                                st.balloons()
                             else:
-                                st.error(f"❌ 이카운트 서버 응답 오류: {item_res.get('Message')}")
+                                st.error(f"❌ 이카운트 등록 실패: {item_res.get('Message')}")
                         else:
-                            st.error("❌ 이카운트 로그인 세션 획득에 실패했습니다. (인증키 확인 필요)")
+                            st.error("❌ 이카운트 세션 획득 실패")
                     else:
-                        st.error(f"❌ 구글 시트 저장 실패: {res.get('message')}")
+                        # 구글에 VIN이 없는 경우
+                        st.warning("⚠️ 구글에 먼저 등록해주세요. (시트에서 해당 VIN을 찾을 수 없습니다.)")
                     
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
