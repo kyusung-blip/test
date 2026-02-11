@@ -513,31 +513,30 @@ with col_list:
             st.rerun()
             
         if e_c1.button("📊 이카운트 품목등록", key="btn_ecount_item"):
-            with st.spinner("구글 시트 확인 및 이카운트 전송 중..."):
-                # 1. 먼저 구글 시트에 등록하고 결과를 받아옵니다 (기존 inventoryenter 활용)
-                res = inventoryenter.run_integrated_registration(ect_data)
+            with st.spinner("이카운트 전송 중 (Zone: AD)..."):
+                import ecount
+                import importlib
+                importlib.reload(ecount)
                 
-                if res["status"] in ["success", "partial"]:
-                    # 구글 시트 B열의 값(순번)을 res에서 가져온다고 가정 (res에 해당 값이 포함되어 있어야 함)
-                    # 만약 res에 없다면 inventoryenter에서 반환하도록 수정이 필요합니다.
-                    sheet_no = res.get("sheet_b_value", "0") 
+                auth_res = ecount.get_session_id()
+                
+                # auth_res가 에러 메시지(dict)인지 토큰(str)인지 확인
+                if isinstance(auth_res, dict):
+                    st.error(f"❌ 이카운트 로그인 실패: {auth_res.get('error')}")
+                elif auth_res:
+                    # 구글 시트 번호 가져오기 (앞서 설명드린 inventoryenter 결과 활용)
+                    res = inventoryenter.run_integrated_registration(ect_data)
+                    sheet_no = res.get("sheet_b_value", "0") if res["status"] != "fail" else "0"
                     
-                    # 2. 이카운트 세션 접속
-                    import ecount
-                    session_id = ecount.get_session_id()
+                    # 품목 등록 실행
+                    item_res = ecount.register_item(ect_data, auth_res, sheet_no)
                     
-                    if session_id:
-                        # 3. 이카운트 품목 등록 실행
-                        item_res = ecount.register_item(ect_data, session_id, sheet_no)
-                        
-                        if item_res.get("Status") == "200":
-                            st.success(f"✅ 이카운트 품목 등록 완료! (NO: {sheet_no})")
-                        else:
-                            st.error(f"❌ 이카운트 오류: {item_res.get('Message')}")
+                    if item_res.get("Status") == "200":
+                        st.success(f"✅ 이카운트 품목 등록 성공! (NO: {sheet_no})")
                     else:
-                        st.error("이카운트 로그인에 실패했습니다.")
+                        st.error(f"❌ 등록 실패: {item_res.get('Message')}")
                 else:
-                    st.error("구글 시트 등록에 실패하여 이카운트 전송을 중단합니다.") 
+                    st.error("❌ 세션 정보를 가져올 수 없습니다.")
                     
         # 사이트 이동 버튼 (방법 1 적용)
         if v_site and v_site.startswith("http"):
