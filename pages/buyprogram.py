@@ -158,7 +158,7 @@ with col_info:
     value=st.session_state.get("detected_region", parsed.get('region', "")), 
     key="v_region_key"
     )
-    
+    d_data = st.session_state.get("dealer_data", {})
     # 주소 (구글 시트 우선)
     v_address = r4_3.text_input(
         "주소", 
