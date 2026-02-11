@@ -59,51 +59,43 @@ if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
 # --- 1. 상단: 데이터 입력칸 및 자동 파싱 ---
-st.subheader("📥 데이터 붙여넣기")
-raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
-parsed = {}
-# [수정 포인트] 세션 상태를 이용한 중복 실행 방지
+raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
+
+# [핵심 수정] parsed 데이터를 세션에서 관리합니다.
+if "parsed_data" not in st.session_state:
+    st.session_state["parsed_data"] = {}
+
 if raw_input:
     # 이전에 처리했던 입력값과 현재 입력값이 다를 때만 파싱 실행
     if st.session_state.get("last_raw_input") != raw_input:
-        parsed = lg.parse_excel_data(raw_input)
-        
-        # 1. 차량번호 기반 Inspection 상태 조회
-        plate = parsed.get('plate', "").strip()
-        if plate:
-            with st.spinner("Inspection 상태 조회 중..."):
-                insp_status = Inspectioncheck.fetch_inspection_status(plate)
-                st.session_state["inspection_status"] = insp_status
-                st.session_state["last_checked_plate"] = plate
+        with st.spinner("데이터 파싱 및 조회 중..."):
+            parsed = lg.parse_excel_data(raw_input)
+            
+            # 1. Inspection 조회
+            plate = parsed.get('plate', "").strip()
+            if plate:
+                st.session_state["inspection_status"] = Inspectioncheck.fetch_inspection_status(plate)
 
-        # 2. 연락처 기반 딜러 정보 조회
-        contact = parsed.get('dealer_phone', "")
-        if contact:
-            with st.spinner("딜러 정보를 불러오는 중..."):
+            # 2. 딜러 정보 조회
+            contact = parsed.get('dealer_phone', "")
+            if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
-                if dealer_res["status"] == "success":
-                    st.session_state["dealer_data"] = dealer_res
-                else:
-                    st.session_state["dealer_data"] = {}
-                st.session_state["last_searched_phone"] = contact
+                st.session_state["dealer_data"] = dealer_res if dealer_res["status"] == "success" else {}
 
-        # 3. 바이어 기반 국가 정보 조회
-        buyer = parsed.get('buyer', "").strip()
-        if buyer:
-            res = country.handle_buyer_country(buyer, "")
-            if res["status"] == "fetched":
-                st.session_state["country_data"] = res["country"]
-                st.session_state["last_searched_buyer"] = buyer
+            # 3. 바이어 국가 조회
+            buyer = parsed.get('buyer', "").strip()
+            if buyer:
+                res = country.handle_buyer_country(buyer, "")
+                if res["status"] == "fetched":
+                    st.session_state["country_data"] = res["country"]
 
-        # 현재 입력값을 '마지막 입력값'으로 저장 (중복 실행 방지 핵심)
-        st.session_state["last_raw_input"] = raw_input
-        
-        # 모든 데이터 처리가 끝난 후 딱 한 번만 리런
-        st.rerun()
+            # 파싱된 결과를 세션에 저장하고 입력값 기록
+            st.session_state["parsed_data"] = parsed
+            st.session_state["last_raw_input"] = raw_input
+            st.rerun()
 
-# 리런 후에도 parsed 데이터를 유지하기 위해 세션에서 가져오는 로직 추가
-if not parsed and raw_input:
-    parsed = lg.parse_excel_data(raw_input)
+# 현재 화면에서 사용할 parsed 데이터 로드
+parsed = st.session_state.get("parsed_data", {})
     
 # 리셋 버튼을 위해 컬럼 나눔
 top_col1, top_col2 = st.columns([8, 1])
