@@ -186,17 +186,15 @@ with col_list:
 
         # 3. 출력 창 및 유틸리티 버튼
         st.text_area("문자 출력 결과", height=400, key="out_tab1_final")
-        
-        b2 = st.columns(2)
         content1 = st.session_state.get("out_tab1", "")
         if content1:
-            st.caption("👇 아래 칸 우측 상단의 복사 아이콘을 클릭하세요")
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
             st.code(content1, language=None)
-                else:
-                    st.toast("복사할 내용이 없습니다.", icon="⚠️")
+
         if st.button("♻️ 내용리셋", key="rs1"):
-            st.session_state["out_tab1_final"] = ""
+            st.session_state["out_tab1"] = ""
             st.rerun()
+            
     with tab2:
     # 데이터 수집 (입력창 변수들)
         remit_data = {
@@ -232,15 +230,13 @@ with col_list:
             st.rerun()
     
         st.text_area("송금 요청 결과", height=300, key="out_tab2_final")
-        b4 = st.columns(2)
-        content2 = st.session_state.get("out_tab2_final", "")
+        content2 = st.session_state.get("out_tab2", "")
         if content2:
-            st.caption("👇 아래 칸 우측 상단의 복사 아이콘을 클릭하세요")
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
             st.code(content2, language=None)
 
-        # 내용 리셋 버튼 (세션 상태 직접 수정)
-        if b4.button("♻️ 내용리셋", key="rs2"):
-            st.session_state["out_tab2_final"] = ""  # 위젯의 key값을 초기화
+        if st.button("♻️ 내용리셋", key="rs2"):
+            st.session_state["out_tab2"] = ""
             st.rerun()
 
     with tab3:
@@ -264,14 +260,12 @@ with col_list:
         else:
             e_c2.button("🌐 사이트 이동", disabled=True)
 
-        st.text_area("기타 메시지 결과", height=400, key="out_tab3")
-        b6 = st.columns(2)
+        st.text_area("기타 메시지 결과", height=400, key="out_tab3")       
         content3 = st.session_state.get("out_tab3", "")
         if content3:
-            st.caption("👇 아래 칸 우측 상단의 복사 아이콘을 클릭하세요")
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
             st.code(content3, language=None)
 
-        # 내용 리셋 버튼 (세션 상태 직접 수정)
-        if b6.button("♻️ 내용리셋", key="rs3"):
-            st.session_state["out_tab3_final"] = ""  # 위젯의 key값을 초기화
+        if st.button("♻️ 내용리셋", key="rs3"):
+            st.session_state["out_tab3"] = ""
             st.rerun()
