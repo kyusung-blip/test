@@ -26,8 +26,24 @@ if 'output_text' not in st.session_state:
 st.subheader("📥 데이터 붙여넣기")
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
 
-# 데이터가 입력되면 즉시 파싱 수행
-parsed = lg.parse_excel_data(raw_input) if raw_input else {}
+# 데이터가 입력되었을 때만 실행
+if raw_input:
+    # 1. 엑셀 파싱
+    parsed = lg.parse_excel_data(raw_input)
+    
+    # 2. 파싱된 연락처가 있고, 아직 조회를 안 했거나 연락처가 바뀌었을 때 자동 조회
+    contact = parsed.get('dealer_phone', "")
+    if contact and st.session_state.get('last_searched_phone') != contact:
+        with st.spinner("딜러 정보를 불러오는 중..."):
+            dealer_res = dealerinfo.search_dealer_info(contact)
+            if dealer_res["status"] == "success":
+                st.session_state["dealer_data"] = dealer_res
+                st.session_state["last_searched_phone"] = contact
+                st.toast(f"✅ {dealer_res['company']} 정보 로드 완료")
+            else:
+                # 정보를 못 찾아도 빈 데이터로 초기화 (이전 데이터 남지 않게)
+                st.session_state["dealer_data"] = {}
+                st.session_state["last_searched_phone"] = contact
 
 st.divider()
 
@@ -36,6 +52,7 @@ col_info, col_list = st.columns([0.7, 0.3])
 
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
+    d_data = st.session_state.get("dealer_data", {})
     st.markdown("### 🚗 매입 정보")
     
     # R1: 차번호, 연식, 차명, 차명(송금용)
@@ -66,20 +83,32 @@ with col_info:
     r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
     v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
     v_region = r4_2.text_input("지역", value=parsed.get('region', ""))
-    v_address = r4_3.text_input("주소", value=parsed.get('address', ""))
+    v_address = st.text_input(
+    "주소", 
+    value=d_data.get("address") if d_data.get("address") else parsed.get('address', ""),
+    key="address_input"
+    )
 
     # 딜러/판매자 정보 프레임
     with st.container(border=True):
         st.caption("🏢 딜러/판매자 정보")
         c1, c2 = st.columns(2)
         v_biz_name = c1.text_input("상사명", value="") 
-        v_biz_num = c2.text_input("사업자번호", value="")
+        v_dealer_num = st.text_input(
+        "사업자번호", 
+        value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
+        key="biz_num_input"
+        )
 
     # 계좌 정보 섹션
     acc1, acc2 = st.columns([2, 3])
     # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
     v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
-    v_acc_o = acc2.text_input("차량대 계좌", value="")
+    v_acc_o = st.text_input(
+    "차량대 계좌", 
+    value=d_data.get("acc_o", ""),
+    key="acc_o_input"
+    )
 
     acc3, acc4 = st.columns([2, 3])
     v_contract_x = acc3.text_input("계산서X", value=pm.format_number(parsed.get('contract', "")))
@@ -96,9 +125,29 @@ with col_info:
     v_total = st.text_input("합계금액", value=pm.format_number(total_val))
 
     r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
-    v_sender = r5_1.text_input("입금자명", value="서북인터")
+    v_sender = st.text_input(
+    "입금자명", 
+    value=d_data.get("sender", "서북인터"),
+    key="sender_input"
+    )
+    
+    # 🏦 계좌확인 버튼 클릭 시
     if r5_2.button("🏦 계좌확인"):
-        pass
+        with st.spinner("구글 시트에서 정보를 불러오는 중..."):
+            result = dealerinfo.search_dealer_info(v_dealer_phone)
+            
+            if result["status"] == "success":
+                # 찾은 정보들을 세션 상태나 위젯의 기본값에 반영하기 위해 rerun 혹은 직접 할당
+                # 여기서는 가장 간단하게 toast로 알리고 필드 값을 업데이트하는 로직이 필요합니다.
+                # (Streamlit은 rerun 없이 위젯 값을 바꾸기 어려우므로, 결과값을 session_state에 담아 활용하는 것을 권장합니다.)
+                st.session_state["dealer_data"] = result
+                st.success(f"정보 조회 성공: {result['company']}")
+                st.rerun() # 업데이트된 값을 화면에 보여주기 위해 재실행
+            
+            elif result["status"] == "empty":
+                st.warning(result["message"])
+            else:
+                st.error(result["message"])
     if r5_3.button("📝 정보 추가&수정", type="primary"):
         pass
 
