@@ -187,13 +187,11 @@ with col_list:
         # 3. 출력 창 및 유틸리티 버튼
         st.text_area("문자 출력 결과", height=400, key="out_tab1_final")
         
-        b1, b2 = st.columns(2)
-        with b1:
-            if st.button("📋 내용복사", key="cp1"):
-                content = st.session_state.get("out_tab1_final", "")
-                if content:
-                    st.copy_to_clipboard(content)
-                    st.toast("클립보드에 복사되었습니다!", icon="✅")
+        b2 = st.columns(2)
+        content1 = st.session_state.get("out_tab1", "")
+        if content1:
+            st.caption("👇 아래 칸 우측 상단의 복사 아이콘을 클릭하세요")
+            st.code(content1, language=None)
                 else:
                     st.toast("복사할 내용이 없습니다.", icon="⚠️")
         with b2:
@@ -235,14 +233,11 @@ with col_list:
             st.rerun()
     
         st.text_area("송금 요청 결과", height=300, key="out_tab2_final")
-        b3, b4 = st.columns(2)
-        if b3.button("📋 내용복사", key="cp2"):
-            content_to_copy = st.session_state.get("out_tab2_final", "")
-            if content_to_copy:
-                st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
-                st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
-            else:
-                st.warning("복사할 내용이 없습니다.")
+        b4 = st.columns(2)
+        content2 = st.session_state.get("out_tab2_final", "")
+        if content2:
+            st.caption("👇 아래 칸 우측 상단의 복사 아이콘을 클릭하세요")
+            st.code(content2, language=None)
 
         # 내용 리셋 버튼 (세션 상태 직접 수정)
         if b4.button("♻️ 내용리셋", key="rs2"):
@@ -271,14 +266,11 @@ with col_list:
             e_c2.button("🌐 사이트 이동", disabled=True)
 
         st.text_area("기타 메시지 결과", height=400, key="out_tab3")
-        b5, b6 = st.columns(2)
-        if b5.button("📋 내용복사", key="cp3"):
-            content_to_copy = st.session_state.get("out_tab3_final", "")
-            if content_to_copy:
-                st.copy_to_clipboard(content_to_copy) # 클립보드로 직접 전송
-                st.toast("클립보드에 복사되었습니다! (Ctrl+V 가능)", icon="✅")
-            else:
-                st.warning("복사할 내용이 없습니다.")
+        b6 = st.columns(2)
+        content3 = st.session_state.get("out_tab3", "")
+        if content3:
+            st.caption("👇 아래 칸 우측 상단의 복사 아이콘을 클릭하세요")
+            st.code(content3, language=None)
 
         # 내용 리셋 버튼 (세션 상태 직접 수정)
         if b6.button("♻️ 내용리셋", key="rs3"):
