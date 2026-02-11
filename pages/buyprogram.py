@@ -178,7 +178,7 @@ with col_list:
         st.divider()
 
         # 3. 출력 창 및 유틸리티 버튼
-        st.text_area("문자 출력 결과", height=250, key="out_tab1_final")
+        st.text_area("문자 출력 결과", height=400, key="out_tab1_final")
         
         b1, b2 = st.columns(2)
         with b1:
@@ -209,7 +209,7 @@ with col_list:
         if r_c2.button("오토위니"): pass
         if st.button("헤이딜러"): pass
         
-        st.text_area("송금 메시지 결과", height=250, key="out_tab2")
+        st.text_area("송금 메시지 결과", height=400, key="out_tab2")
         b3, b4 = st.columns(2)
         if b3.button("📋 내용복사", key="cp2"):
             content_to_copy = st.session_state.get("out_tab1_final", "")
@@ -231,7 +231,7 @@ with col_list:
         if e_c1.button("서류문자"): pass
         if e_c2.button("사이트"): pass
         
-        st.text_area("기타 메시지 결과", height=250, key="out_tab3")
+        st.text_area("기타 메시지 결과", height=400, key="out_tab3")
         b5, b6 = st.columns(2)
         if b5.button("📋 내용복사", key="cp3"):
             content_to_copy = st.session_state.get("out_tab1_final", "")
