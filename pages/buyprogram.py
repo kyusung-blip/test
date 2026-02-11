@@ -7,6 +7,7 @@ import message as msg_logic
 import remit
 import etc
 import dealerinfo
+import country
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
@@ -47,6 +48,14 @@ if raw_input:
                 # 정보를 못 찾아도 빈 데이터로 초기화 (이전 데이터 남지 않게)
                 st.session_state["dealer_data"] = {}
                 st.session_state["last_searched_phone"] = contact
+                
+    buyer = parsed.get('buyer', "").strip()
+    if buyer and st.session_state.get('last_searched_buyer') != buyer:
+        res = country.handle_buyer_country(buyer, "") # 나라 정보 조회
+        if res["status"] == "fetched":
+            st.session_state["country_data"] = res["country"]
+            st.session_state["last_searched_buyer"] = buyer
+            st.toast(f"🌍 {buyer}의 나라 정보를 불러왔습니다.")
 
 st.divider()
 
@@ -77,6 +86,27 @@ with col_info:
     v_site = r3_1.text_input("사이트", value=parsed.get('site', ""))
     v_sales = r3_2.text_input("세일즈팀", value=parsed.get('sales', ""))
     v_buyer = r3_3.text_input("바이어", value=parsed.get('buyer', ""))
+    
+    # 세션에 저장된 나라 정보가 있으면 그걸 먼저 보여줌
+    current_country_val = st.session_state.get("country_data", "")
+    v_country = r3_4.text_input("나라", value=current_country_val if current_country_val else "")
+
+    if r3_5.button("확인", key="btn_country_confirm"):
+        with st.spinner("데이터 처리 중..."):
+            res = country.handle_buyer_country(v_buyer, v_country)
+            
+            if res["status"] == "fetched":
+                st.session_state["country_data"] = res["country"]
+                st.success(f"조회 완료: {res['country']}")
+                st.rerun()
+            elif res["status"] == "updated":
+                st.success(f"정보 수정 완료: {v_country}")
+            elif res["status"] == "added":
+                st.success(f"새로운 바이어 추가 완료: {v_buyer}")
+            elif res["status"] == "match":
+                st.info("정보가 이미 일치합니다.")
+            else:
+                st.error(res.get("message", "오류가 발생했습니다."))
     v_country = r3_4.text_input("나라", value="")
     r3_5.write("") 
     if r3_5.button("확인"):
