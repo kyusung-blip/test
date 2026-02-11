@@ -6,6 +6,7 @@ import price_manager as pm # price_manager를 pm이라는 별칭으로 가져옵
 import message as msg_logic
 import remit
 import etc
+import dealerinfo
 
 # --- 0. 기본 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
