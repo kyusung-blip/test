@@ -88,4 +88,4 @@ def calculate_balance(total_str, contract_input):
     except:
         contract_num = 0
         
-    return total_num - contract_nu
+    return total_num - contract_num
