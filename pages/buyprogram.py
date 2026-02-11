@@ -150,18 +150,18 @@ with col_list:
         }
 
         m_c1, m_c2 = st.columns(2)
-        if m_c1.button("확인후"):
-        st.session_state.output_text = msg_logic.handle_confirm(input_data, "confirm")
-        if m_c2.button("세일즈팀"):
-            st.session_state.output_text = msg_logic.handle_confirm(input_data, "salesteam")
-        if m_c1.button("검수자"):
-            st.session_state.output_text = msg_logic.handle_confirm(input_data, "inspection")
-        if m_c2.button("문자"):
-            st.session_state.output_text = msg_logic.handle_confirm(input_data, "sms")
-        if m_c1.button("아웃소싱"):
-            st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
-        if m_c2.button("주소공유"):
-            st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
+            if m_c1.button("확인후"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "confirm")
+            if m_c2.button("세일즈팀"):
+                st.session_state.output_text = msg_logic.handle_confirm(input_data, "salesteam")
+            if m_c1.button("검수자"):
+                st.session_state.output_text = msg_logic.handle_confirm(input_data, "inspection")
+            if m_c2.button("문자"):
+                st.session_state.output_text = msg_logic.handle_confirm(input_data, "sms")
+            if m_c1.button("아웃소싱"):
+                st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
+            if m_c2.button("주소공유"):
+                st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
     
         # 결과 출력창
         st.session_state.output_text = st.text_area("문자 출력 결과", 
