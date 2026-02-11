@@ -90,6 +90,13 @@ def run_integrated_registration(data):
         ]
         
         # 4. Yard 시트 등록
+        # 전체 시트의 A열 데이터를 가져와서 마지막 데이터가 있는 행 번호를 찾습니다.
+        all_yard_data = sheet_yard.get_all_values()
+        next_yard_row = len(all_yard_data) + 1
+        
+        # A열부터 Q열까지의 범위를 지정 (yard_row의 길이가 17이므로 A~Q)
+        # 만약 데이터가 더 늘어난다면 범위를 조정하세요.
+        yard_range = f"A{next_yard_row}:Q{next_yard_row}"
         sheet_yard.append_row(yard_row, value_input_option="USER_ENTERED")
 
         # 5. 메인 시트(2026) 등록 (중복 아닐 때만)
