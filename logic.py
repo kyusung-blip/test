@@ -64,3 +64,22 @@ def format_money(val):
         return f"{int(clean_val):,}" if clean_val else "0"
     except:
         return "0"
+
+def get_alt_car_name(raw_car_name, car_name_map):
+    """
+    긴 차명(raw_car_name)에서 매핑 테이블의 키가 포함되어 있는지 확인하여
+    송금용 차명을 반환. (최장 일치 기준)
+    """
+    if not raw_car_name:
+        return ""
+
+    search_key = raw_car_name.upper()
+    
+    # 키 길이가 긴 순서대로 정렬 (예: '아반떼 AD'를 '아반떼'보다 먼저 검사)
+    sorted_keys = sorted(car_name_map.keys(), key=len, reverse=True)
+
+    for map_key in sorted_keys:
+        if map_key in search_key:
+            return car_name_map[map_key]
+            
+    return raw_car_name  # 매칭되는 게 없으면 원본 반환
