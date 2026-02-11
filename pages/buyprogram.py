@@ -137,7 +137,7 @@ with col_info:
     with st.container(border=True):
         st.caption("🏢 딜러/판매자 정보")
         c1, c2 = st.columns(2)
-        v_biz_name = c1.text_input("상사명", value="") 
+        v_biz_name = c1.text_input("상사명", value=d_data.get("company", ""))
         v_biz_num = st.text_input(
         "사업자번호", 
         value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
@@ -156,11 +156,11 @@ with col_info:
 
     acc3, acc4 = st.columns([2, 3])
     v_contract_x = acc3.text_input("계산서X", value=pm.format_number(parsed.get('contract', "")))
-    v_acc_x = acc4.text_input("계산서X 계좌", value="")
+    v_acc_x = acc4.text_input("계산서X 계좌", value=d_data.get("acc_x", ""))
 
     acc5, acc6 = st.columns([2, 3])
     v_fee = acc5.text_input("매도비", value=pm.format_number(parsed.get('fee', "")))
-    v_acc_fee = acc6.text_input("매도비 계좌", value="")
+    v_acc_fee = acc6.text_input("매도비 계좌", value=d_data.get("acc_fee", ""))
 
     # 💡 [핵심] 실시간 합계 계산
     # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
