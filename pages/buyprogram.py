@@ -110,6 +110,18 @@ col_info, col_list = st.columns([0.7, 0.3])
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
     st.markdown("### 🚗 매입 정보")
+    # 타이틀과 검수유무를 한 줄에 배치
+    title_col, insp_col = st.columns([4, 1])
+    with title_col:
+        st.markdown("### 🚗 매입 정보")
+    with insp_col:
+        v_inspection = st.selectbox(
+            "검수유무", 
+            ["미검수", "검수완료", "검수불가"], 
+            index=0, 
+            key="v_inspection_key",
+            label_visibility="collapsed" # 타이틀 옆이므로 라벨 숨김 (깔끔함)
+        )
     
     # R1: 차번호, 연식, 차명, 차명(송금용)
     r1_1, r1_2, r1_3, r1_4 = st.columns(4)
@@ -204,14 +216,22 @@ with col_info:
         # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
     # 3. 합계금액 입력창을 만듭니다. (이때 v_total 변수가 생성됨)
-    v_total = st.text_input("합계금액", value=pm.format_number(total_val))
-
-    r5_1, r5_2, r5_3 = st.columns([1.5, 1, 1])
-    v_sender = r5_1.text_input(
-    "입금자명", 
-    value=d_data.get("sender", ""),
-    key="sender_input"
+    r5_1, r5_2, r5_3 = st.columns([2, 2, 2])
+    
+    v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
+    
+    v_declaration = r5_2.text_input(
+        "DECLARATION", 
+        value=pm.format_number(parsed.get('declaration', "0")), 
+        key="v_declaration_key"
     )
+    
+    v_sender = r5_3.text_input(
+        "입금자명", 
+        value=d_data.get("sender", ""), 
+        key="sender_input"
+    )
+    
     
     # 🏦 계좌확인 버튼 클릭 시
     if r5_2.button("🏦 계좌확인"):
