@@ -158,7 +158,7 @@ with top_col2:
         
 
 if "inspection_status" not in st.session_state:
-    st.session_state["inspection_status"] = "X"
+st.session_state["inspection_status"] = "X"
 st.divider()
 
 # --- 2. 메인 화면 구성 (70% : 30%) ---
@@ -187,12 +187,7 @@ with col_info:
             label_visibility="collapsed"
         )
 
-    v_inspection = "X"
-    v_declaration = "0"
-    v_h_type = "선택"
-    v_h_id = "선택"
-    v_h_delivery = ""
-    
+   
     # R1: 차번호, 연식, 차명, 차명(송금용)
     r1_1, r1_2, r1_3, r1_4 = st.columns(4)
     v_plate = r1_1.text_input("차번호", value=parsed.get('plate', ""))
