@@ -10,7 +10,7 @@ ZONE = "AD"  # 확인된 ZONE 값
 
 def get_session_id():
     """보내주신 공식 JSON 형식을 사용하여 세션 토큰을 가져옵니다."""
-    login_url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
+    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
     
     # 요청하신 형식대로 데이터 구성
     payload = {
