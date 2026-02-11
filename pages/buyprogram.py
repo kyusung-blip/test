@@ -62,68 +62,76 @@ if 'output_text' not in st.session_state:
 
 # --- 1. 상단: 데이터 입력칸 및 자동 파싱 ---
 st.subheader("📥 데이터 붙여넣기")
+raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
 
+# [수정 포인트] 세션 상태를 이용한 중복 실행 방지
+if raw_input:
+    # 이전에 처리했던 입력값과 현재 입력값이 다를 때만 파싱 실행
+    if st.session_state.get("last_raw_input") != raw_input:
+        parsed = lg.parse_excel_data(raw_input)
+        
+        # 1. 차량번호 기반 Inspection 상태 조회
+        plate = parsed.get('plate', "").strip()
+        if plate:
+            with st.spinner("Inspection 상태 조회 중..."):
+                insp_status = Inspectioncheck.fetch_inspection_status(plate)
+                st.session_state["inspection_status"] = insp_status
+                st.session_state["last_checked_plate"] = plate
+
+        # 2. 연락처 기반 딜러 정보 조회
+        contact = parsed.get('dealer_phone', "")
+        if contact:
+            with st.spinner("딜러 정보를 불러오는 중..."):
+                dealer_res = dealerinfo.search_dealer_info(contact)
+                if dealer_res["status"] == "success":
+                    st.session_state["dealer_data"] = dealer_res
+                else:
+                    st.session_state["dealer_data"] = {}
+                st.session_state["last_searched_phone"] = contact
+
+        # 3. 바이어 기반 국가 정보 조회
+        buyer = parsed.get('buyer', "").strip()
+        if buyer:
+            res = country.handle_buyer_country(buyer, "")
+            if res["status"] == "fetched":
+                st.session_state["country_data"] = res["country"]
+                st.session_state["last_searched_buyer"] = buyer
+
+        # 현재 입력값을 '마지막 입력값'으로 저장 (중복 실행 방지 핵심)
+        st.session_state["last_raw_input"] = raw_input
+        
+        # 모든 데이터 처리가 끝난 후 딱 한 번만 리런
+        st.rerun()
+
+# 리런 후에도 parsed 데이터를 유지하기 위해 세션에서 가져오는 로직 추가
+if not parsed and raw_input:
+    parsed = lg.parse_excel_data(raw_input)
 # 리셋 버튼을 위해 컬럼 나눔
 top_col1, top_col2 = st.columns([8, 1])
 
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 1. 데이터 바구니들 초기화
-        st.session_state["dealer_data"] = {}
-        st.session_state["detected_region"] = ""
-        st.session_state["country_data"] = ""
-        st.session_state["inspection_status"] = "X"
-        
-        # 2. 개별 입력 위젯들의 Key 상태값 초기화
-        # 위젯 생성 시 부여한 'key' 이름들을 여기에 넣으세요.
-        widget_keys = [
-            "raw_input_main", "v_region_key", "v_address_key", 
-            "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
-            "acc_x_input", "acc_fee_input", "sender_input", "v_declaration_key"
+        # 1. 세션의 모든 데이터 초기화
+        keys_to_reset = [
+            "dealer_data", "detected_region", "country_data", 
+            "inspection_status", "last_raw_input", "out_tab1_final",
+            "out_tab2_final", "out_tab3"
         ]
+        for k in keys_to_reset:
+            if k in st.session_state:
+                st.session_state[k] = "" if "out" in k else {}
+
+        # 2. 위젯 키 초기화 (st.text_area의 key인 raw_input_main 포함)
         for k in widget_keys:
             if k in st.session_state:
-                st.session_state[k] = ""  # 위젯 값을 강제로 빈칸으로 만듦
+                st.session_state[k] = ""
         
-raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, placeholder="엑셀 행 전체를 복사해서 붙여넣으면 하단에 자동 입력됩니다.")
+        st.rerun()
+        
 
-
-# 데이터가 입력되었을 때만 실행
-if raw_input:
-    # 1. 엑셀 파싱
-    parsed = lg.parse_excel_data(raw_input)
-    
-    # 2. 파싱된 연락처가 있고, 아직 조회를 안 했거나 연락처가 바뀌었을 때 자동 조회
-    contact = parsed.get('dealer_phone', "")
-    if contact and st.session_state.get('last_searched_phone') != contact:
-        with st.spinner("딜러 정보를 불러오는 중..."):
-            dealer_res = dealerinfo.search_dealer_info(contact)
-            if dealer_res["status"] == "success":
-                st.session_state["dealer_data"] = dealer_res
-                st.session_state["last_searched_phone"] = contact
-                st.toast(f"✅ {dealer_res['company']} 정보 로드 완료")
-            else:
-                # 정보를 못 찾아도 빈 데이터로 초기화 (이전 데이터 남지 않게)
-                st.session_state["dealer_data"] = {}
-                st.session_state["last_searched_phone"] = contact
-            st.rerun()
-                
-    final_address = st.session_state.get("dealer_data", {}).get("address")
-    if not final_address:
-        final_address = parsed.get("address", "")
-    
-    # 판별된 지역을 세션에 저장
-    detected_region = mapping.get_region_from_address(final_address)
-    if detected_region:
-        st.session_state["detected_region"] = detected_region
-                
-    buyer = parsed.get('buyer', "").strip()
-    if buyer and st.session_state.get('last_searched_buyer') != buyer:
-        res = country.handle_buyer_country(buyer, "") # 나라 정보 조회
-        if res["status"] == "fetched":
-            st.session_state["country_data"] = res["country"]
-            st.session_state["last_searched_buyer"] = buyer
-            st.toast(f"🌍 {buyer}의 나라 정보를 불러왔습니다.")
+if "inspection_status" not in st.session_state:
+    st.session_state["inspection_status"] = "X"
+parsed = {}
 
 st.divider()
 
@@ -152,6 +160,12 @@ with col_info:
             key="v_inspection_key", # 유일한 키 유지
             label_visibility="collapsed"
         )
+
+    v_inspection = "X"
+    v_declaration = "0"
+    v_h_type = "선택"
+    v_h_id = "선택"
+    v_h_delivery = ""
     
     # R1: 차번호, 연식, 차명, 차명(송금용)
     r1_1, r1_2, r1_3, r1_4 = st.columns(4)
