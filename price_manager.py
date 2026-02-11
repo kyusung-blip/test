@@ -68,19 +68,24 @@ def calculate_total(price, invoice, selling):
     return total
 
 
-def calculate_balance(total, contract):
+def calculate_balance(total_str, contract_input):
     """
-    잔금 계산: TOTAL - 계약금
-    
-    Args:
-        total: 총액 (차량대 + 계산서X + 매도비)
-        contract: 계약금
-    
-    Returns:
-        int: 잔금
+    잔금 계산: (합계) - (계약금 * 10000)
+    contract_input은 사용자가 "100" 혹은 "100만원"이라고 입력해도 
+    숫자 100만 추출하여 1,000,000원으로 계산합니다.
     """
-    total_num = parse_money(total) if total else 0
-    contract_num = parse_money(contract) if contract else 0
+    # 1. 합계 금액 파싱
+    total_num = parse_money(total_str)
     
-    balance = total_num - contract_num
-    return balance
+    # 2. 계약금 처리 (숫자만 추출)
+    try:
+        # 문자열에서 숫자만 남기기 (예: "100만원" -> "100")
+        contract_clean = re.sub(r'[^0-9]', '', str(contract_input))
+        if contract_clean:
+            contract_num = int(contract_clean) * 10000 # 무조건 만원 단위
+        else:
+            contract_num = 0
+    except:
+        contract_num = 0
+        
+    return total_num - contract_nu
