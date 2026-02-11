@@ -98,14 +98,22 @@ with col_info:
 
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
-    with row_bottom[0]:
-        with st.container(border=True):
-            st.caption("💰 세부정산")
-            v_deposit = st.text_input("계약금(만원)", value="0")
-            
-            # 💡 [핵심] 잔금 계산: (위에서 계산한 합계) - (방금 입력한 계약금)
-            balance_val = pm.calculate_balance(v_total, v_deposit)
-            v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
+    # buyprogram.py 내 세부정산 섹션
+    with st.container(border=True):
+        st.caption("💰 세부정산")
+        
+        # 사용자는 숫자만 입력 (예: 100)
+        v_deposit = st.text_input("계약금(만원 단위)", value="0")
+        
+        # 실시간 계산
+        # v_total은 위에서 계산된 합계금액 변수입니다.
+        balance_val = pm.calculate_balance(v_total, v_deposit)
+        
+        # 잔금 표시
+        v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
+        
+        # (선택사항) 실제 계약금이 얼마로 계산되었는지 작게 표시해줄 수 있습니다.
+        st.write(f"ℹ️ 적용된 계약금: {pm.format_number(int(re.sub(r'[^0-9]', '', v_deposit or '0')) * 10000)}")
         
         with st.container(border=True):
             st.caption("📱 헤이딜러 정보")
