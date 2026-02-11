@@ -213,7 +213,7 @@ with col_info:
     v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
     v_region = r4_2.text_input(
     "지역", 
-    value=st.session_state.get("detected_region", parsed.get('region', "")), 
+    value=st.session_state.get("detected_region", ""), # parsed.get은 'detected_region'에 이미 포함되어 있으므로 단순화
     key="v_region_key"
     )
         # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
