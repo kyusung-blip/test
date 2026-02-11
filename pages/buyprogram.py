@@ -137,7 +137,7 @@ with col_info:
     with st.container(border=True):
         st.caption("🏢 딜러/판매자 정보")
         c1, c2 = st.columns(2)
-        v_biz_name = c1.text_input("상사명", value=d_data.get("company", ""))
+        v_biz_name = c1.text_input("상사명", value=d_data.get("company", ""), key="v_biz_name_input")
         v_biz_num = st.text_input(
         "사업자번호", 
         value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
@@ -193,7 +193,34 @@ with col_info:
             else:
                 st.error(result["message"])
     if r5_3.button("📝 정보 추가&수정", type="primary"):
-        pass
+    # 아래 딕셔너리의 키 이름들을 dealerinfo.py의 data.get() 이름과 맞춥니다.
+        current_data = {
+            "phone": v_dealer_phone,     # dealerinfo에서는 'phone'으로 찾음
+            "biz_num": v_biz_num,       # 'biz_num'
+            "biz_name": v_biz_name,     # 'biz_name' (상사명)
+            "address": v_address,       # 'address'
+            "acc_o": v_acc_o,           # 'acc_o'
+            "acc_fee": v_acc_fee,       # 'acc_fee'
+            "sender": v_sender          # 'sender'
+        }
+    
+        with st.spinner("구글 시트 업데이트 중..."):
+            save_res = dealerinfo.save_or_update_dealer(current_data)
+            
+            if save_res["status"] == "success":
+                st.success(save_res["message"])
+                # 저장 성공 후 화면의 데이터를 최신으로 유지하기 위해 세션 업데이트
+                st.session_state["dealer_data"] = {
+                    "biz_num": v_biz_num,
+                    "company": v_biz_name,
+                    "address": v_address,
+                    "acc_o": v_acc_o,
+                    "acc_fee": v_acc_fee,
+                    "sender": v_sender
+                }
+                # st.rerun()  # 필요시 화면 새로고침
+            else:
+                st.error(save_res["message"])
 
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
