@@ -107,10 +107,6 @@ with col_info:
                 st.info("정보가 이미 일치합니다.")
             else:
                 st.error(res.get("message", "오류가 발생했습니다."))
-    r3_5.write("") 
-    if r3_5.button("확인"):
-        st.toast("정보가 확인되었습니다.")
-
     # R4: 연락처, 지역, 주소
     r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
     v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
