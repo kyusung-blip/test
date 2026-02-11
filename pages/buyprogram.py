@@ -143,25 +143,27 @@ with col_list:
 
     with tab1:
         input_data = {
-        "year": v_year, "car_name": v_car_name, "plate": v_plate,
-        "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
-        "sales": v_sales, "address": v_address, "dealer_phone": v_dealer_phone,
-        "region": v_region, "site": v_site
+            "year": v_year, "car_name": v_car_name, "plate": v_plate,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
+            "sales": v_sales, "address": v_address, "dealer_phone": v_dealer_phone,
+            "region": v_region, "site": v_site
         }
 
         m_c1, m_c2 = st.columns(2)
-            if m_c1.button("확인후"):
+        
+        # 💡 아래 버튼들의 시작 라인을 m_c1과 동일하게 맞췄습니다.
+        if m_c1.button("확인후"):
             st.session_state.output_text = msg_logic.handle_confirm(input_data, "confirm")
-            if m_c2.button("세일즈팀"):
-                st.session_state.output_text = msg_logic.handle_confirm(input_data, "salesteam")
-            if m_c1.button("검수자"):
-                st.session_state.output_text = msg_logic.handle_confirm(input_data, "inspection")
-            if m_c2.button("문자"):
-                st.session_state.output_text = msg_logic.handle_confirm(input_data, "sms")
-            if m_c1.button("아웃소싱"):
-                st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
-            if m_c2.button("주소공유"):
-                st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
+        if m_c2.button("세일즈팀"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "salesteam")
+        if m_c1.button("검수자"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "inspection")
+        if m_c2.button("문자"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "sms")
+        if m_c1.button("아웃소싱"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "outsource")
+        if m_c2.button("주소공유"):
+            st.session_state.output_text = msg_logic.handle_confirm(input_data, "share_address")
     
         # 결과 출력창
         st.session_state.output_text = st.text_area("문자 출력 결과", 
