@@ -597,23 +597,17 @@ with col_list:
 
         st.divider()
 
-        # 변수 정의 후 사용
         current_content2 = st.session_state.get("out_tab2_final", "")
-        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600, key="txt_area_tab2")
-        
-        col_copy2, col_reset2 = st.columns([1, 1])
-        with col_copy2:
-            if edited_text2:
-                st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!", key="clip_tab2")
-        
         if current_content2:
+            st.markdown("##### 💵 송금 요청서")
             st.caption("👇 우측 상단 복사 아이콘 클릭")
             st.code(current_content2, language=None)
-        
-        with col_reset2:
+            
             if st.button("♻️ 내용 리셋", key="reset_tab2"):
                 st.session_state["out_tab2_final"] = ""
                 st.rerun()
+        else:
+            st.info("송금 유형 버튼을 클릭하세요.")
 
     # --- Tab 3: 기타 ---
     with tab3:
@@ -677,13 +671,15 @@ with col_list:
 
         st.divider()
         
+# 결과 출력 섹션
         current_content3 = st.session_state.get("out_tab3", "")
-        st.text_area("기타 메시지 결과", value=current_content3, height=400, key="txt_area_tab3")       
-        
         if current_content3:
+            st.markdown("##### ➕ 기타 알림 내용")
             st.caption("👇 우측 상단 복사 아이콘 클릭")
             st.code(current_content3, language=None)
 
-        if st.button("♻️ 내용리셋", key="rs3"):
-            st.session_state["out_tab3"] = ""
-            st.rerun()
+            if st.button("♻️ 내용 리셋", key="reset_tab3"):
+                st.session_state["out_tab3"] = ""
+                st.rerun()
+        else:
+            st.info("알림 생성 버튼을 클릭하세요.")
