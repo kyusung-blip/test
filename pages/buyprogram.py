@@ -302,10 +302,30 @@ with top_col2:
         # 2. 필수 기본값 재설정 (페이지 이탈 방지)
         st.session_state["current_page"] = "buyprogram"
         st.session_state["inspection_status"] = "X"
+        st.session_state["v_inspection_key"] = "X"
         st.session_state["parsed_data"] = {}
         st.session_state["dealer_data"] = {}
+        st.session_state["country_data"] = ""
+        st.session_state["detected_region"] = ""
         
-        # 3. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
+        # 3. Tab 결과값 초기화
+        st.session_state["out_tab1_final"] = ""
+        st.session_state["out_tab2_final"] = ""
+        st.session_state["out_tab3"] = ""
+        
+        # 4. 모든 위젯 키 초기화 (명시적으로)
+        for widget_key in ALL_WIDGET_KEYS:
+            st.session_state[widget_key] = ""
+        
+        # 5. 추가 위젯 키들 초기화
+        st.session_state["v_address_widget"] = ""
+        st.session_state["v_region_widget"] = ""
+        st.session_state["remit_name_widget"] = ""
+        st.session_state["psource_widget"] = ""
+        st.session_state["last_raw_input"] = ""
+        st.session_state["output_text"] = ""
+        
+        # 6. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
         st.rerun()
 
 if "inspection_status" not in st.session_state:
