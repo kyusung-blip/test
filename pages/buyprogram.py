@@ -208,7 +208,9 @@ with col1:
 
 with col2:
     # P.Source 칸 추가 (텍스트 입력창 기준)
-    v_psource = st.text_input("psource", value=st.session_state.get("v_psource", ""), key="v_psource_widget")
+    v_psource = st.text_input("psource", 
+                              value=st.session_state.get("v_psource", ""), 
+                              key="psource_widget")
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
@@ -219,7 +221,8 @@ if raw_input:
     if st.session_state.get("last_raw_input") != raw_input:
         with st.spinner("데이터 파싱 및 조회 중..."):
             parsed_result = lg.parse_excel_data(raw_input)
-            st.session_state["parsed_data"] = parsed_result
+            st.session_state["v_psource"] = parsed_result.get('p.source', "")
+            st.session_state["v_address_key"] = parsed_result.get('address', "")
 
             # 2. 파싱된 데이터에서 주요 값 추출
             plate = parsed_result.get('plate', "").strip()
@@ -267,12 +270,11 @@ if raw_input:
             st.session_state["auto_alt_car_name"] = alt_name # 세션에 저장
             
             # [추가] 주소에서 지역 추출 로직
-            parsed_address = parsed.get('address', "")
-            detected = mapping.get_region_from_address(parsed_address)
-            st.session_state["detected_region"] = detected  # 찾은 지역 저장
+            detected = mapping.get_region_from_address(parsed_result.get('address', ""))
+            st.session_state["v_region_key"] = detected
 
             # 마무리 상태 저장 및 리런
-            st.session_state["v_psource"] = psource_val
+            st.session_state["parsed_data"] = parsed_result
             st.session_state["last_raw_input"] = raw_input
             st.rerun()
 
@@ -384,19 +386,13 @@ with col_info:
     final_address = sheet_address if sheet_address else parsed_address
     # 주소 (구글 시트 우선)
 # [수정] 주소 입력창: on_change 콜백 추가
-    v_address = r4_3.text_input(
-        "주소", 
-        value=final_address,
-        key="v_address_key",
-        on_change=update_region  # <--- 주소 입력 후 엔터 시 지역 즉시 갱신
-    )
+    v_address = st.text_input("주소", 
+                          value=st.session_state.get("v_address_key", ""), 
+                          key="address_input_widget")
 
-    # [수정] 지역 입력창: 세션 상태값을 value로 사용
-    v_region = r4_2.text_input(
-        "지역", 
-        value=st.session_state.get("v_region_key", ""), 
-        key="v_region_key"
-    )
+    v_region = st.text_input("지역", 
+                             value=st.session_state.get("v_region_key", ""), 
+                             key="region_input_widget")
 
     # 딜러/판매자 정보 프레임
     with st.container(border=True):
