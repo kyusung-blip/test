@@ -474,7 +474,7 @@ with col_info:
     # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
     v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
     # DECLARATION 자동 계산 - 차량대금(price) 기반으로 항상 자동 계산
-    auto_decl_val = pm.calculate_declaration(parsed.get('price', ""))
+    auto_decl_val = pm.calculate_declaration(v_price)
     v_acc_o = acc2.text_input("차량대 계좌", value=d_data.get("acc_o", ""), key="acc_o_input")
 
     acc3, acc4 = st.columns([2, 3])
