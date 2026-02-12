@@ -90,7 +90,7 @@ st.markdown("""
     }
 
     /* 7. 시스템 자동계산 및 중요 행정 (연한 주황) - 합계금액, 잔금, DECLARATION, 입금자명, 송금용차명 */
-    input[aria-label="합계금액 (자동계산)"], input[aria-label="잔금"], 
+    input[aria-label="합계금액 (자동계산)"], input[aria-label="잔금"], input[aria-label="계약금(만원 단위)"],
     input[aria-label="DECLARATION"], input[aria-label="입금자명"], 
     input[aria-label="차명(송금용)"] {
         background-color: #FFF7ED !important;
@@ -105,6 +105,13 @@ st.markdown("""
     input[aria-label="영세율금액(원)"] {
         background-color: #ECFEFF !important; /* Light Cyan */
         border: 1px solid #CFFAFE !important;
+    }
+
+    /* 7. 헤이딜러 및 경매 정보 (연한 핑크) - 추가 구분 */
+    input[aria-label="헤이딜러 탁송"], 
+    input[aria-label="옥션 지역(회차)"] {
+        background-color: #FFF1F2 !important;
+        border: 1px solid #FFE4E6 !important;
     }
 
     /* 8. 출력칸 스타일 (연한 하늘색) - 문자 출력 결과, 송금 요청 결과 등 */
