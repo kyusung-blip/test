@@ -283,10 +283,7 @@ if raw_input:
             # 딜러 정보를 찾지 못한 경우 파싱된 주소 사용
             if not dealer_found:
                 st.session_state["v_address_key"] = parsed_address
-                # 파싱된 주소에서 지역 추출
-                if parsed_address:
-                    detected_region = mapping.get_region_from_address(parsed_address)
-                    st.session_state["v_region_key"] = detected_region
+                # 지역 추출은 아래 5️⃣ 단계에서 통합 처리됨
 
             # 4️⃣ [바이어 국가 조회] (country.py)
             if buyer:
