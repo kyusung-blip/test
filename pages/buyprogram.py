@@ -102,7 +102,7 @@ st.markdown("""
     /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
     input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
-    input[aria-label="color"] {
+    input[aria-label="color"], input[aria-label="psorce"] {
         background-color: #F9FAFB !important;
         border: 1px solid #D1D5DB !important;
     }
@@ -207,7 +207,7 @@ with col1:
 
 with col2:
     # P.Source 칸 추가 (텍스트 입력창 기준)
-    v_psource = st.text_input("psource", value="")
+    v_psource = st.text_input("Psource", value=parsed.get('psource', ""))
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
