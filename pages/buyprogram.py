@@ -208,7 +208,7 @@ with col1:
 
 with col2:
     # P.Source 칸 추가 (텍스트 입력창 기준)
-    v_psource = st.text_input("psource", value=parsed.get('psource', ""), key="v_psource")
+    v_psource = st.text_input("psource", value=st.session_state.get("v_psource", ""), key="v_psource_widget")
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
