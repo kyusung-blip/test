@@ -544,32 +544,22 @@ with col_list:
             st.rerun()
 
         st.divider()
-
-        tab1_content = st.session_state.get("out_tab1_final", "")
         
-            # 3. 수정 가능한 텍스트 에어리어
-            # 사용자가 직접 내용을 타이핑하여 수정할 수 있습니다.
-            # key="edit_tab1"을 통해 입력값을 관리합니다.
-            edited_tab1 = st.text_area(
-                "💬 문자 내용 수정 (수정 후 아래 복사 버튼 클릭)", 
-                value=tab1_content, 
-                height=300, 
-                key="edit_tab1"
-            )
+            current_content1 = st.session_state.get("out_tab1_final", "")
+            
+            # 사용자가 직접 수정할 수 있는 창
+            edited_text1 = st.text_area("송금 내용 수정", value=current_content1, height=400)
         
-            # 출력 및 수정창
-            tab1_out = st.session_state.get("out_tab1_final", "")
-            edited_tab1 = st.text_area("💬 문자 내용 수정", value=tab1_out, height=300, key="edit_tab1")
-    
-            # 복사 및 리셋 버튼
-            cp1, rs1 = st.columns(2)
-            with cp1:
-                if edited_tab1:
-                    st_copy_to_clipboard(edited_tab1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
-                else:
-                    st.button("📋 내용복사", disabled=True, key="cp1_dis")
-            with rs1:
-                if st.button("♻️ 내용리셋", key="rs_tab1"):
+            # 버튼 배치
+            col_copy, col_reset = st.columns([1, 1])
+            
+            with col_copy:
+                if edited_text1:
+                    # 이 버튼을 누르면 즉시 클립보드에 복사되어 Ctrl+V가 가능해집니다.
+                    st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+            
+            with col_reset:
+                if st.button("♻️ 내용 리셋", key="reset_tab1"):
                     st.session_state["out_tab1_final"] = ""
                     st.rerun()
             
@@ -608,23 +598,24 @@ with col_list:
             st.rerun()
 
         st.divider()
-    
-   
-# 출력 및 수정창
-        tab2_out = st.session_state.get("out_tab2_final", "")
-        edited_tab2 = st.text_area("💵 송금 내용 수정", value=tab2_out, height=400, key="edit_tab2")
 
-        # 복사 및 리셋 버튼
-        cp2, rs2 = st.columns(2)
-        with cp2:
-            if edited_tab2:
-                st_copy_to_clipboard(edited_tab2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
-            else:
-                st.button("📋 내용복사", disabled=True, key="cp2_dis")
-        with rs2:
-            if st.button("♻️ 내용리셋", key="rs_tab2"):
-                st.session_state["out_tab2_final"] = ""
-                st.rerun()
+            current_content2 = st.session_state.get("out_tab2_final", "")
+            
+            # 사용자가 직접 수정할 수 있는 창
+            edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600)
+        
+            # 버튼 배치
+            col_copy, col_reset = st.columns([1, 1])
+            
+            with col_copy:
+                if edited_text2:
+                    # 이 버튼을 누르면 즉시 클립보드에 복사되어 Ctrl+V가 가능해집니다.
+                    st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+            
+            with col_reset:
+                if st.button("♻️ 내용 리셋", key="reset_tab2"):
+                    st.session_state["out_tab2_final"] = ""
+                    st.rerun()
 
     with tab3:
         # 데이터 수집 (필요한 모든 위젯 변수 포함)
