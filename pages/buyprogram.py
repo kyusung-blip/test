@@ -209,9 +209,9 @@ with col1:
 with col2:
     # psource
     v_psource = st.text_input(
-        "psource", 
+        "P.Source", 
         value=st.session_state.get("v_psource", ""), 
-        key="psource_widget"
+        key="v_psource"
     )
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
@@ -231,18 +231,21 @@ if raw_input:
             contact = parsed_result.get('dealer_phone', "").strip()
             buyer = parsed_result.get('buyer', "").strip()
             original_car_name = parsed_result.get('car_name', "")
-            excel_address = parsed_result.get('address', "")
+            parsed_address = parsed_result.get('address', "")
+            
+            # 1️⃣ [P.Source 세션 저장]
+            st.session_state["v_psource"] = parsed_result.get('psource', "")
 
-            # 1️⃣ [인스펙션 조회] (Inspectioncheck.py)
+            # 2️⃣ [인스펙션 조회] (Inspectioncheck.py)
             if plate:
                 res_status = Inspectioncheck.fetch_inspection_status(plate)
                 st.session_state["inspection_status"] = res_status
                 # 위젯용 변수에 저장
                 st.session_state["v_inspection_key"] = res_status 
 
-            # 2️⃣ [딜러 정보 조회] (dealerinfo.py)
-            # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 엑셀 파싱 데이터를 우선순위로 설정
-            final_addr = excel_address
+            # 3️⃣ [딜러 정보 조회] (dealerinfo.py)
+            # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 파싱된 주소를 사용
+            dealer_found = False
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res.get("status") == "success":
@@ -254,18 +257,28 @@ if raw_input:
                     st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
                     st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
                     st.session_state["sender_input"] = dealer_res.get("sender", "")
-                    final_addr = dealer_res.get("address", excel_address)
+                    dealer_found = True
                 else:
                     st.session_state["dealer_data"] = {}
-                    st.session_state["v_address_key"] = excel_address
+            
+            # 딜러 정보를 찾지 못한 경우 파싱된 주소 사용
+            if not dealer_found:
+                st.session_state["v_address_key"] = parsed_address
 
-            # 3️⃣ [바이어 국가 조회] (country.py)
+            # 4️⃣ [바이어 국가 조회] (country.py)
             if buyer:
                 country_res = country.handle_buyer_country(buyer, "")
                 if country_res.get("status") == "fetched":
                     st.session_state["country_data"] = country_res["country"]
 
-            # 4️⃣ [차명 매핑 및 송금용 차명 결정] (google_sheet_manager.py)
+            # 5️⃣ [지역 추출] (mapping.py)
+            # 세션에 저장된 주소를 기반으로 지역 매핑
+            current_address = st.session_state.get("v_address_key", "")
+            if current_address:
+                detected_region = mapping.get_region_from_address(current_address)
+                st.session_state["v_region_key"] = detected_region
+
+            # 6️⃣ [차명 매핑 및 송금용 차명 결정] (google_sheet_manager.py)
             try:
                 import google_sheet_manager as gsm
                 car_map = gsm.get_car_name_map()
@@ -273,15 +286,6 @@ if raw_input:
                 st.session_state["auto_alt_car_name"] = alt_name
             except:
                 st.session_state["auto_alt_car_name"] = original_car_name
-
-            # 5️⃣ [지역 추출] (mapping.py)
-            # 최종 결정된 주소를 기반으로 지역 매핑
-            if final_addr:
-                detected_region = mapping.get_region_from_address(final_addr)
-                st.session_state["v_region_key"] = detected_region
-
-            # 6️⃣ [P.Source]
-            st.session_state["v_psource"] = parsed_result.get('psource', "")
 
             # 7️⃣ [기타 금액 데이터]
             st.session_state["parsed_data"] = parsed_result
