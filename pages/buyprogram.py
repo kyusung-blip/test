@@ -13,6 +13,7 @@ import inventoryenter
 import Inspectioncheck
 import socket
 import google_sheet_manager as gsm
+from st_copy_to_clipboard import st_copy_to_clipboard
 
 # --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
 ALL_WIDGET_KEYS = [
@@ -544,19 +545,24 @@ with col_list:
 
         st.divider()
 
-        # 1. 시각적인 확인을 위한 텍스트 에어리어
-        # key를 통해 세션 상태와 연결됨
-        content1 = st.session_state.get("out_tab1_final", "")
-        st.text_area("문자 출력 결과", value=content1, height=300, key="out_tab1_display")
+        # 1. 세션 상태에서 이전 결과값 가져오기
+        current_content = st.session_state.get("out_tab1_final", "")
         
-        # 2. [핵심] 복사 전용 코드 블록
-        if content1:
-            st.caption("👇 아래 박스 우측 상단의 아이콘을 클릭하여 복사하세요")
-            st.code(content1, language=None) # language=None 설정 시 강조 없이 텍스트만 깔끔하게 표시
-
-        if st.button("♻️ 내용리셋", key="rs1"):
-            st.session_state["out_tab1"] = ""
-            st.rerun()
+        # 2. 수정 가능한 텍스트 에어리어
+        # 사용자가 여기서 내용을 수정하면 edited_text에 담깁니다.
+        edited_text = st.text_area("출력 내용 (수정 후 복사하세요)", value=current_content, height=300)
+        
+        # 3. 리셋 버튼 옆에 복사 안내 배치
+        c1, c2 = st.columns([1, 1])
+        with c1:
+            if st.button("♻️ 내용 리셋", key="reset_tab1"):
+                st.session_state["out_tab1_final"] = ""
+                st.rerun()
+        with c2:
+            # st.code는 우측 상단에 '복사' 버튼이 자동으로 생깁니다.
+            if edited_text:
+                st.info("오른쪽 박스 상단 아이콘을 눌러 복사(Ctrl+V) 하세요.")
+                st.code(edited_text, language=None)
             
     with tab2:
     # 데이터 수집 (입력창 변수들)
@@ -593,17 +599,23 @@ with col_list:
             st.rerun()
     
    
-        # 1. 시각적인 확인용
-        content2 = st.session_state.get("out_tab2_final", "")
-        st.text_area("송금 요청 결과", value=content2, height=400, key="out_tab2_display")        
-        # 2. [핵심] 복사 전용 코드 블록
-        if content2:
-            st.caption("👇 아래 박스 우측 상단의 아이콘을 클릭하여 복사하세요")
-            st.code(content2, language=None)
-
-        if st.button("♻️ 내용리셋", key="rs2"):
-            st.session_state["out_tab2"] = ""
-            st.rerun()
+        current_content2 = st.session_state.get("out_tab2_final", "")
+        
+        # 사용자가 직접 수정할 수 있는 창
+        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=400)
+    
+        # 버튼 배치
+        col_copy, col_reset = st.columns([1, 1])
+        
+        with col_copy:
+            if edited_text2:
+                # 이 버튼을 누르면 즉시 클립보드에 복사되어 Ctrl+V가 가능해집니다.
+                st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+        
+        with col_reset:
+            if st.button("♻️ 내용 리셋", key="reset_tab2"):
+                st.session_state["out_tab2_final"] = ""
+                st.rerun()
 
     with tab3:
         # 데이터 수집 (필요한 모든 위젯 변수 포함)
