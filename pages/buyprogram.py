@@ -536,7 +536,7 @@ with col_list:
         
         # 들여쓰기 수정됨
         current_content1 = st.session_state.get("out_tab1_final", "")
-        edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="txt_area_tab1")
+        edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="out_tab1_final")
         
         col_copy, col_reset = st.columns([1, 1])
         with col_copy1:
@@ -585,7 +585,7 @@ with col_list:
 
         # 들여쓰기 수정됨
         current_content2 = st.session_state.get("out_tab2_final", "")
-        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600, key="txt_area_tab2")
+        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600, key="out_tab2_final")
         
         col_copy_2, col_reset_2 = st.columns([1, 1])
         with col_copy2:
