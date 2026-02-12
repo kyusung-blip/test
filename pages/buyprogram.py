@@ -219,6 +219,14 @@ if raw_input:
     if st.session_state.get("last_raw_input") != raw_input:
         with st.spinner("데이터 파싱 및 조회 중..."):
             parsed_result = lg.parse_excel_data(raw_input)
+            st.session_state["parsed_data"] = parsed_result
+
+            # 2. 파싱된 데이터에서 주요 값 추출
+            plate = parsed_result.get('plate', "").strip()
+            contact = parsed_result.get('dealer_phone', "")
+            buyer = parsed_result.get('buyer', "").strip()
+            parsed_address = parsed_result.get('address', "")
+            psource_val = parsed_result.get('psource', "")
             
             # 1. Inspection 조회
             plate = parsed.get('plate', "").strip()
@@ -264,7 +272,7 @@ if raw_input:
             st.session_state["detected_region"] = detected  # 찾은 지역 저장
 
             # 마무리 상태 저장 및 리런
-            st.session_state["parsed_data"] = parsed_result
+            st.session_state["v_psource"] = psource_val
             st.session_state["last_raw_input"] = raw_input
             st.rerun()
 
