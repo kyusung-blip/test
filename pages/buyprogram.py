@@ -22,7 +22,7 @@ ALL_WIDGET_KEYS = [
     "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
     "acc_x_input", "acc_fee_input", "sender_input", 
     "v_declaration_key", "v_inspection_key", "auto_alt_car_name",
-    "v_p.source"
+    "v_psource"
 ]
 
 # --- 1. 페이지 상태 및 리셋 로직 ---
@@ -204,7 +204,7 @@ with col1:
 
 with col2:
     # P.Source 칸 추가 (텍스트 입력창 기준)
-    p_source = st.text_input("P.Source", value="")
+    v_Psource = st.text_input("PSource", value="")
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
