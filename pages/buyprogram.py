@@ -548,6 +548,10 @@ with col_list:
             if edited_text1:
                 st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!", key="clip_tab1")
         
+        if current_content1:
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
+            st.code(current_content1, language=None)
+        
         with col_reset1:
             if st.button("♻️ 내용 리셋", key="reset_tab1"):
                 st.session_state["out_tab1_final"] = ""
@@ -603,6 +607,10 @@ with col_list:
         with col_copy2:
             if edited_text2:
                 st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!", key="clip_tab2")
+        
+        if current_content2:
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
+            st.code(current_content2, language=None)
         
         with col_reset2:
             if st.button("♻️ 내용 리셋", key="reset_tab2"):
