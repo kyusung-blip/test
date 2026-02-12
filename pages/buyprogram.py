@@ -534,23 +534,23 @@ with col_list:
 
         st.divider()
         
-            current_content1 = st.session_state.get("out_tab1_final", "")
+        current_content1 = st.session_state.get("out_tab1_final", "")
             
             # 사용자가 직접 수정할 수 있는 창
-            edited_text1 = st.text_area("송금 내용 수정", value=current_content1, height=400)
+        edited_text1 = st.text_area("송금 내용 수정", value=current_content1, height=400)
         
             # 버튼 배치
-            col_copy, col_reset = st.columns([1, 1])
+        col_copy, col_reset = st.columns([1, 1])
             
-            with col_copy:
-                if edited_text1:
+        with col_copy:
+            if edited_text1:
                     # 이 버튼을 누르면 즉시 클립보드에 복사되어 Ctrl+V가 가능해집니다.
-                    st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+                st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
             
-            with col_reset:
-                if st.button("♻️ 내용 리셋", key="reset_tab1"):
-                    st.session_state["out_tab1_final"] = ""
-                    st.rerun()
+        with col_reset:
+             if st.button("♻️ 내용 리셋", key="reset_tab1"):
+                 st.session_state["out_tab1_final"] = ""
+                 st.rerun()
             
     with tab2:
     # 데이터 수집 (입력창 변수들)
@@ -588,23 +588,23 @@ with col_list:
 
         st.divider()
 
-            current_content2 = st.session_state.get("out_tab2_final", "")
+         current_content2 = st.session_state.get("out_tab2_final", "")
             
             # 사용자가 직접 수정할 수 있는 창
-            edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600)
+         edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600)
         
             # 버튼 배치
-            col_copy, col_reset = st.columns([1, 1])
+         col_copy, col_reset = st.columns([1, 1])
             
-            with col_copy:
-                if edited_text2:
+         with col_copy:
+              if edited_text2:
                     # 이 버튼을 누르면 즉시 클립보드에 복사되어 Ctrl+V가 가능해집니다.
-                    st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+                  st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
             
-            with col_reset:
-                if st.button("♻️ 내용 리셋", key="reset_tab2"):
-                    st.session_state["out_tab2_final"] = ""
-                    st.rerun()
+         with col_reset:
+               if st.button("♻️ 내용 리셋", key="reset_tab2"):
+                 st.session_state["out_tab2_final"] = ""
+                 st.rerun()
 
     with tab3:
         # 데이터 수집 (필요한 모든 위젯 변수 포함)
