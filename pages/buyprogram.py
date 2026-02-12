@@ -601,7 +601,7 @@ with col_list:
 
     with tab3:
         # 데이터 수집 (필요한 모든 위젯 변수 포함)
-        ect_data = {
+        etc_data = {
             "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
             "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
             "region": v_region, "sales": v_sales, "buyer": v_buyer, 
@@ -619,7 +619,7 @@ with col_list:
             
         if e_c2.button("🚀 정보등록", type="primary"):
             with st.spinner("시트에 등록 중..."):
-                res = inventoryenter.run_integrated_registration(ect_data)
+                res = inventoryenter.run_integrated_registration(etc_data)
                 if res["status"] in ["success", "partial"]:
                     st.success(res["message"])
                 else:
@@ -631,7 +631,7 @@ with col_list:
         # tab3 내부
         # tab3 내부 또는 등록 버튼 로직 위치
         if st.button("📊 이카운트 품목 최종 등록", key="btn_ecount_real_final"):
-            vin_to_check = ect_data.get("vin")
+            vin_to_check = etc_data.get("vin")
             
             if not vin_to_check:
                 st.error("VIN(차대번호) 정보가 없습니다.")
@@ -649,7 +649,7 @@ with col_list:
                         
                         session_id = ecount.get_session_id()
                         if session_id:
-                            item_res = ecount.register_item(ect_data, session_id, existing_no)
+                            item_res = ecount.register_item(etc_data, session_id, existing_no)
                             
                             if str(item_res.get("Status")) == "200":
                                 st.success(f"✅ 이카운트 동기화 완료! (순번: {existing_no})")
