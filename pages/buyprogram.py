@@ -97,6 +97,16 @@ st.markdown("""
         border: 1px solid #FFEDD5 !important;
     }
 
+    /* 2. 오토위니 및 수출 정보 (연한 청록) - 구분하기 쉽게 색상 추가 */
+    input[aria-label="업체명"], 
+    input[aria-label="환율기준일"], 
+    input[aria-label="환율"], 
+    input[aria-label="차량대금($)"], 
+    input[aria-label="영세율금액(원)"] {
+        background-color: #ECFEFF !important; /* Light Cyan */
+        border: 1px solid #CFFAFE !important;
+    }
+
     /* 8. 출력칸 스타일 (연한 하늘색) - 문자 출력 결과, 송금 요청 결과 등 */
     textarea {
         background-color: #F0F9FF !important;
