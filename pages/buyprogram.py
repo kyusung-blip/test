@@ -60,42 +60,57 @@ st.markdown("""
     }
     
     
-    /* 1. 선택박스 전체 영역 (배경을 흰색으로, 테두리는 빨간색 강조) */
+    /* 1. 인스펙션 드롭다운(Selectbox) 본체 보정 */
     div[data-testid="stSelectbox"] > div {
-        background-color: #FFFFFF !important;
-        border: 2px solid #EF4444 !important; /* 인스펙션 강조용 빨간 테두리 */
+        background-color: #FFFFFF !important; /* 배경 흰색 고정 */
+        border: 2px solid #EF4444 !important; /* 빨간색 테두리 강조 */
         border-radius: 8px !important;
+        color: #000000 !important;
     }
 
-    /* 2. 선택박스 내부의 글자색 (검정 고정) */
+    /* 2. 선택된 후 표시되는 텍스트(Value) 색상 및 배경 */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important; /* 내부 배경 흰색 */
+        color: #000000 !important; /* 글자색 검정 */
+        font-weight: bold !important;
+    }
+    
+    /* 3. 선택박스 내부의 텍스트가 들어가는 실제 span 태그 제어 */
+    div[data-testid="stSelectbox"] span {
+        color: #000000 !important;
+    }
+
+    /* 4. 리스트 탭(Tabs) 글자색 및 배경 최종 보정 */
+    /* 탭 메뉴 전체의 글자색을 검정으로 강제 */
+    button[data-baseweb="tab"] p {
         color: #000000 !important;
         font-weight: bold !important;
     }
 
-    /* 3. 드롭다운 화살표 아이콘 색상 (검정) */
-    div[data-testid="stSelectbox"] svg {
-        fill: #000000 !important;
+    /* 선택된 탭의 배경을 흰색으로, 선을 파란색으로 */
+    button[data-baseweb="tab"][aria-selected="true"] {
+        background-color: #FFFFFF !important;
+        border-top: 3px solid #2196F3 !important;
+        border-radius: 5px 5px 0 0 !important;
     }
 
-    /* 4. 클릭 시 나타나는 드롭다운 목록(Pop-over) 글자색 보정 */
-    div[data-baseweb="popover"] ul {
-        background-color: #FFFFFF !important;
+    /* 선택되지 않은 탭의 배경을 약간 어두운 회색으로 */
+    button[data-baseweb="tab"][aria-selected="false"] {
+        background-color: #E2E8F0 !important;
     }
-    
-    div[data-baseweb="popover"] li {
-        color: #000000 !important;
+
+    /* 5. 텍스트 영역(Textarea) 출력칸 가독성 강화 */
+    textarea {
+        background-color: #F0F9FF !important; /* 연한 하늘색 배경 */
+        color: #000000 !important; /* 글자색 검정 */
+        border: 1px solid #BAE6FD !important;
         font-weight: 500 !important;
     }
 
-    /* 5. 리스트 탭(Tabs) 글자색 재강조 (흰색 방지) */
-    button[data-baseweb="tab"] div p {
+    /* 6. 전역 라벨(Label) 색상 보정 */
+    label p {
         color: #000000 !important;
-    }
-    
-    /* 활성화된 탭 글자색도 검정으로 명시 */
-    button[data-baseweb="tab"][aria-selected="true"] div p {
-        color: #000000 !important;
+        font-weight: bold !important;
     }
 
 
