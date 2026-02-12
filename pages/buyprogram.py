@@ -59,7 +59,7 @@ st.markdown("""
         border: 1px solid #d1d5db;
     }
     
-    /* 1. 선택박스 전체 영역 (배경을 흰색으로, 테두리는 빨간색 강조) */
+    /* 1. 선택박스 전체 영역 (배경을 흰색으로) */
     div[data-testid="stSelectbox"] > div {
         background-color: #FFFFFF !important;
         border-radius: 8px !important;
@@ -148,13 +148,6 @@ st.markdown("""
         border: 1px solid #BAE6FD !important;
         font-family: 'Malgun Gothic', sans-serif !important;
         font-size: 15px !important;
-    }
-
-    /* 9. 인스펙션 및 선택창 강조 (테두리 강조) */
-    div[data-testid="stSelectbox"] {
-        border: 2px solid #EF4444 !important;
-        border-radius: 5px;
-        background-color: #FFFFFF !important;
     }
 
     /* 10. 탭(Tab) 글자색 보정 */
