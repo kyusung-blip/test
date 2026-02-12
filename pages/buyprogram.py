@@ -67,7 +67,7 @@ st.markdown("""
 
     /* 2. 선택박스 내부의 글자색 (검정 고정) */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        color: #000000 !important;
+        color: #FFFFFF !important;
         font-weight: bold !important;
     }
 
