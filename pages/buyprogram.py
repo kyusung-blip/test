@@ -42,51 +42,70 @@ st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시�
 
 # CSS 스타일 유지
 # 사용자 편의성을 고려한 색상 테마 적용
+# 사용자 편의성을 고려한 색상 테마 및 글자색 보정
 st.markdown("""
     <style>
-    /* 1. 기본 레이아웃 및 버튼 스타일 */
+    /* 전체 입력창의 기본 글자색을 검정으로 설정 */
+    input {
+        color: #000000 !important;
+    }
+
+    /* 1. 버튼 스타일 */
     .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; }
-    .stTextInput>div>div>input { font-size: 16px; }
     
-    /* 2. 돈 관련 입력창 (연한 노랑) - 정확한 확인이 필요한 필드 */
+    /* 2. 돈 관련 입력창 (연한 노랑) */
     input[aria-label="차량대"], 
     input[aria-label="계산서X"], 
     input[aria-label="매도비"], 
     input[aria-label="차량대 계좌"], 
     input[aria-label="계산서X 계좌"], 
     input[aria-label="매도비 계좌"] {
-        background-color: #FFFDE7 !important; /* Very Light Yellow */
+        background-color: #FFFDE7 !important; 
         border: 1px solid #FBC02D !important;
         color: #000000 !important;
+        font-weight: bold !important;
     }
 
-    /* 3. 자동 계산 결과창 (연한 파랑) - 시스템이 준 값임을 명시 */
+    /* 3. 자동 계산 결과창 (연한 파랑) */
     input[aria-label="합계금액 (자동계산)"], 
     input[aria-label="잔금"] {
-        background-color: #E3F2FD !important; /* Very Light Blue */
+        background-color: #E3F2FD !important; 
         border: 1px solid #2196F3 !important;
+        color: #000000 !important;
         font-weight: bold !important;
-        color: #0D47A1 !important;
     }
 
-    /* 4. 중요 행정 정보 (연한 주황) - 누락되면 안되는 필수 필드 */
+    /* 4. 중요 행정 정보 (연한 주황) */
     input[aria-label="DECLARATION"], 
     input[aria-label="입금자명"],
     input[aria-label="차명(송금용)"] {
-        background-color: #FFF3E0 !important; /* Very Light Orange */
+        background-color: #FFF3E0 !important; 
         border: 1px solid #FB8C00 !important;
-        color: #E65100 !important;
-    }
-
-    /* 5. 차량 식별 정보 (연한 회색/기본) - 가독성 향상 */
-    input[aria-label="차번호"], 
-    input[aria-label="VIN"] {
-        background-color: #F5F5F5 !important;
+        color: #000000 !important;
         font-weight: bold !important;
-        letter-spacing: 1px;
     }
 
-    /* 6. 인스펙션 선택창 강조 */
+    /* 5. 차량 식별 및 기본 정보 (밝은 회색) */
+    input[aria-label="차번호"], 
+    input[aria-label="연식"],
+    input[aria-label="차명"],
+    input[aria-label="브랜드"],
+    input[aria-label="VIN"],
+    input[aria-label="km"],
+    input[aria-label="color"],
+    input[aria-label="사이트"],
+    input[aria-label="세일즈팀"],
+    input[aria-label="바이어"],
+    input[aria-label="나라"],
+    input[aria-label="딜러연락처"],
+    input[aria-label="지역"],
+    input[aria-label="주소"] {
+        background-color: #FFFFFF !important;
+        color: #000000 !important;
+        border: 1px solid #E0E0E0 !important;
+    }
+
+    /* 6. 인스펙션 선택창 강조 (테두리만 빨간색) */
     div[data-testid="stSelectbox"] {
         border: 2px solid #D32F2F !important;
         border-radius: 5px;
