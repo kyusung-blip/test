@@ -545,24 +545,39 @@ with col_list:
 
         st.divider()
 
-        # 1. 세션 상태에서 이전 결과값 가져오기
-        current_content = st.session_state.get("out_tab1_final", "")
+        tab1_content = st.session_state.get("out_tab1_final", "")
         
-        # 2. 수정 가능한 텍스트 에어리어
-        # 사용자가 여기서 내용을 수정하면 edited_text에 담깁니다.
-        edited_text = st.text_area("출력 내용 (수정 후 복사하세요)", value=current_content, height=300)
+            # 3. 수정 가능한 텍스트 에어리어
+            # 사용자가 직접 내용을 타이핑하여 수정할 수 있습니다.
+            # key="edit_tab1"을 통해 입력값을 관리합니다.
+            edited_tab1 = st.text_area(
+                "💬 문자 내용 수정 (수정 후 아래 복사 버튼 클릭)", 
+                value=tab1_content, 
+                height=300, 
+                key="edit_tab1"
+            )
         
-        # 3. 리셋 버튼 옆에 복사 안내 배치
-        c1, c2 = st.columns([1, 1])
-        with c1:
-            if st.button("♻️ 내용 리셋", key="reset_tab1"):
-                st.session_state["out_tab1_final"] = ""
-                st.rerun()
-        with c2:
-            # st.code는 우측 상단에 '복사' 버튼이 자동으로 생깁니다.
-            if edited_text:
-                st.info("오른쪽 박스 상단 아이콘을 눌러 복사(Ctrl+V) 하세요.")
-                st.code(edited_text, language=None)
+            # 4. 버튼 배치 (내용복사 | 내용 리셋)
+            copy_col, reset_col = st.columns([1, 1])
+        
+            with copy_col:
+                # 텍스트가 있을 때만 복사 버튼 표시
+                if edited_tab1:
+                    st_copy_to_clipboard(
+                        edited_tab1, 
+                        before_copy_label="📋 내용복사", 
+                        after_copy_label="✅ 복사완료! (Ctrl+V 가능)"
+                    )
+                else:
+                    st.button("📋 내용복사", disabled=True, help="복사할 내용이 없습니다.")
+        
+            with reset_col:
+                if st.button("♻️ 내용 리셋", key="reset_btn_tab1"):
+                    # 출력값과 수정창 모두 초기화
+                    st.session_state["out_tab1_final"] = ""
+                    if "edit_tab1" in st.session_state:
+                        st.session_state["edit_tab1"] = ""
+                    st.rerun()
             
     with tab2:
     # 데이터 수집 (입력창 변수들)
