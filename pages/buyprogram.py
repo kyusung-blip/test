@@ -62,13 +62,12 @@ st.markdown("""
     /* 1. 선택박스 전체 영역 (배경을 흰색으로, 테두리는 빨간색 강조) */
     div[data-testid="stSelectbox"] > div {
         background-color: #FFFFFF !important;
-        border: 2px solid #EF4444 !important; /* 인스펙션 강조용 빨간 테두리 */
         border-radius: 8px !important;
     }
 
     /* 2. 선택박스 내부의 글자색 (검정 고정) */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        color: #000000 !important;
+        color: #FFFFFF !important;
         font-weight: bold !important;
     }
 
