@@ -32,6 +32,8 @@ if "current_page" not in st.session_state:
     st.session_state["out_tab2_final"] = "" # Tab2 결과값 초기화
     st.session_state["out_tab3"] = ""       # Tab3 결과값 초기화
     st.session_state["v_inspection_key"] = "X" # 기본값 설정
+    st.session_state["v_psource"] = "" # 기본값 설정
+    
 
 if st.session_state["current_page"] != "buyprogram":
     for k in ALL_WIDGET_KEYS:
@@ -42,6 +44,7 @@ if st.session_state["current_page"] != "buyprogram":
     st.session_state["country_data"] = ""
     st.session_state["inspection_status"] = "X"
     st.session_state["current_page"] = "buyprogram"
+    st.session_state["v_psource"] = "" 
     st.rerun()
 
 # --- 2. 기본 페이지 설정 ---
@@ -204,7 +207,7 @@ with col1:
 
 with col2:
     # P.Source 칸 추가 (텍스트 입력창 기준)
-    v_Psource = st.text_input("PSource", value="")
+    v_psource = st.text_input("psource", value="")
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
