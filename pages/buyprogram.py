@@ -21,7 +21,8 @@ ALL_WIDGET_KEYS = [
     "raw_input_main", "v_region_key", "v_address_key", 
     "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
     "acc_x_input", "acc_fee_input", "sender_input", 
-    "v_declaration_key", "v_inspection_key", "auto_alt_car_name"
+    "v_declaration_key", "v_inspection_key", "auto_alt_car_name",
+    "v_p.source"
 ]
 
 # --- 1. 페이지 상태 및 리셋 로직 ---
