@@ -82,7 +82,7 @@ st.markdown("""
     }
     
     div[data-baseweb="popover"] li {
-        color: #000000 !important;
+        color: #FFFFFF !important;
         font-weight: 500 !important;
     }
 
