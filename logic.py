@@ -22,11 +22,13 @@ def parse_excel_data(raw_text):
         "color": parts[13] if len(parts) > 13 else "",
         "psource" : parts[14] if len(parts) > 14 else "",
         "address": parts[16] if len(parts) > 16 else "",
+        "dealer_number": parts[17] if len(parts) > 17 else "",
         "dealer_phone": parts[18] if len(parts) > 18 else "",
         "region": parts[19] if len(parts) > 19 else "",
         "price": parts[22] if len(parts) > 22 else "0",
         "contract": parts[23] if len(parts) > 23 else "0",
         "fee": parts[24] if len(parts) > 24 else "0",
+        "declaration": parts[25] if len(parts) > 25 else "0",
         "balance": parts[21] if len(parts) > 21 else "0",
         "buyer": parts[32] if len(parts) > 32 else "",
     }
