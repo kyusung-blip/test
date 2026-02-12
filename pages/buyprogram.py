@@ -395,24 +395,13 @@ with col_info:
     v_fee = acc5.text_input("매도비", value=pm.format_number(parsed.get('fee', "")))
     v_acc_fee = acc6.text_input("매도비 계좌", value=d_data.get("acc_fee", ""))
 
-        # 입력창에 써있는 글자들을 숫자로 바꿔서 더함
+    # 들여쓰기를 왼쪽으로 맞춰야 합니다.
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
-    # 3. 합계금액 입력창을 만듭니다. (이때 v_total 변수가 생성됨)
+    
     r5_1, r5_2, r5_3 = st.columns([2, 2, 2])
-    
     v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
-    
-    v_declaration = r5_2.text_input(
-    "DECLARATION", 
-    value=pm.format_number(auto_decl_val), # 계산된 값을 포맷팅해서 표시
-    key="v_declaration_key"
-    )
-    
-    v_sender = r5_3.text_input(
-        "입금자명", 
-        value=d_data.get("sender", ""), 
-        key="sender_input"
-    )
+    v_declaration = r5_2.text_input("DECLARATION", value=pm.format_number(auto_decl_val), key="v_declaration_key")
+    v_sender = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
     
     
     # 🏦 계좌확인 버튼 클릭 시
