@@ -44,12 +44,22 @@ st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시�
 # 전체 입력 및 출력칸 시각화 최적화
 st.markdown("""
     <style>
-    /* 1. 기본 설정: 모든 입력창 및 텍스트 영역 글자색 검정 고정 */
-    input, textarea, select, .stSelectbox div {
+<style>
+    /* 1. 전체 앱 배경색을 연한 회색으로 설정 */
+    .stApp {
+        background-color: #F0F2F5 !important;
+    }
+
+    /* 2. 메인 컨테이너 글자색 검정 고정 */
+    input, textarea, select, .stSelectbox div, p, span, label {
         color: #000000 !important;
         font-weight: 500 !important;
     }
 
+    /* 3. 입력창(Widget) 내부 글자색 및 배경 가독성 보정 */
+    .stTextInput>div>div>input {
+        color: #000000 !important;
+    }
     /* 2. 버튼 스타일 (전체 동일) */
     .stButton>button { 
         width: 100%; 
