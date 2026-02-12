@@ -543,10 +543,7 @@ with col_list:
         current_content1 = st.session_state.get("out_tab1_final", "")
         edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="txt_area_tab1")
         
-        col_copy1, col_reset1 = st.columns([1, 1])
-        with col_copy1:
-            if edited_text1:
-                st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!", key="clip_tab1")
+
         
         if current_content1:
             st.caption("👇 우측 상단 복사 아이콘 클릭")
