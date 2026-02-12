@@ -41,73 +41,79 @@ if st.session_state["current_page"] != "buyprogram":
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
 # CSS 스타일 유지
-# 사용자 편의성을 고려한 색상 테마 및 글자색 보정
 st.markdown("""
     <style>
-    /* 전체 입력창의 기본 글자색을 검정으로 설정 */
-    input {
+    /* 전체 글자색 검정 고정 */
+    input, textarea, select, .stSelectbox div, p, span {
         color: #000000 !important;
+        font-weight: 500 !important;
     }
 
-    /* 1. 버튼 스타일 */
-    .stButton>button { width: 100%; border-radius: 8px; font-weight: bold; }
-    
-    /* 2. 돈 관련 입력창 (연한 노랑) */
+    /* 1. 핵심 상사 및 계좌 정보 (연한 노랑) */
+    /* 상사명, 사업자번호, 차량대금 관련 모든 필드 */
+    input[aria-label="상사명"], 
+    input[aria-label="사업자번호"], 
     input[aria-label="차량대"], 
     input[aria-label="계산서X"], 
-    input[aria-label="매도비"], 
+    input[aria-label="매도비"],
     input[aria-label="차량대 계좌"], 
     input[aria-label="계산서X 계좌"], 
-    input[aria-label="매도비 계좌"] {
-        background-color: #FFFDE7 !important; 
-        border: 1px solid #FBC02D !important;
-        color: #000000 !important;
-        font-weight: bold !important;
+    input[aria-label="매도비 계좌"],
+    input[aria-label="계약금(만원 단위)"] {
+        background-color: #FEFCE8 !important; /* Light Yellow */
+        border: 1px solid #FEF08A !important;
     }
 
-    /* 3. 자동 계산 결과창 (연한 파랑) */
+    /* 2. 오토위니 및 수출 정보 (연한 청록) - 구분하기 쉽게 색상 추가 */
+    input[aria-label="업체명"], 
+    input[aria-label="환율기준일"], 
+    input[aria-label="환율"], 
+    input[aria-label="차량대금($)"], 
+    input[aria-label="영세율금액(원)"] {
+        background-color: #ECFEFF !important; /* Light Cyan */
+        border: 1px solid #CFFAFE !important;
+    }
+
+    /* 3. 시스템 계산 및 중요 행정 (연한 주황) */
     input[aria-label="합계금액 (자동계산)"], 
-    input[aria-label="잔금"] {
-        background-color: #E3F2FD !important; 
-        border: 1px solid #2196F3 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-
-    /* 4. 중요 행정 정보 (연한 주황) */
+    input[aria-label="잔금"], 
     input[aria-label="DECLARATION"], 
-    input[aria-label="입금자명"],
+    input[aria-label="입금자명"], 
     input[aria-label="차명(송금용)"] {
-        background-color: #FFF3E0 !important; 
-        border: 1px solid #FB8C00 !important;
-        color: #000000 !important;
-        font-weight: bold !important;
+        background-color: #FFF7ED !important; /* Light Orange */
+        border: 1px solid #FFEDD5 !important;
     }
 
-    /* 5. 차량 식별 및 기본 정보 (밝은 회색) */
-    input[aria-label="차번호"], 
-    input[aria-label="연식"],
-    input[aria-label="차명"],
-    input[aria-label="브랜드"],
-    input[aria-label="VIN"],
-    input[aria-label="km"],
-    input[aria-label="color"],
-    input[aria-label="사이트"],
-    input[aria-label="세일즈팀"],
-    input[aria-label="바이어"],
-    input[aria-label="나라"],
-    input[aria-label="딜러연락처"],
-    input[aria-label="지역"],
-    input[aria-label="주소"] {
-        background-color: #FFFFFF !important;
-        color: #000000 !important;
-        border: 1px solid #E0E0E0 !important;
+    /* 4. 차량 기본 정보 (연한 회색) */
+    input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
+    input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
+    input[aria-label="color"] {
+        background-color: #F9FAFB !important;
+        border: 1px solid #D1D5DB !important;
     }
 
-    /* 6. 인스펙션 선택창 강조 (테두리만 빨간색) */
+    /* 5. 연락처 및 주소 (연한 녹색) */
+    input[aria-label="딜러연락처"], input[aria-label="지역"], input[aria-label="주소"] {
+        background-color: #F0FDF4 !important;
+        border: 1px solid #BBF7D0 !important;
+    }
+
+    /* 6. 출력창 (연한 하늘색) */
+    textarea {
+        background-color: #F0F9FF !important;
+        border: 1px solid #BAE6FD !important;
+    }
+
+    /* 7. 헤이딜러 및 경매 정보 (연한 핑크) - 추가 구분 */
+    input[aria-label="헤이딜러 탁송"], 
+    input[aria-label="옥션 지역(회차)"] {
+        background-color: #FFF1F2 !important;
+        border: 1px solid #FFE4E6 !important;
+    }
+    
+    /* 선택창 테두리 강조 */
     div[data-testid="stSelectbox"] {
-        border: 2px solid #D32F2F !important;
-        border-radius: 5px;
+        border: 2px solid #EF4444 !important;
     }
     </style>
 """, unsafe_allow_html=True)
