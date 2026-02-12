@@ -40,51 +40,26 @@ if st.session_state["current_page"] != "buyprogram":
 # --- 2. 기본 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
-# CSS 스타일 유지
+# 전체 입력 및 출력칸 시각화 최적화
 st.markdown("""
     <style>
-    /* 전체 글자색 검정 고정 */
-    input, textarea, select, .stSelectbox div, p, span {
+    /* 1. 기본 설정: 모든 입력창 및 텍스트 영역 글자색 검정 고정 */
+    input, textarea, select, .stSelectbox div {
         color: #000000 !important;
         font-weight: 500 !important;
     }
 
-    /* 1. 핵심 상사 및 계좌 정보 (연한 노랑) */
-    /* 상사명, 사업자번호, 차량대금 관련 모든 필드 */
-    input[aria-label="상사명"], 
-    input[aria-label="사업자번호"], 
-    input[aria-label="차량대"], 
-    input[aria-label="계산서X"], 
-    input[aria-label="매도비"],
-    input[aria-label="차량대 계좌"], 
-    input[aria-label="계산서X 계좌"], 
-    input[aria-label="매도비 계좌"],
-    input[aria-label="계약금(만원 단위)"] {
-        background-color: #FEFCE8 !important; /* Light Yellow */
-        border: 1px solid #FEF08A !important;
+    /* 2. 버튼 스타일 (전체 동일) */
+    .stButton>button { 
+        width: 100%; 
+        border-radius: 8px; 
+        font-weight: bold; 
+        background-color: #f0f2f6; 
+        color: #000000 !important;
+        border: 1px solid #d1d5db;
     }
 
-    /* 2. 오토위니 및 수출 정보 (연한 청록) - 구분하기 쉽게 색상 추가 */
-    input[aria-label="업체명"], 
-    input[aria-label="환율기준일"], 
-    input[aria-label="환율"], 
-    input[aria-label="차량대금($)"], 
-    input[aria-label="영세율금액(원)"] {
-        background-color: #ECFEFF !important; /* Light Cyan */
-        border: 1px solid #CFFAFE !important;
-    }
-
-    /* 3. 시스템 계산 및 중요 행정 (연한 주황) */
-    input[aria-label="합계금액 (자동계산)"], 
-    input[aria-label="잔금"], 
-    input[aria-label="DECLARATION"], 
-    input[aria-label="입금자명"], 
-    input[aria-label="차명(송금용)"] {
-        background-color: #FFF7ED !important; /* Light Orange */
-        border: 1px solid #FFEDD5 !important;
-    }
-
-    /* 4. 차량 기본 정보 (연한 회색) */
+    /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
     input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
     input[aria-label="color"] {
@@ -92,28 +67,55 @@ st.markdown("""
         border: 1px solid #D1D5DB !important;
     }
 
-    /* 5. 연락처 및 주소 (연한 녹색) */
+    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라 */
+    input[aria-label="사이트"], input[aria-label="세일즈팀"], 
+    input[aria-label="바이어"], input[aria-label="나라"] {
+        background-color: #F5F3FF !important;
+        border: 1px solid #DDD6FE !important;
+    }
+
+    /* 5. 연락처 및 주소 정보 (연한 녹색) - 연락처, 지역, 주소 */
     input[aria-label="딜러연락처"], input[aria-label="지역"], input[aria-label="주소"] {
         background-color: #F0FDF4 !important;
         border: 1px solid #BBF7D0 !important;
     }
 
-    /* 6. 출력창 (연한 하늘색) */
-    textarea {
-        background-color: #F0F9FF !important;
-        border: 1px solid #BAE6FD !important;
+    /* 6. 핵심 상사 및 계좌 정보 (연한 노랑) - 상사명, 사업자번호, 계좌들 */
+    input[aria-label="상사명"], input[aria-label="사업자번호"], 
+    input[aria-label="차량대"], input[aria-label="계산서X"], input[aria-label="매도비"],
+    input[aria-label="차량대 계좌"], input[aria-label="계산서X 계좌"], input[aria-label="매도비 계좌"] {
+        background-color: #FEFCE8 !important;
+        border: 1px solid #FEF08A !important;
+        font-weight: bold !important;
     }
 
-    /* 7. 헤이딜러 및 경매 정보 (연한 핑크) - 추가 구분 */
-    input[aria-label="헤이딜러 탁송"], 
-    input[aria-label="옥션 지역(회차)"] {
-        background-color: #FFF1F2 !important;
-        border: 1px solid #FFE4E6 !important;
+    /* 7. 시스템 자동계산 및 중요 행정 (연한 주황) - 합계금액, 잔금, DECLARATION, 입금자명, 송금용차명 */
+    input[aria-label="합계금액 (자동계산)"], input[aria-label="잔금"], 
+    input[aria-label="DECLARATION"], input[aria-label="입금자명"], 
+    input[aria-label="차명(송금용)"] {
+        background-color: #FFF7ED !important;
+        border: 1px solid #FFEDD5 !important;
     }
-    
-    /* 선택창 테두리 강조 */
+
+    /* 8. 출력칸 스타일 (연한 하늘색) - 문자 출력 결과, 송금 요청 결과 등 */
+    textarea {
+        background-color: #F0F9FF !important;
+        color: #000000 !important;
+        border: 1px solid #BAE6FD !important;
+        font-family: 'Malgun Gothic', sans-serif !important;
+        font-size: 15px !important;
+    }
+
+    /* 9. 인스펙션 및 선택창 강조 (테두리 강조) */
     div[data-testid="stSelectbox"] {
         border: 2px solid #EF4444 !important;
+        border-radius: 5px;
+        background-color: #FFFFFF !important;
+    }
+
+    /* 10. 탭(Tab) 글자색 보정 */
+    button[data-baseweb="tab"] div p {
+        color: #000000 !important;
     }
     </style>
 """, unsafe_allow_html=True)
