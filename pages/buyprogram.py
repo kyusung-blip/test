@@ -207,80 +207,87 @@ with col1:
     )
 
 with col2:
-    # P.Source 칸 추가 (텍스트 입력창 기준)
-    v_psource = st.text_input("psource", 
-                              value=st.session_state.get("v_psource", ""), 
-                              key="psource_widget")
+    # psource
+    v_psource = st.text_input(
+        "psource", 
+        value=st.session_state.get("v_psource", ""), 
+        key="psource_widget"
+    )
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
     st.session_state["parsed_data"] = {}
 
+# --- 1. 파싱 및 외부 데이터 조회 로직 (위젯 선언보다 상단에 위치) ---
 if raw_input:
+    # 중복 실행 방지: 이전 입력값과 다를 때만 실행
     if st.session_state.get("last_raw_input") != raw_input:
-        with st.spinner("데이터 파싱 및 통합 조회 중..."):
+        with st.spinner("데이터를 분석하고 외부 정보를 조회 중입니다..."):
+            # A. 기초 데이터 파싱 (logic.py)
             parsed_result = lg.parse_excel_data(raw_input)
             
-            # [중요] 세션 상태를 직접 수정하기 전에 임시 딕셔너리에 담기
-            updates = {}
-            
-            # A. 기본 데이터 추출
+            # B. 주요 변수 추출
             plate = parsed_result.get('plate', "").strip()
             contact = parsed_result.get('dealer_phone', "").strip()
             buyer = parsed_result.get('buyer', "").strip()
             original_car_name = parsed_result.get('car_name', "")
-            
-            # 1. 인스펙션
+            excel_address = parsed_result.get('address', "")
+
+            # 1️⃣ [인스펙션 조회] (Inspectioncheck.py)
             if plate:
                 res_status = Inspectioncheck.fetch_inspection_status(plate)
-                updates["inspection_status"] = res_status
-                updates["v_inspection_key"] = res_status
+                st.session_state["inspection_status"] = res_status
+                # 위젯용 변수에 저장
+                st.session_state["v_inspection_key"] = res_status 
 
-            # 2. 딜러 정보 및 주소
-            final_address = parsed_result.get('address', "")
+            # 2️⃣ [딜러 정보 조회] (dealerinfo.py)
+            # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 엑셀 파싱 데이터를 우선순위로 설정
+            final_addr = excel_address
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res.get("status") == "success":
-                    updates["dealer_data"] = dealer_res
-                    updates["address_input_widget"] = dealer_res.get("address", "")
-                    updates["v_biz_name_input"] = dealer_res.get("company", "")
-                    updates["v_biz_num_input"] = dealer_res.get("biz_num", "")
-                    updates["acc_o_input"] = dealer_res.get("acc_o", "")
-                    updates["acc_fee_input"] = dealer_res.get("acc_fee", "")
-                    updates["sender_input"] = dealer_res.get("sender", "")
-                    final_address = dealer_res.get("address", final_address)
+                    st.session_state["dealer_data"] = dealer_res
+                    # 위젯 연결용 세션 변수들 업데이트
+                    st.session_state["v_address_key"] = dealer_res.get("address", "")
+                    st.session_state["v_biz_name_input"] = dealer_res.get("company", "")
+                    st.session_state["v_biz_num_input"] = dealer_res.get("biz_num", "")
+                    st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
+                    st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
+                    st.session_state["sender_input"] = dealer_res.get("sender", "")
+                    final_addr = dealer_res.get("address", excel_address)
                 else:
-                    updates["dealer_data"] = {}
-                    updates["address_input_widget"] = final_address
+                    st.session_state["dealer_data"] = {}
+                    st.session_state["v_address_key"] = excel_address
 
-            # 3. 바이어/국가
+            # 3️⃣ [바이어 국가 조회] (country.py)
             if buyer:
                 country_res = country.handle_buyer_country(buyer, "")
                 if country_res.get("status") == "fetched":
-                    updates["country_data"] = country_res["country"]
+                    st.session_state["country_data"] = country_res["country"]
 
-            # 4. 차명 매핑
+            # 4️⃣ [차명 매핑 및 송금용 차명 결정] (google_sheet_manager.py)
             try:
+                import google_sheet_manager as gsm
                 car_map = gsm.get_car_name_map()
-                updates["auto_alt_car_name"] = lg.get_alt_car_name(original_car_name, car_map)
+                alt_name = lg.get_alt_car_name(original_car_name, car_map)
+                st.session_state["auto_alt_car_name"] = alt_name
             except:
-                updates["auto_alt_car_name"] = original_car_name
+                st.session_state["auto_alt_car_name"] = original_car_name
 
-            # 5. 지역 추출 (최종 주소 기반)
-            if final_address:
-                updates["region_input_widget"] = mapping.get_region_from_address(final_address)
+            # 5️⃣ [지역 추출] (mapping.py)
+            # 최종 결정된 주소를 기반으로 지역 매핑
+            if final_addr:
+                detected_region = mapping.get_region_from_address(final_addr)
+                st.session_state["v_region_key"] = detected_region
 
-            # 6. P.Source (오류 발생 지점)
-            updates["psource_widget"] = parsed_result.get('psource', "")
+            # 6️⃣ [P.Source]
+            st.session_state["v_psource"] = parsed_result.get('psource', "")
 
-            # --- [핵심] updates에 담긴 모든 값을 세션에 일괄 적용 ---
-            for k, v in updates.items():
-                st.session_state[k] = v
-            
-            # 마지막 입력값 업데이트 후 리런
+            # 7️⃣ [기타 금액 데이터]
             st.session_state["parsed_data"] = parsed_result
             st.session_state["last_raw_input"] = raw_input
             
+            # 처리가 끝났으므로 페이지 재실행 (상단부터 다시 그리면서 값 채움)
             st.rerun()
 
 # 현재 화면에서 사용할 parsed 데이터 로드
@@ -342,7 +349,11 @@ with col_info:
     v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
     v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
     default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
-    v_car_name_remit = r1_4.text_input("차명(송금용)", value=default_alt_name)
+    v_car_name_remit = st.text_input(
+    "차명(송금용)", 
+    value=st.session_state.get("auto_alt_car_name", ""),
+    key="remit_name_widget"
+    )
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
@@ -391,13 +402,16 @@ with col_info:
     final_address = sheet_address if sheet_address else parsed_address
     # 주소 (구글 시트 우선)
 # [수정] 주소 입력창: on_change 콜백 추가
-    v_address = st.text_input("주소", 
-                          value=st.session_state.get("v_address_key", ""), 
-                          key="address_input_widget")
-
-    v_region = st.text_input("지역", 
-                             value=st.session_state.get("v_region_key", ""), 
-                             key="region_input_widget")
+    v_address = st.text_input(
+    "주소", 
+    value=st.session_state.get("v_address_key", ""), 
+    key="v_address_widget"
+    )
+    v_region = st.text_input(
+        "지역", 
+        value=st.session_state.get("v_region_key", ""), 
+        key="v_region_widget"
+    )
 
     # 딜러/판매자 정보 프레임
     with st.container(border=True):
