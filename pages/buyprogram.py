@@ -498,6 +498,7 @@ with col_list:
     st.markdown("### 📋 리스트 탭")
     tab1, tab2, tab3 = st.tabs(["💬 문자전송", "💵 송금요청", "➕ 기타"])
 
+    # --- Tab 1: 문자전송 ---
     with tab1:
         input_data = {
             "year": v_year, "car_name": v_car_name, "plate": v_plate,
@@ -534,20 +535,22 @@ with col_list:
 
         st.divider()
         
-        # 들여쓰기 수정됨
+        # NameError 방지를 위해 변수를 먼저 정의
         current_content1 = st.session_state.get("out_tab1_final", "")
-        edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="out_tab1_final")
         
-        col_copy, col_reset = st.columns([1, 1])
+        edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="txt_area_tab1")
+        
+        col_copy1, col_reset1 = st.columns([1, 1])
         with col_copy1:
-        if edited_text1:
-            st_copy_to_clipboard(edited_text1, key="clip_tab1")
+            if edited_text1:
+                st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!", key="clip_tab1")
         
-        with col_reset:
+        with col_reset1:
             if st.button("♻️ 내용 리셋", key="reset_tab1"):
                 st.session_state["out_tab1_final"] = ""
                 st.rerun()
-            
+
+    # --- Tab 2: 송금요청 ---
     with tab2:
         remit_data = {
             "plate": v_plate, "year": v_year, "car_name": v_car_name, "vin": v_vin,
@@ -562,41 +565,42 @@ with col_list:
         }
 
         r_c1, r_c2 = st.columns(2)
-        if r_c1.button("일반매입 송금"):
+        if r_c1.button("일반매입 송금", key="btn_remit_1"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "일반매입")
             st.rerun()
-        if r_c2.button("계약금 송금"):
+        if r_c2.button("계약금 송금", key="btn_remit_2"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "계약금")
             st.rerun()
-        if r_c1.button("폐자원 송금"):
+        if r_c1.button("폐자원 송금", key="btn_remit_3"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "폐자원매입")
             st.rerun()
-        if r_c2.button("송금완료 확인"):
+        if r_c2.button("송금완료 확인", key="btn_remit_4"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "송금완료")
             st.rerun()
-        if r_c1.button("오토위니 송금"):
+        if r_c1.button("오토위니 송금", key="btn_remit_5"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "오토위니")
             st.rerun()
-        if r_c2.button("헤이딜러 송금"):
+        if r_c2.button("헤이딜러 송금", key="btn_remit_6"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
             st.rerun()
 
         st.divider()
 
-        # 들여쓰기 수정됨
+        # 변수 정의 후 사용
         current_content2 = st.session_state.get("out_tab2_final", "")
-        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600, key="out_tab2_final")
+        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600, key="txt_area_tab2")
         
-        col_copy_2, col_reset_2 = st.columns([1, 1])
+        col_copy2, col_reset2 = st.columns([1, 1])
         with col_copy2:
             if edited_text2:
-                st_copy_to_clipboard(edited_text2, key="clip_tab2")
+                st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!", key="clip_tab2")
         
-        with col_reset_2:
+        with col_reset2:
             if st.button("♻️ 내용 리셋", key="reset_tab2"):
                 st.session_state["out_tab2_final"] = ""
                 st.rerun()
 
+    # --- Tab 3: 기타 ---
     with tab3:
         etc_data = {
             "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
@@ -605,16 +609,17 @@ with col_list:
             "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
             "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
-            "deposit": v_deposit, "company": v_company,
+            "deposit": v_deposit, "company": v_company, 
             "biz_name": v_biz_name, "biz_num": v_biz_num,
             "declaration": v_declaration, "ex_rate": v_ex_rate
         }
+        
         e_c1, e_c2 = st.columns(2)
         if e_c1.button("입고방 알림", key="btn_etc1"):
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
             st.rerun()
             
-        if e_c2.button("🚀 정보등록", type="primary", key="btn_reg_main"):
+        if e_c2.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
             with st.spinner("시트에 등록 중..."):
                 res = inventoryenter.run_integrated_registration(etc_data)
                 if res["status"] in ["success", "partial"]:
@@ -626,49 +631,43 @@ with col_list:
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
             
-        if st.button("📊 이카운트 품목 최종 등록", key="btn_ecount_real_final"):
+        if st.button("📊 이카운트 품목 최종 등록", key="btn_ecount_final"):
             vin_to_check = etc_data.get("vin")
             if not vin_to_check:
                 st.error("VIN(차대번호) 정보가 없습니다.")
             else:
                 with st.spinner("정보 확인 중..."):
                     import inventoryenter
-                    import importlib
                     importlib.reload(inventoryenter)
                     existing_no = inventoryenter.get_no_by_vin(vin_to_check)
                     
                     if existing_no:
                         st.info(f"확인됨: 구글 시트 순번 NO.{existing_no}")
-                        # ecount 모듈이 import 되어 있는지 확인 필요
-                        try:
-                            import ecount
-                            session_id = ecount.get_session_id()
-                            if session_id:
-                                item_res = ecount.register_item(etc_data, session_id, existing_no)
-                                if str(item_res.get("Status")) == "200":
-                                    st.success(f"✅ 이카운트 동기화 완료! (순번: {existing_no})")
-                                    st.balloons()
-                                else:
-                                    st.error(f"❌ 이카운트 등록 실패: {item_res.get('Message')}")
+                        import ecount
+                        session_id = ecount.get_session_id()
+                        if session_id:
+                            item_res = ecount.register_item(etc_data, session_id, existing_no)
+                            if str(item_res.get("Status")) == "200":
+                                st.success(f"✅ 이카운트 동기화 완료! (순번: {existing_no})")
+                                st.balloons()
                             else:
-                                st.error("❌ 이카운트 세션 획득 실패")
-                        except ImportError:
-                            st.error("ecount 모듈을 찾을 수 없습니다.")
+                                st.error(f"❌ 이카운트 등록 실패: {item_res.get('Message')}")
                     else:
                         st.warning("⚠️ 구글에 먼저 등록해주세요.")
 
         if v_site and v_site.startswith("http"):
             e_c2.link_button("🌐 사이트 이동", v_site)
         else:
-            e_c2.button("🌐 사이트 이동", disabled=True, key="btn_site_disabled")
+            e_c2.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
 
-        # 결과 출력 및 리셋 섹션
-        content3 = st.session_state.get("out_tab3", "")
-        st.text_area("기타 메시지 결과", value=content3, height=400, key="out_tab3_display")       
+        st.divider()
         
-        if content3:
+        current_content3 = st.session_state.get("out_tab3", "")
+        st.text_area("기타 메시지 결과", value=current_content3, height=400, key="txt_area_tab3")       
+        
+        if current_content3:
             st.caption("👇 우측 상단 복사 아이콘 클릭")
-            st.code(content3, language=None)
+            st.code(current_content3, language=None)
 
         if st.button("♻️ 내용리셋", key="rs3"):
             st.session_state["out_tab3"] = ""
