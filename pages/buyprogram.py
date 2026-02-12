@@ -41,7 +41,6 @@ if st.session_state["current_page"] != "buyprogram":
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
 # CSS 스타일 유지
-# 사용자 편의성을 고려한 색상 테마 적용
 # 사용자 편의성을 고려한 색상 테마 및 글자색 보정
 st.markdown("""
     <style>
