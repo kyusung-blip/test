@@ -140,7 +140,7 @@ def get_no_by_vin(vin_value):
     try:
         # 1. 2026 시트의 모든 데이터를 가져옵니다. 
         # (이미 정의된 시트 객체 이름을 사용하세요. 예: sheet_2026)
-        all_values = sheet_2026.get_all_values()
+        all_values = 2026.get_all_values()
         
         # 2. 루프를 돌며 E열(index 4)에서 VIN을 찾습니다.
         for row in all_values:
