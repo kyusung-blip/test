@@ -275,9 +275,9 @@ if raw_input:
                 import google_sheet_manager as gsm
                 car_map = gsm.get_car_name_map()
                 alt_name = lg.get_alt_car_name(original_car_name, car_map)
-                st.session_state["auto_alt_car_name"] = alt_name
+                st.session_state["auto_alt_car_name"] = alt_name.upper() if alt_name else ""
             except:
-                st.session_state["auto_alt_car_name"] = original_car_name
+                st.session_state["auto_alt_car_name"] = original_car_name.upper() if original_car_name else ""
 
             # 7️⃣ [기타 금액 데이터]
             st.session_state["parsed_data"] = parsed_result
@@ -367,7 +367,7 @@ with col_info:
     default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
     v_car_name_remit = st.text_input(
     "차명(송금용)", 
-    value=st.session_state.get("auto_alt_car_name", "").upper(),
+    value=st.session_state.get("auto_alt_car_name", ""),
     key="remit_name_widget"
     ).upper()
 
