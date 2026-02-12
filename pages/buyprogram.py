@@ -237,11 +237,17 @@ top_col1, top_col2 = st.columns([8, 1])
 top_col1, top_col2 = st.columns([8, 1])
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        for k in ALL_WIDGET_KEYS:
-            if k in st.session_state: del st.session_state[k]
-        st.session_state["last_raw_input"] = ""
+        # 1. 모든 세션 상태 변수를 완전히 삭제 (초기화)
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        
+        # 2. 필수 기본값 재설정 (페이지 이탈 방지)
+        st.session_state["current_page"] = "buyprogram"
+        st.session_state["inspection_status"] = "X"
         st.session_state["parsed_data"] = {}
         st.session_state["dealer_data"] = {}
+        
+        # 3. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
         st.rerun()
 
 if "inspection_status" not in st.session_state:
