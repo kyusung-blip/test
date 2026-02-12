@@ -26,6 +26,10 @@ ALL_WIDGET_KEYS = [
 # --- 1. 페이지 상태 및 리셋 로직 ---
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
+    st.session_state["out_tab1_final"] = "" # Tab1 결과값 초기화
+    st.session_state["out_tab2_final"] = "" # Tab2 결과값 초기화
+    st.session_state["out_tab3"] = ""       # Tab3 결과값 초기화
+    st.session_state["v_inspection_key"] = "X" # 기본값 설정
 
 if st.session_state["current_page"] != "buyprogram":
     for k in ALL_WIDGET_KEYS:
@@ -511,33 +515,32 @@ with col_list:
         
         if m_c1.button("확인후", key="btn_confirm"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "confirm")
-
+            st.rerun()
             
         if m_c2.button("세일즈팀", key="btn_sales"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "salesteam")
-
+            st.rerun()
 
         if m_c1.button("검수자", key="btn_insp"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "inspection")
-
+            st.rerun()
 
         if m_c2.button("문자", key="btn_sms"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "sms")
-
+            st.rerun()
 
         if m_c1.button("아웃소싱", key="btn_out"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "outsource")
-
+            st.rerun()
 
         if m_c2.button("주소공유", key="btn_share"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "share_address")
-
+            st.rerun()
 
         st.divider()
         
         # NameError 방지를 위해 변수를 먼저 정의
         current_content1 = st.session_state.get("out_tab1_final", "")
-        
         edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="txt_area_tab1")
         
         col_copy1, col_reset1 = st.columns([1, 1])
@@ -567,21 +570,27 @@ with col_list:
         r_c1, r_c2 = st.columns(2)
         if r_c1.button("일반매입 송금", key="btn_remit_1"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "일반매입")
+            st.rerun()
     
         if r_c2.button("계약금 송금", key="btn_remit_2"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "계약금")
+            st.rerun()
 
         if r_c1.button("폐자원 송금", key="btn_remit_3"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "폐자원매입")
+            st.rerun()
 
         if r_c2.button("송금완료 확인", key="btn_remit_4"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "송금완료")
+            st.rerun()
 
         if r_c1.button("오토위니 송금", key="btn_remit_5"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "오토위니")
+            st.rerun()
 
         if r_c2.button("헤이딜러 송금", key="btn_remit_6"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
+            st.rerun()
 
 
         st.divider()
