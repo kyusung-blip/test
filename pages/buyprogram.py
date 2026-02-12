@@ -196,6 +196,7 @@ with delete_col:
         st.session_state["parsed_data"] = {}         # 파싱된 바구니도 비움
         st.rerun()
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
+parsed = st.session_state.get("parsed_data", {})
 col1, col2 = st.columns(2)
 
 with col1:
@@ -207,7 +208,7 @@ with col1:
 
 with col2:
     # P.Source 칸 추가 (텍스트 입력창 기준)
-    v_psource = st.text_input("Psource", value=parsed.get('psource', ""))
+    v_psource = st.text_input("psource", value=parsed.get('psource', ""), key="v_psource")
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
@@ -217,7 +218,7 @@ if raw_input:
     # 이전에 처리했던 입력값과 현재 입력값이 다를 때만 파싱 실행
     if st.session_state.get("last_raw_input") != raw_input:
         with st.spinner("데이터 파싱 및 조회 중..."):
-            parsed = lg.parse_excel_data(raw_input)
+            parsed_result = lg.parse_excel_data(raw_input)
             
             # 1. Inspection 조회
             plate = parsed.get('plate', "").strip()
@@ -263,8 +264,8 @@ if raw_input:
             st.session_state["detected_region"] = detected  # 찾은 지역 저장
 
             # 마무리 상태 저장 및 리런
+            st.session_state["parsed_data"] = parsed_result
             st.session_state["last_raw_input"] = raw_input
-            st.session_state["parsed_data"] = parsed
             st.rerun()
 
 # 현재 화면에서 사용할 parsed 데이터 로드
