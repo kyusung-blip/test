@@ -132,7 +132,7 @@ st.markdown("""
 
     /* 10. 탭(Tab) 글자색 보정 */
     button[data-baseweb="tab"] div p {
-        color: #000000 !important;
+        color: #FFFFFF !important;
     }
     </style>
 """, unsafe_allow_html=True)
