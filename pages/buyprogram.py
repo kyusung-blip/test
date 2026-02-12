@@ -232,7 +232,7 @@ if raw_input:
             psource_val = parsed_result.get('psource', "")
             
             # 1. Inspection 조회
-            plate = parsed.get('plate', "").strip()
+            plate = parsed_result.get('plate', "").strip()
             if plate:
                 res_status = Inspectioncheck.fetch_inspection_status(plate)
                 st.session_state["inspection_status"] = res_status
@@ -240,7 +240,7 @@ if raw_input:
                 st.session_state["v_inspection_key"] = res_status
 
             # 2. 딜러 정보 조회
-            contact = parsed.get('dealer_phone', "")
+            contact = parsed_result.get('dealer_phone', "")
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res["status"] == "success":
@@ -256,7 +256,7 @@ if raw_input:
                     st.session_state["dealer_data"] = {}
 
             # 3. 바이어 국가 조회
-            buyer = parsed.get('buyer', "").strip()
+            buyer = parsed_result.get('buyer', "").strip()
             if buyer:
                 res = country.handle_buyer_country(buyer, "")
                 if res["status"] == "fetched":
@@ -265,7 +265,7 @@ if raw_input:
             # [추가] 차명 매핑 및 송금용 차명 결정
             import google_sheet_manager as gsm
             car_map = gsm.get_car_name_map()
-            original_car_name = parsed.get('car_name', "")
+            original_car_name = parsed_result.get('car_name', "")
             alt_name = lg.get_alt_car_name(original_car_name, car_map)
             st.session_state["auto_alt_car_name"] = alt_name # 세션에 저장
             
