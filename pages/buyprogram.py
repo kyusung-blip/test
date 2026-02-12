@@ -539,20 +539,21 @@ with col_list:
 
         st.divider()
         
-        # NameError 방지를 위해 변수를 먼저 정의
         current_content1 = st.session_state.get("out_tab1_final", "")
-        edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="txt_area_tab1")
         
-
-        
+        # 2. 데이터가 있을 때만 출력창 보여주기
         if current_content1:
+            st.markdown("##### 📄 생성된 메시지")
             st.caption("👇 우측 상단 복사 아이콘 클릭")
+            # 언어 설정 language=None 혹은 language="markdown" 권장
             st.code(current_content1, language=None)
-        
-        with col_reset1:
+            
+            # 리셋 버튼 배치
             if st.button("♻️ 내용 리셋", key="reset_tab1"):
                 st.session_state["out_tab1_final"] = ""
                 st.rerun()
+        else:
+            st.info("버튼을 클릭하면 메시지가 생성됩니다.")
 
     # --- Tab 2: 송금요청 ---
     with tab2:
