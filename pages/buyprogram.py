@@ -78,13 +78,9 @@ st.markdown("""
 
     /* 4. 클릭 시 나타나는 드롭다운 목록(Pop-over) 글자색 보정 */
     div[data-baseweb="popover"] ul {
-        background-color: #FFFFFF !important;
+        background-color: #000000 !important;
     }
-    
-    div[data-baseweb="popover"] li {
-        color: #FFFFFF !important;
-        font-weight: 500 !important;
-    }
+
 
     /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
