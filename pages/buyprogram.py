@@ -326,6 +326,8 @@ with top_col2:
         # 5. 추가 위젯 키들 초기화
         st.session_state["last_raw_input"] = ""
         st.session_state["output_text"] = ""
+        st.session_state["remit_name_widget"] = ""  # 차명(송금용) 위젯 초기화 추가
+        st.session_state["psource_widget"] = ""     # P.Source 위젯 초기화 추가
         
         # 6. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
         st.rerun()
