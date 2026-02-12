@@ -535,13 +535,13 @@ with col_list:
         st.divider()
         
         # 들여쓰기 수정됨
-        current_msg = st.session_state.get("out_tab1_final", "")
+        current_content1 = st.session_state.get("out_tab1_final", "")
         edited_text1 = st.text_area("문자 내용 수정", value=current_content1, height=400, key="txt_area_tab1")
         
         col_copy, col_reset = st.columns([1, 1])
-        with col_copy:
-            if edited_text1:
-                st_copy_to_clipboard(edited_text1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+        with col_copy1:
+        if edited_text1:
+            st_copy_to_clipboard(edited_text1, key="clip_tab1")
         
         with col_reset:
             if st.button("♻️ 내용 리셋", key="reset_tab1"):
@@ -584,13 +584,13 @@ with col_list:
         st.divider()
 
         # 들여쓰기 수정됨
-        current_remit = st.session_state.get("out_tab2_final", "")
+        current_content2 = st.session_state.get("out_tab2_final", "")
         edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=600, key="txt_area_tab2")
         
         col_copy_2, col_reset_2 = st.columns([1, 1])
-        with col_copy_2:
+        with col_copy2:
             if edited_text2:
-                st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+                st_copy_to_clipboard(edited_text2, key="clip_tab2")
         
         with col_reset_2:
             if st.button("♻️ 내용 리셋", key="reset_tab2"):
