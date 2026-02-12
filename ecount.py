@@ -83,3 +83,96 @@ def register_item(data, session_id, sheet_no):
         return response.json()
     except Exception as e:
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
+
+def register_purchase(data, session_id, username):
+    """이카운트 구매입력(전표) 저장 API - 다중 품목 대응"""
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
+    
+    import re
+    # 1. 거래처 번호 정제
+    biz_num = str(data.get("biz_num", ""))
+    cust_code = re.sub(r'[^0-9]', '', biz_num)
+    
+    # 2. h_id 매핑
+    h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
+    custom_code1 = h_map.get(data.get("h_id", ""), "")
+    
+    # 3. 숫자 변환 유틸리티
+    def to_float(val):
+        if not val: return 0
+        clean = re.sub(r'[^0-9.]', '', str(val))
+        return float(clean) if clean else 0
+
+    vin = str(data.get("vin", ""))
+    purchase_list = []
+
+    # --- 하단 품목 구성 로직 ---
+    
+    # A. 차량대 (Price)
+    v_price = to_float(data.get("price", 0))
+    if v_price > 0:
+        purchase_list.append({
+            "BulkDatas": {
+                "IO_DATE": datetime.now().strftime("%Y%m%d"),
+                "CUST": cust_code,
+                "PROD_CD": vin,
+                "QTY": 1,
+                "PRICE": v_price,
+                "EMP_CD": username,
+                "U_MEMO1": str(data.get("plate", "")),
+                "U_MEMO2": vin,
+                "U_MEMO3": str(data.get("psource", "")),
+                "U_MEMO4": str(data.get("car_name_remit", "")),
+                "U_MEMO5": str(data.get("sales", "")),
+                "CustomField1": str(data.get("buyer", "")),
+                "CustomField2": str(data.get("country", "")),
+                "CustomField4": str(data.get("region", "")),
+                "CustomField5": str(data.get("year", "")),
+                "CustomField6": str(data.get("color", "")),
+                "CustomField7": str(data.get("km", "")),
+                "CustomField10": str(data.get("brand", "")),
+                "CustomCode1": custom_code1
+            }
+        })
+
+    # B. 매도비 (Fee)
+    v_fee = to_float(data.get("fee", 0))
+    if v_fee > 0:
+        purchase_list.append({
+            "BulkDatas": {
+                "IO_DATE": datetime.now().strftime("%Y%m%d"),
+                "CUST": cust_code,
+                "PROD_CD": vin,
+                "QTY": 1,
+                "PRICE": v_fee, # 매도비는 단가에 입력
+                "EMP_CD": username,
+                "U_MEMO1": str(data.get("plate", "")),
+                "U_MEMO2": vin,
+                "U_MEMO4": f"[매도비] {data.get('car_name_remit', '')}"
+            }
+        })
+
+    # C. 계산서X (Contract_x)
+    v_contract = to_float(data.get("contract_x", 0))
+    if v_contract > 0:
+        purchase_list.append({
+            "BulkDatas": {
+                "IO_DATE": datetime.now().strftime("%Y%m%d"),
+                "CUST": cust_code,
+                "PROD_CD": vin,
+                "QTY": 1,
+                "SUPPLY_AMT": v_contract, # 계산서X는 공급가액에 직접 입력
+                "EMP_CD": username,
+                "U_MEMO1": str(data.get("plate", "")),
+                "U_MEMO2": vin,
+                "U_MEMO4": f"[계산서X] {data.get('car_name_remit', '')}"
+            }
+        })
+
+    payload = {"PurchaseList": purchase_list}
+
+    try:
+        response = requests.post(url, json=payload, verify=False, timeout=15)
+        return response.json()
+    except Exception as e:
+        return {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
