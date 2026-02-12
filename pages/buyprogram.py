@@ -59,15 +59,17 @@ st.markdown("""
         border: 1px solid #d1d5db;
     }
     
-    /* 1. 선택박스 전체 영역 (배경을 흰색으로) */
+    
+    /* 1. 선택박스 전체 영역 (배경을 흰색으로, 테두리는 빨간색 강조) */
     div[data-testid="stSelectbox"] > div {
-        background-color: #000000 !important;
+        background-color: #FFFFFF !important;
+        border: 2px solid #EF4444 !important; /* 인스펙션 강조용 빨간 테두리 */
         border-radius: 8px !important;
     }
 
     /* 2. 선택박스 내부의 글자색 (검정 고정) */
     div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
-        color: #FFFFFF !important;
+        color: #000000 !important;
         font-weight: bold !important;
     }
 
@@ -78,7 +80,22 @@ st.markdown("""
 
     /* 4. 클릭 시 나타나는 드롭다운 목록(Pop-over) 글자색 보정 */
     div[data-baseweb="popover"] ul {
-        background-color: #000000 !important;
+        background-color: #FFFFFF !important;
+    }
+    
+    div[data-baseweb="popover"] li {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
+
+    /* 5. 리스트 탭(Tabs) 글자색 재강조 (흰색 방지) */
+    button[data-baseweb="tab"] div p {
+        color: #000000 !important;
+    }
+    
+    /* 활성화된 탭 글자색도 검정으로 명시 */
+    button[data-baseweb="tab"][aria-selected="true"] div p {
+        color: #000000 !important;
     }
 
 
