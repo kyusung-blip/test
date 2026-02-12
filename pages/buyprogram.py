@@ -102,7 +102,7 @@ st.markdown("""
     /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
     input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
-    input[aria-label="color"], input[aria-label="psource"] {
+    input[aria-label="color"] {
         background-color: #F9FAFB !important;
         border: 1px solid #D1D5DB !important;
     }
@@ -137,6 +137,7 @@ st.markdown("""
     input[aria-label="계약금(만원 단위)"],
     input[aria-label="DECLARATION"], 
     input[aria-label="입금자명"], 
+    input[aria-label="P.Source"],
     input[aria-label="차명(송금용)"] {
         background-color: #FFF7ED !important;
         border: 1px solid #FFEDD5 !important;
@@ -197,22 +198,13 @@ with delete_col:
         st.rerun()
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 parsed = st.session_state.get("parsed_data", {})
-col1, col2 = st.columns(2)
 
-with col1:
-    v_username = st.selectbox(
-        "매입사원", 
-        ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
-        index=0
-    )
-
-with col2:
-    # psource
-    v_psource = st.text_input(
-        "P.Source", 
-        value=st.session_state.get("v_psource", ""), 
-        key="v_psource"
-    )
+# 매입사원 선택
+v_username = st.selectbox(
+    "매입사원", 
+    ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
+    index=0
+)
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
@@ -453,10 +445,15 @@ with col_info:
     # 들여쓰기를 왼쪽으로 맞춰야 합니다.
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
     
-    r5_1, r5_2, r5_3 = st.columns([2, 2, 2])
+    r5_1, r5_2, r5_3, r5_4 = st.columns([2, 2, 2, 2])
     v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
     v_declaration = r5_2.text_input("DECLARATION", value=pm.format_number(auto_decl_val), key="v_declaration_key")
     v_sender = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
+    v_psource = r5_4.text_input(
+        "P.Source", 
+        value=st.session_state.get("v_psource", ""), 
+        key="psource_widget"  # 위젯 key를 변경하여 session_state와 충돌 방지
+    )
     
     
     # 🏦 계좌확인 버튼 클릭 시
