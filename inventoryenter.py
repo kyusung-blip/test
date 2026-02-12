@@ -138,15 +138,23 @@ def get_no_by_vin(vin_value):
     구글 시트에서 VIN(E열)을 검색하여 해당 행의 NO(B열)를 반환합니다.
     """
     try:
-        # 1. 2026 시트의 모든 데이터를 가져옵니다. 
-        # (이미 정의된 시트 객체 이름을 사용하세요. 예: sheet_2026)
-        all_values = 2026.get_all_values()
+        # 1. 정의된 함수를 호출하여 2026 시트 객체를 가져옵니다.
+        sheet_2026 = gsm.get_main_2026_sheet()
         
-        # 2. 루프를 돌며 E열(index 4)에서 VIN을 찾습니다.
+        # 2. 시트의 모든 데이터를 가져옵니다.
+        all_values = sheet_2026.get_all_values()
+        
+        # 3. 입력받은 VIN 정형화 (공백 제거 및 대문자화)
+        target_vin = str(vin_value).strip().upper()
+        
+        # 4. 루프를 돌며 E열(index 4)에서 VIN을 찾습니다.
         for row in all_values:
-            # row[4] 가 E열(VIN), row[1] 이 B열(NO) 입니다.
-            if len(row) > 4 and row[4] == vin_value:
-                return row[1] # 찾으면 B열 값 반환
+            # E열(index 4) 존재 확인 및 비교
+            if len(row) > 4:
+                sheet_vin = str(row[4]).strip().upper()
+                if sheet_vin == target_vin:
+                    # 찾으면 B열(index 1)의 NO 값을 반환
+                    return row[1] 
                 
         return None # 찾지 못하면 None 반환
     except Exception as e:
