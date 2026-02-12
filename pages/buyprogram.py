@@ -192,7 +192,7 @@ with delete_col:
         st.session_state["parsed_data"] = {}         # 파싱된 바구니도 비움
         st.rerun()
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
-v_username = st.selectbox("매입사원", ["선택" ,"임진수", "이민지", "이규성", "윤성준", "김태윤"], index=0)
+v_username = st.selectbox("매입사원", ["매입담당자" ,"임진수", "이민지", "이규성", "윤성준", "김태윤"], index=0)
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
     st.session_state["parsed_data"] = {}
