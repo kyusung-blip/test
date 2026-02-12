@@ -259,6 +259,9 @@ if raw_input:
                 else:
                     st.session_state["dealer_data"] = {}
                     st.session_state["v_address_key"] = parsed_address
+            else:
+                # 연락처가 없을 경우 파싱된 주소 사용
+                st.session_state["v_address_key"] = parsed_address
 
             # 4️⃣ [바이어 국가 조회] (country.py)
             if buyer:
