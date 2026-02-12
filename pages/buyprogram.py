@@ -367,9 +367,9 @@ with col_info:
     default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
     v_car_name_remit = st.text_input(
     "차명(송금용)", 
-    value=st.session_state.get("auto_alt_car_name", ""),
+    value=st.session_state.get("auto_alt_car_name", "").upper(),
     key="remit_name_widget"
-    )
+    ).upper()
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
@@ -404,9 +404,6 @@ with col_info:
                 st.info("정보가 이미 일치합니다.")
             else:
                 st.error(res.get("message", "오류가 발생했습니다."))
-    # R4: 연락처, 지역, 주소
-    r4_1, r4_2, r4_3 = st.columns([1.5, 1.5, 3])
-    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
     # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
     d_data = st.session_state.get("dealer_data")
     if not isinstance(d_data, dict):
@@ -416,14 +413,16 @@ with col_info:
     sheet_address = d_data.get("address", "")
     parsed_address = parsed.get('address', "")
     final_address = sheet_address if sheet_address else parsed_address
-    # 주소 (구글 시트 우선)
-# [수정] 주소 입력창: on_change 콜백 추가
-    v_address = st.text_input(
-    "주소", 
-    value=st.session_state.get("v_address_key", ""), 
-    key="v_address_widget"
+    
+    # R4: 연락처, 주소, 지역 (한 줄로 배치)
+    r4_1, r4_2, r4_3 = st.columns([1.5, 3, 1.5])
+    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
+    v_address = r4_2.text_input(
+        "주소", 
+        value=st.session_state.get("v_address_key", ""), 
+        key="v_address_widget"
     )
-    v_region = st.text_input(
+    v_region = r4_3.text_input(
         "지역", 
         value=st.session_state.get("v_region_key", ""), 
         key="v_region_widget"
