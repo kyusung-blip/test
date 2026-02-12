@@ -248,7 +248,9 @@ if raw_input:
                     st.session_state["v_biz_num_input"] = dealer_res.get("biz_num", "")
                     st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
                     st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
-                    st.session_state["sender_input"] = dealer_res.get("sender", "")
+                    # 입금자명을 대문자로 변환하여 저장
+                    sender_val = dealer_res.get("sender", "")
+                    st.session_state["sender_input"] = sender_val.upper() if sender_val else ""
                     dealer_found = True
                 else:
                     st.session_state["dealer_data"] = {}
@@ -256,6 +258,10 @@ if raw_input:
             # 딜러 정보를 찾지 못한 경우 파싱된 주소 사용
             if not dealer_found:
                 st.session_state["v_address_key"] = parsed_address
+                # 파싱된 주소에서 지역 추출
+                if parsed_address:
+                    detected_region = mapping.get_region_from_address(parsed_address)
+                    st.session_state["v_region_key"] = detected_region
 
             # 4️⃣ [바이어 국가 조회] (country.py)
             if buyer:
@@ -318,10 +324,6 @@ with top_col2:
             st.session_state[widget_key] = ""
         
         # 5. 추가 위젯 키들 초기화
-        st.session_state["v_address_widget"] = ""
-        st.session_state["v_region_widget"] = ""
-        st.session_state["remit_name_widget"] = ""
-        st.session_state["psource_widget"] = ""
         st.session_state["last_raw_input"] = ""
         st.session_state["output_text"] = ""
         
@@ -365,11 +367,13 @@ with col_info:
     v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
     v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
     default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
-    v_car_name_remit = st.text_input(
-    "차명(송금용)", 
-    value=st.session_state.get("auto_alt_car_name", ""),
-    key="remit_name_widget"
-    ).upper()
+    # 차명(송금용) - 입력값을 대문자로 변환하여 저장
+    remit_input = r1_4.text_input(
+        "차명(송금용)", 
+        value=st.session_state.get("auto_alt_car_name", ""),
+        key="remit_name_widget"
+    )
+    v_car_name_remit = remit_input.upper() if remit_input else ""
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
@@ -420,12 +424,13 @@ with col_info:
     v_address = r4_2.text_input(
         "주소", 
         value=st.session_state.get("v_address_key", ""), 
-        key="v_address_widget"
+        key="v_address_key",
+        on_change=update_region
     )
     v_region = r4_3.text_input(
         "지역", 
         value=st.session_state.get("v_region_key", ""), 
-        key="v_region_widget"
+        key="v_region_key"
     )
 
     # 딜러/판매자 정보 프레임
@@ -467,7 +472,8 @@ with col_info:
     r5_1, r5_2, r5_3, r5_4 = st.columns([2, 2, 2, 2])
     v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
     v_declaration = r5_2.text_input("DECLARATION", value=pm.format_number(auto_decl_val), key="v_declaration_key")
-    v_sender = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
+    sender_input = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
+    v_sender = sender_input.upper() if sender_input else ""
     v_psource = r5_4.text_input(
         "P.Source", 
         value=st.session_state.get("v_psource", ""), 
