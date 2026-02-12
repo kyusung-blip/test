@@ -60,13 +60,13 @@ def register_item(data, session_id, sheet_no):
                     "PROD_CD": str(data.get("vin", "")),             # 품목코드: VIN
                     "PROD_DES": str(data.get("car_name_remit", "")),    # 품목명: 차명(송금용)
                     "UNIT": "EA",
-                    "CONT1": str(data.get("brand", "")),             # 추가문자형식1: BRAND
-                    "CONT2": str(sheet_no),                          # 문자형추가항목1: NO (구글시트 순번)
-                    "CONT3": str(data.get("plate", "")),             # 문자형추가항목2: PLATE (차량번호)
-                    "CONT4": str(data.get("km", "")),                # 문자형추가항목3: km (주행거리)
-                    "CONT5": str(data.get("color", "")),             # 문자형추가항목4: COLOR (색상)
-                    "CONT6": str(data.get("year", "")),              # 문자형추가항목5: YEAR (연식)
-                    "DT_1": datetime.now().strftime("%Y%m%d"),        # 추가일자형식1: 등록일자
+                    "CustomField1": str(data.get("brand", "")),             # 추가문자형식1: BRAND
+                    "CONT1": str(sheet_no),                          # 문자형추가항목1: NO (구글시트 순번)
+                    "CONT2": str(data.get("plate", "")),             # 문자형추가항목2: PLATE (차량번호)
+                    "CONT3": str(data.get("km", "")),                # 문자형추가항목3: km (주행거리)
+                    "CONT4": str(data.get("color", "")),             # 문자형추가항목4: COLOR (색상)
+                    "CONT5": str(data.get("year", "")),              # 문자형추가항목5: YEAR (연식)
+                    "CustomDate1": datetime.now().strftime("%Y%m%d"),        # 추가일자형식1: 등록일자
                     "NO_USER2": l,                                   # 숫자형추가항목2: 길이
                     "NO_USER3": w,                                   # 숫자형추가항목3: 너비
                     "NO_USER4": h,                                   # 숫자형추가항목4: 높이
