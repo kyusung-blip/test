@@ -110,12 +110,20 @@ st.markdown("""
         font-weight: bold !important;
     }
 
-    /* 7. 시스템 자동계산 및 중요 행정 (연한 주황) - 합계금액, 잔금, DECLARATION, 입금자명, 송금용차명 */
-    input[aria-label="합계금액 (자동계산)"], input[aria-label="잔금"], input[aria-label="계약금(만원 단위)"],
-    input[aria-label="DECLARATION"], input[aria-label="입금자명"], 
+    /* 7. 시스템 자동계산 및 중요 행정 (연한 주황) */
+    /* :disabled 설정을 추가하여 합계금액이 계산된 후에도 검정글씨를 유지합니다. */
+    input[aria-label="합계금액 (자동계산)"]:disabled,
+    input[aria-label="합계금액 (자동계산)"], 
+    input[aria-label="잔금"], 
+    input[aria-label="계약금(만원 단위)"],
+    input[aria-label="DECLARATION"], 
+    input[aria-label="입금자명"], 
     input[aria-label="차명(송금용)"] {
         background-color: #FFF7ED !important;
         border: 1px solid #FFEDD5 !important;
+        color: #000000 !important; /* 글자색 검정 고정 */
+        -webkit-text-fill-color: #000000 !important; /* Safari/Chrome 비활성 글자색 강제 */
+        opacity: 1 !important; /* 비활성 시 흐려지는 현상 방지 */
     }
 
     /* 2. 오토위니 및 수출 정보 (연한 청록) - 구분하기 쉽게 색상 추가 */
