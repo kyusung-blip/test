@@ -1,1317 +1,800 @@
-"""
-차량 매입 관리 시스템 (Vehicle Purchase Management System)
-Complete Streamlit web application for managing vehicle purchases
-"""
-
 import streamlit as st
-import xmlrpc.client
-import gspread
-from google.oauth2.service_account import Credentials as GoogleCredentials
-import google.generativeai as genai
-import requests
-import base64
-from PIL import Image
-import io
-import json
 import re
-import os
 from datetime import datetime
-import time
-import pandas as pd
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
+import logic as lg  
+import price_manager as pm 
+import message as msg_logic
+import remit
+import etc
+import dealerinfo
+import country
+import mapping
+import importlib
+import inventoryenter
+import Inspectioncheck
+import socket
+import google_sheet_manager as gsm
+from st_copy_to_clipboard import st_copy_to_clipboard
 
-# ============================================================================
-# CONSTANTS AND DATA MAPS
-# ============================================================================
+# --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
+ALL_WIDGET_KEYS = [
+    "raw_input_main", "v_region_key", "v_address_key", 
+    "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
+    "acc_x_input", "acc_fee_input", "sender_input", 
+    "v_declaration_key", "v_inspection_key", "auto_alt_car_name",
+    "v_psource"
+]
 
-VINYEAR_map = {
-    'A': '2010', 'B': '2011', 'C': '2012', 'D': '2013', 'E': '2014',
-    'F': '2015', 'G': '2016', 'H': '2017', 'J': '2018', 'K': '2019',
-    'L': '2020', 'M': '2021', 'N': '2022', 'P': '2023', 'R': '2024',
-    'S': '2025', 'T': '2026', 'V': '2027', 'W': '2028', 'X': '2029',
-    'Y': '2030'
-}
+# --- 1. 페이지 상태 및 리셋 로직 ---
+if "current_page" not in st.session_state:
+    st.session_state["current_page"] = "buyprogram"
+    st.session_state["out_tab1_final"] = "" # Tab1 결과값 초기화
+    st.session_state["out_tab2_final"] = "" # Tab2 결과값 초기화
+    st.session_state["out_tab3"] = ""       # Tab3 결과값 초기화
+    st.session_state["v_inspection_key"] = "X" # 기본값 설정
+    st.session_state["v_psource"] = "" # 기본값 설정
+    
 
-color_map = {
-    '검정': '블랙', '검은색': '블랙', '흑색': '블랙', '진주흑색': '블랙',
-    '흰색': '화이트', '백색': '화이트', '진주백색': '화이트', '크림': '화이트',
-    '은색': '실버', '은백색': '실버',
-    '짙은회색': '회색', '회색': '그레이',
-    '빨강': '레드', '빨간색': '레드',
-    '주황': '오렌지',
-    '노랑': '옐로우',
-    '파랑': '블루', '파란색': '블루', '남색': '네이비', '청색': '블루',
-    '베이지': '베이지',
-    '갈색': '브라운', '밤색': '브라운'
-}
+if st.session_state["current_page"] != "buyprogram":
+    for k in ALL_WIDGET_KEYS:
+        if k in st.session_state:
+            del st.session_state[k]
+    st.session_state["dealer_data"] = {}
+    st.session_state["detected_region"] = ""
+    st.session_state["country_data"] = ""
+    st.session_state["inspection_status"] = "X"
+    st.session_state["current_page"] = "buyprogram"
+    st.session_state["v_psource"] = "" 
+    st.rerun()
 
-ADDRESS_REGION_MAP = {
-    '서울': '서울', '부산': '부산', '대구': '대구', '인천': '인천',
-    '광주': '광주', '대전': '대전', '울산': '울산', '세종': '세종',
-    '경기': '경기', '강원': '강원', '충북': '충북', '충남': '충남',
-    '전북': '전북', '전남': '전남', '경북': '경북', '경남': '경남',
-    '제주': '제주'
-}
+# --- 2. 기본 페이지 설정 ---
+st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
-sales_map = {
-    '이규성': 'KS',
-    '김동현': 'DH',
-    '신동호': 'SH',
-    '홍길동': 'HG'
-}
+# --- 1-1. 콜백 함수 정의 (주소 변경 시 지역 자동 추출) ---
+def update_region():
+    address_val = st.session_state.get("v_address_key", "")
+    if address_val:
+        # mapping 모듈을 사용하여 지역 추출
+        detected = mapping.get_region_from_address(address_val)
+        # 지역 위젯의 키값에 직접 저장
+        st.session_state["v_region_key"] = detected
 
-# ============================================================================
-# SESSION STATE INITIALIZATION
-# ============================================================================
-
-def init_session_state():
-    """Initialize all session state variables"""
-    default_values = {
-        # Basic info
-        'plate': '',
-        'vin': '',
-        'car_name': '',
-        'car_name_alt': '',
-        'brand': '',
-        'year': '',
-        'km': '',
-        'color': '',
-        
-        # Dealer info
-        'phone': '',
-        'address': '',
-        'business_num': '',
-        'company': '',
-        
-        # Account info
-        'vehicle_account': '',
-        'fee_account': '',
-        'remitter_name': '',
-        
-        # Buyer info
-        'buyer_name': '',
-        'buyer_country': '',
-        
-        # Amount info
-        'price': '',
-        'fee': '',
-        'invoice_x': '',
-        'total': '',
-        'deposit': '',
-        'balance': '',
-        'declaration': '',
-        
-        # Autowini info
-        'autowini_company': '',
-        'exchange_date': '',
-        'exchange_rate': '',
-        'usd_price': '',
-        'zero_rate': '',
-        
-        # HeyDealer info
-        'heydealer_type': '',
-        'heydealer_id': '',
-        'delivery': '',
-        
-        # Site/sales
-        'site': '',
-        'sales_team': '',
-        
-        # Auction info
-        'region': '',
-        'session': '',
-        'number': '',
-        
-        # Cache and state
-        'car_name_map_cache': {},
-        'cache_last_load': None,
-        'output_message': '',
-        'dealer_update_mode': False,
-        
-        # Sidebar selections
-        'auction_type': '선택 안함',
-        'heydealer_type_select': '선택 안함',
-        'heydealer_id_select': '선택 안함',
+# 전체 입력 및 출력칸 시각화 최적화
+st.markdown("""
+    <style>
+        /* ===== 배경색 설정 ===== */
+    .stApp {
+        background-color: #2b2b2b !important;
     }
     
-    for key, value in default_values.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
-
-# ============================================================================
-# CORE UTILITY FUNCTIONS
-# ============================================================================
-
-def parse_money(text):
-    """Parse Korean currency format (만원, 억) to number"""
-    if not text:
-        return 0
-    
-    text = str(text).strip().replace(',', '').replace(' ', '')
-    
-    # Remove non-numeric characters except 억, 만, decimal point
-    text = re.sub(r'[^\d억만.]', '', text)
-    
-    result = 0
-    
-    # Handle 억 (100 million)
-    if '억' in text:
-        parts = text.split('억')
-        eok = float(parts[0]) if parts[0] else 0
-        result += eok * 100000000
-        text = parts[1] if len(parts) > 1 else ''
-    
-    # Handle 만 (10 thousand)
-    if '만' in text:
-        parts = text.split('만')
-        man = float(parts[0]) if parts[0] else 0
-        result += man * 10000
-        text = parts[1] if len(parts) > 1 else ''
-    
-    # Handle remaining number
-    if text:
-        result += float(text)
-    
-    return int(result)
-
-def format_number(num, use_korean=True):
-    """Format number with Korean units (억, 만) or commas"""
-    try:
-        num = int(float(num))
-    except (ValueError, TypeError):
-        return '0'
-    
-    if not use_korean:
-        return f"{num:,}"
-    
-    if num == 0:
-        return '0'
-    
-    eok = num // 100000000
-    remainder = num % 100000000
-    man = remainder // 10000
-    won = remainder % 10000
-    
-    parts = []
-    if eok > 0:
-        parts.append(f"{eok}억")
-    if man > 0:
-        parts.append(f"{man}만")
-    if won > 0 or not parts:
-        parts.append(f"{won}")
-    
-    return ' '.join(parts)
-
-def detect_brand_from_vin(vin):
-    """Auto-detect vehicle brand from VIN"""
-    if not vin or len(vin) < 3:
-        return ''
-    
-    vin = vin.upper()[:3]
-    
-    brand_map = {
-        'KMH': '현대', 'KM8': '현대', 'KNA': '기아', 'KNE': '기아',
-        'KNC': '기아', 'KND': '기아', 'MAL': '쉐보레', 'KL1': '쉐보레',
-        'KL4': '쉐보레', 'Z6F': '기아', 'NLE': '르노삼성',
-        'Y6D': '르노코리아', 'U5Y': '쌍용', 'U6Y': '쌍용'
+    .main {
+        background-color: #2b2b2b !important;
     }
     
-    return brand_map.get(vin, '')
-
-def detect_vin_year(vin):
-    """Extract year from VIN using 10th character"""
-    if not vin or len(vin) < 10:
-        return ''
-    
-    year_code = vin[9].upper()
-    return VINYEAR_map.get(year_code, '')
-
-def detect_region_from_address(address):
-    """Extract region from address"""
-    if not address:
-        return ''
-    
-    for region_key, region_value in ADDRESS_REGION_MAP.items():
-        if region_key in address:
-            return region_value
-    
-    return ''
-
-def normalize_color(color):
-    """Normalize color names using color_map"""
-    if not color:
-        return ''
-    
-    return color_map.get(color, color)
-
-def detect_alt_car_name(car_name):
-    """Map car names using Google Sheets cache"""
-    if not car_name:
-        return ''
-    
-    # Load cache if needed
-    if not st.session_state.car_name_map_cache or \
-       not st.session_state.cache_last_load or \
-       (datetime.now() - st.session_state.cache_last_load).seconds > 3600:
-        try:
-            sheet = get_google9_sheet()
-            if sheet:
-                records = sheet.get_all_records()
-                cache = {}
-                for record in records:
-                    original = record.get('원본차명', '')
-                    mapped = record.get('변환차명', '')
-                    if original and mapped:
-                        cache[original] = mapped
-                st.session_state.car_name_map_cache = cache
-                st.session_state.cache_last_load = datetime.now()
-        except Exception as e:
-            st.error(f"차명 매핑 로드 오류: {e}")
-    
-    return st.session_state.car_name_map_cache.get(car_name, car_name)
-
-def fill_entries_from_input(paste_data):
-    """Parse tab-separated data and fill entries"""
-    if not paste_data:
-        return
-    
-    lines = paste_data.strip().split('\n')
-    for line in lines:
-        parts = line.split('\t')
-        
-        if len(parts) >= 8:
-            st.session_state.plate = parts[0].strip() if len(parts) > 0 else ''
-            st.session_state.vin = parts[1].strip().upper() if len(parts) > 1 else ''
-            st.session_state.car_name = parts[2].strip() if len(parts) > 2 else ''
-            st.session_state.year = parts[3].strip() if len(parts) > 3 else ''
-            st.session_state.km = parts[4].strip() if len(parts) > 4 else ''
-            st.session_state.color = parts[5].strip() if len(parts) > 5 else ''
-            st.session_state.price = parts[6].strip() if len(parts) > 6 else ''
-            st.session_state.fee = parts[7].strip() if len(parts) > 7 else ''
-            
-            # Auto-detect brand and year from VIN
-            if st.session_state.vin:
-                st.session_state.brand = detect_brand_from_vin(st.session_state.vin)
-                if not st.session_state.year:
-                    st.session_state.year = detect_vin_year(st.session_state.vin)
-            
-            # Normalize color
-            if st.session_state.color:
-                st.session_state.color = normalize_color(st.session_state.color)
-
-def calculate_balance():
-    """Calculate remaining balance (total - deposit)"""
-    try:
-        total = parse_money(st.session_state.total)
-        deposit = parse_money(st.session_state.deposit)
-        balance = total - deposit
-        st.session_state.balance = format_number(balance)
-    except:
-        st.session_state.balance = '0'
-
-def update_declaration():
-    """Auto-calculate 10% declaration from price"""
-    try:
-        price = parse_money(st.session_state.price)
-        declaration = int(price * 0.1)
-        st.session_state.declaration = format_number(declaration)
-    except:
-        st.session_state.declaration = '0'
-
-def calculate_total():
-    """Sum price + fee + invoice_x"""
-    try:
-        price = parse_money(st.session_state.price)
-        fee = parse_money(st.session_state.fee)
-        invoice_x = parse_money(st.session_state.invoice_x)
-        total = price + fee + invoice_x
-        st.session_state.total = format_number(total)
-        calculate_balance()
-    except:
-        st.session_state.total = '0'
-
-# ============================================================================
-# GOOGLE SHEETS INTEGRATION
-# ============================================================================
-
-@st.cache_resource
-def get_gspread_client():
-    """Get authenticated gspread client"""
-    try:
-        # Try secrets first
-        if 'gcp_service_account' in st.secrets:
-            credentials_dict = dict(st.secrets['gcp_service_account'])
-        elif 'GCP_SERVICE_KEY' in os.environ:
-            credentials_dict = json.loads(os.environ['GCP_SERVICE_KEY'])
-        else:
-            st.error("Google Sheets 인증 정보가 없습니다.")
-            return None
-        
-        scopes = [
-            'https://www.googleapis.com/auth/spreadsheets',
-            'https://www.googleapis.com/auth/drive'
-        ]
-        
-        credentials = GoogleCredentials.from_service_account_info(
-            credentials_dict,
-            scopes=scopes
-        )
-        
-        return gspread.authorize(credentials)
-    except Exception as e:
-        st.error(f"Google Sheets 인증 오류: {e}")
-        return None
-
-def get_google_sheet(spreadsheet_name, worksheet_name):
-    """Generic sheet accessor"""
-    try:
-        client = get_gspread_client()
-        if not client:
-            return None
-        
-        spreadsheet = client.open(spreadsheet_name)
-        worksheet = spreadsheet.worksheet(worksheet_name)
-        return worksheet
-    except Exception as e:
-        st.error(f"시트 접근 오류 ({spreadsheet_name}/{worksheet_name}): {e}")
-        return None
-
-def get_google2_sheet():
-    """Inventory SEOBUK Yard Status"""
-    return get_google_sheet('Inventory SEOBUK', 'Yard Status')
-
-def get_google3_sheet():
-    """SEOBUK BUYER Sheet1"""
-    return get_google_sheet('SEOBUK BUYER', 'Sheet1')
-
-def get_google4_sheet():
-    """SEOBUK COMPANY Company Info"""
-    return get_google_sheet('SEOBUK COMPANY', 'Company Info')
-
-def get_google8_sheet():
-    """Inventory SEOBUK 2025"""
-    return get_google_sheet('Inventory SEOBUK', '2025')
-
-def get_google9_sheet():
-    """SEOBUK CAR NAMES Mapping"""
-    return get_google_sheet('SEOBUK CAR NAMES', 'Mapping')
-
-def get_dealer_sheet():
-    """SEOBUK DEALER Sheet1"""
-    return get_google_sheet('SEOBUK DEALER', 'Sheet1')
-
-def 계좌확인(phone):
-    """Lookup dealer by phone from SEOBUK DEALER"""
-    try:
-        sheet = get_dealer_sheet()
-        if not sheet:
-            return None
-        
-        records = sheet.get_all_records()
-        for record in records:
-            if str(record.get('전화번호', '')).replace('-', '') == phone.replace('-', ''):
-                return {
-                    'company': record.get('상호', ''),
-                    'business_num': record.get('사업자번호', ''),
-                    'vehicle_account': record.get('차량계좌', ''),
-                    'fee_account': record.get('수수료계좌', ''),
-                    'remitter_name': record.get('송금자명', '')
-                }
-        return None
-    except Exception as e:
-        st.error(f"계좌 확인 오류: {e}")
-        return None
-
-def 계좌업데이트(phone, company, business_num, vehicle_account, fee_account, remitter_name):
-    """Update dealer info"""
-    try:
-        sheet = get_dealer_sheet()
-        if not sheet:
-            return False
-        
-        # Find existing record
-        records = sheet.get_all_records()
-        row_num = None
-        
-        for idx, record in enumerate(records, start=2):
-            if str(record.get('전화번호', '')).replace('-', '') == phone.replace('-', ''):
-                row_num = idx
-                break
-        
-        # Update or append
-        data = [phone, company, business_num, vehicle_account, fee_account, remitter_name]
-        
-        if row_num:
-            sheet.update(f'A{row_num}:F{row_num}', [data])
-        else:
-            sheet.append_row(data)
-        
-        return True
-    except Exception as e:
-        st.error(f"계좌 업데이트 오류: {e}")
-        return False
-
-def 확인버튼_동작(buyer_name):
-    """Lookup buyer country from SEOBUK BUYER"""
-    try:
-        sheet = get_google3_sheet()
-        if not sheet:
-            return None
-        
-        records = sheet.get_all_records()
-        for record in records:
-            if record.get('바이어명', '') == buyer_name:
-                return record.get('국가', '')
-        return None
-    except Exception as e:
-        st.error(f"바이어 확인 오류: {e}")
-        return None
-
-def check_vin_duplicate(vin):
-    """Check VIN in inventory sheets"""
-    if not vin:
-        return False
-    
-    try:
-        sheets = [get_google2_sheet(), get_google8_sheet()]
-        
-        for sheet in sheets:
-            if not sheet:
-                continue
-            
-            records = sheet.get_all_records()
-            for record in records:
-                if str(record.get('VIN', '')).upper() == vin.upper():
-                    return True
-        
-        return False
-    except Exception as e:
-        st.error(f"VIN 중복 확인 오류: {e}")
-        return False
-
-def 등록_통합_처리():
-    """Register to both inventory sheets with VIN check"""
-    try:
-        # Check VIN duplicate
-        if check_vin_duplicate(st.session_state.vin):
-            st.error(f"중복된 VIN이 존재합니다: {st.session_state.vin}")
-            return False
-        
-        # Prepare data
-        row_data = [
-            st.session_state.plate,
-            st.session_state.vin,
-            st.session_state.car_name,
-            st.session_state.car_name_alt,
-            st.session_state.brand,
-            st.session_state.year,
-            st.session_state.km,
-            st.session_state.color,
-            st.session_state.price,
-            st.session_state.fee,
-            st.session_state.company,
-            st.session_state.buyer_name,
-            st.session_state.buyer_country,
-            st.session_state.sales_team,
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        ]
-        
-        # Register to Yard Status
-        sheet2 = get_google2_sheet()
-        if sheet2:
-            sheet2.append_row(row_data)
-        
-        # Register to 2025
-        sheet8 = get_google8_sheet()
-        if sheet8:
-            sheet8.append_row(row_data)
-        
-        st.success("재고 등록 완료!")
-        return True
-    except Exception as e:
-        st.error(f"재고 등록 오류: {e}")
-        return False
-
-# ============================================================================
-# ODOO ERP INTEGRATION
-# ============================================================================
-
-def insert_ODOO():
-    """Insert to Odoo seobuk.car model"""
-    try:
-        # Get credentials
-        if 'odoo' in st.secrets:
-            url = st.secrets['odoo']['url']
-            db = st.secrets['odoo']['db']
-            username = st.secrets['odoo']['username']
-            password = st.secrets['odoo']['password']
-        else:
-            url = os.environ.get('ODOO_URL', '')
-            db = os.environ.get('ODOO_DB', '')
-            username = os.environ.get('ODOO_USER', '')
-            password = os.environ.get('ODOO_PASSWORD', '')
-        
-        if not all([url, db, username, password]):
-            st.error("Odoo 인증 정보가 없습니다.")
-            return False
-        
-        # Authenticate
-        common = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/common')
-        uid = common.authenticate(db, username, password, {})
-        
-        if not uid:
-            st.error("Odoo 인증 실패")
-            return False
-        
-        # Prepare data
-        models = xmlrpc.client.ServerProxy(f'{url}/xmlrpc/2/object')
-        
-        values = {
-            'plate_number': st.session_state.plate,
-            'vin': st.session_state.vin,
-            'car_name': st.session_state.car_name,
-            'brand': st.session_state.brand,
-            'year': st.session_state.year,
-            'mileage': st.session_state.km,
-            'color': st.session_state.color,
-            'price': parse_money(st.session_state.price),
-            'fee': parse_money(st.session_state.fee),
-            'company': st.session_state.company,
-            'buyer_name': st.session_state.buyer_name,
-            'buyer_country': st.session_state.buyer_country,
-        }
-        
-        # Create record
-        record_id = models.execute_kw(
-            db, uid, password,
-            'seobuk.car', 'create',
-            [values]
-        )
-        
-        st.success(f"Odoo 입력 완료! (ID: {record_id})")
-        return True
-    except Exception as e:
-        st.error(f"Odoo 입력 오류: {e}")
-        return False
-
-# ============================================================================
-# MESSAGE GENERATION
-# ============================================================================
-
-def handle_confirm(confirm_type):
-    """Generate confirmation messages"""
-    messages = {
-        'inspector': f"""[검수 확인]
-차량번호: {st.session_state.plate}
-차명: {st.session_state.car_name}
-VIN: {st.session_state.vin}
-연식: {st.session_state.year}
-주행거리: {st.session_state.km}km
-색상: {st.session_state.color}
-
-검수 부탁드립니다.""",
-
-        'sales': f"""[영업 확인]
-차량: {st.session_state.car_name}
-연식: {st.session_state.year}
-가격: {st.session_state.price}
-바이어: {st.session_state.buyer_name}
-국가: {st.session_state.buyer_country}
-
-확인 부탁드립니다.""",
-
-        'outsourcing': f"""[외주 요청]
-차량번호: {st.session_state.plate}
-차명: {st.session_state.car_name}
-VIN: {st.session_state.vin}
-작업: 검수 및 정비
-
-진행 부탁드립니다.""",
-
-        'share_address': f"""[주소 공유]
-업체: {st.session_state.company}
-주소: {st.session_state.address}
-연락처: {st.session_state.phone}
-
-확인 부탁드립니다."""
+    [data-testid="stAppViewContainer"] {
+        background-color: #2b2b2b !important;
     }
     
-    st.session_state.output_message = messages.get(confirm_type, '')
+    [data-testid="stHeader"] {
+        background-color: rgba(43, 43, 43, 0.95) !important;
+    }
+        /* ===== 텍스트 색상 조정 (배경이 어두워졌으므로) ===== */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, label {
+        color: #FFFFFF !important;
+    }
+        /* 버튼 텍스트는 검정색으로 재정의 */
+    .stButton>button, .stButton>button *, button[data-baseweb="tab"] {
+        color: #000000 !important;
+    }
 
-def extract_message(msg_type):
-    """Generate remittance messages"""
-    if msg_type == 'regular':
-        msg = f"""[송금 안내]
-차량: {st.session_state.car_name} ({st.session_state.plate})
-차량대금: {st.session_state.price}
-수수료: {st.session_state.fee}
-합계: {st.session_state.total}
+    /* 1. 기본 설정: 모든 입력창 및 텍스트 영역 글자색 검정 고정 */
+    input, textarea, select, .stSelectbox div {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
 
-차량대금 계좌: {st.session_state.vehicle_account}
-수수료 계좌: {st.session_state.fee_account}
-송금자명: {st.session_state.remitter_name}
-
-송금 부탁드립니다."""
-
-    elif msg_type == 'scrap':
-        msg = f"""[폐차 송금 안내]
-차량: {st.session_state.car_name} ({st.session_state.plate})
-폐차대금: {st.session_state.price}
-
-계좌: {st.session_state.vehicle_account}
-송금자명: {st.session_state.remitter_name}"""
-
-    elif msg_type == 'down_payment':
-        msg = f"""[계약금 송금 안내]
-차량: {st.session_state.car_name} ({st.session_state.plate})
-총 금액: {st.session_state.total}
-계약금: {st.session_state.deposit}
-잔금: {st.session_state.balance}
-
-계좌: {st.session_state.vehicle_account}
-송금자명: {st.session_state.remitter_name}"""
-
-    elif msg_type == 'autowini':
-        msg = f"""[오토위니 송금 안내]
-차량: {st.session_state.car_name}
-업체: {st.session_state.autowini_company}
-USD 가격: ${st.session_state.usd_price}
-환율({st.session_state.exchange_date}): {st.session_state.exchange_rate}
-제로금리: {st.session_state.zero_rate}%
-
-송금 부탁드립니다."""
-
-    elif msg_type == 'heydealer':
-        msg = f"""[헤이딜러 송금 안내]
-차량: {st.session_state.car_name} ({st.session_state.plate})
-타입: {st.session_state.heydealer_type}
-ID: {st.session_state.heydealer_id}
-배송: {st.session_state.delivery}
-금액: {st.session_state.total}
-
-송금 부탁드립니다."""
+    /* 2. 버튼 스타일 (전체 동일) */
+    .stButton>button { 
+        width: 100%; 
+        border-radius: 8px; 
+        font-weight: bold; 
+        background-color: #f0f2f6; 
+        color: #000000 !important;
+        border: 1px solid #d1d5db;
+    }
     
-    else:
-        msg = ''
     
-    st.session_state.output_message = msg
+    /* 1. 인스펙션 드롭다운(Selectbox) 본체 보정 */
+    div[data-testid="stSelectbox"] > div {
+        background-color: #FFFFFF !important; /* 배경 흰색 고정 */
+        border: 2px solid #EF4444 !important; /* 빨간색 테두리 강조 */
+        border-radius: 8px !important;
+        color: #000000 !important;
+    }
 
-def show_entry_info():
-    """Warehouse entry message"""
-    msg = f"""[입고 정보]
-일시: {datetime.now().strftime('%Y-%m-%d %H:%M')}
-차량번호: {st.session_state.plate}
-차명: {st.session_state.car_name}
-VIN: {st.session_state.vin}
-연식: {st.session_state.year}
-색상: {st.session_state.color}
-주행거리: {st.session_state.km}km
-
-입고 완료되었습니다."""
+    /* 2. 선택된 후 표시되는 텍스트(Value) 색상 및 배경 */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        background-color: #FFFFFF !important; /* 내부 배경 흰색 */
+        color: #000000 !important; /* 글자색 검정 */
+        font-weight: bold !important;
+    }
     
-    st.session_state.output_message = msg
+    /* 3. 선택박스 내부의 텍스트가 들어가는 실제 span 태그 제어 */
+    div[data-testid="stSelectbox"] span {
+        color: #000000 !important;
+    }
 
-def handle_auction_output_unified():
-    """Auction output message"""
-    msg = f"""[경매 출고]
-경매사: {st.session_state.auction_type}
-지역: {st.session_state.region}
-회차: {st.session_state.session}
-번호: {st.session_state.number}
+    /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
+    input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
+    input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
+    input[aria-label="color"] {
+        background-color: #F9FAFB !important;
+        border: 1px solid #D1D5DB !important;
+    }
 
-차량번호: {st.session_state.plate}
-차명: {st.session_state.car_name}
-VIN: {st.session_state.vin}
-연식: {st.session_state.year}
-주행거리: {st.session_state.km}km
+    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라 */
+    input[aria-label="사이트"], input[aria-label="세일즈팀"], 
+    input[aria-label="바이어"], input[aria-label="나라"] {
+        background-color: #F5F3FF !important;
+        border: 1px solid #DDD6FE !important;
+    }
 
-출고 완료되었습니다."""
+    /* 5. 연락처 및 주소 정보 (연한 녹색) - 연락처, 지역, 주소 */
+    input[aria-label="딜러연락처"], input[aria-label="지역"], input[aria-label="주소"] {
+        background-color: #F0FDF4 !important;
+        border: 1px solid #BBF7D0 !important;
+    }
+
+    /* 6. 핵심 상사 및 계좌 정보 (연한 노랑) - 상사명, 사업자번호, 계좌들 */
+    input[aria-label="상사명"], input[aria-label="사업자번호"], 
+    input[aria-label="차량대"], input[aria-label="계산서X"], input[aria-label="매도비"],
+    input[aria-label="차량대 계좌"], input[aria-label="계산서X 계좌"], input[aria-label="매도비 계좌"] {
+        background-color: #FEFCE8 !important;
+        border: 1px solid #FEF08A !important;
+        font-weight: bold !important;
+    }
+
+    /* 7. 시스템 자동계산 및 중요 행정 (연한 주황) */
+    /* :disabled 설정을 추가하여 합계금액이 계산된 후에도 검정글씨를 유지합니다. */
+    input[aria-label="합계금액 (자동계산)"]:disabled,
+    input[aria-label="합계금액 (자동계산)"], 
+    input[aria-label="잔금"], 
+    input[aria-label="계약금(만원 단위)"],
+    input[aria-label="DECLARATION"], 
+    input[aria-label="입금자명"], 
+    input[aria-label="P.Source"],
+    input[aria-label="차명(송금용)"] {
+        background-color: #FFF7ED !important;
+        border: 1px solid #FFEDD5 !important;
+        color: #000000 !important; /* 글자색 검정 고정 */
+        -webkit-text-fill-color: #000000 !important; /* Safari/Chrome 비활성 글자색 강제 */
+        opacity: 1 !important; /* 비활성 시 흐려지는 현상 방지 */
+    }
+
+    /* 2. 오토위니 및 수출 정보 (연한 청록) - 구분하기 쉽게 색상 추가 */
+    input[aria-label="업체명"], 
+    input[aria-label="환율기준일"], 
+    input[aria-label="환율"], 
+    input[aria-label="차량대금($)"], 
+    input[aria-label="영세율금액(원)"] {
+        background-color: #ECFEFF !important; /* Light Cyan */
+        border: 1px solid #CFFAFE !important;
+    }
+
+    /* 7. 헤이딜러 및 경매 정보 (연한 핑크) - 추가 구분 */
+    input[aria-label="헤이딜러 탁송"], 
+    input[aria-label="옥션 지역(회차)"] {
+        background-color: #FFF1F2 !important;
+        border: 1px solid #FFE4E6 !important;
+    }
+
+    /* 8. 출력칸 스타일 (연한 하늘색) - 문자 출력 결과, 송금 요청 결과 등 */
+    textarea {
+        background-color: #F0F9FF !important;
+        color: #000000 !important;
+        border: 1px solid #BAE6FD !important;
+        font-family: 'Malgun Gothic', sans-serif !important;
+        font-size: 15px !important;
+    }
+
+    /* 10. 탭(Tab) 글자색 보정 */
+    button[data-baseweb="tab"] div p {
+        color: #FFFFFF !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# 세션 상태 초기화
+if 'output_text' not in st.session_state:
+    st.session_state.output_text = ""
+
+label_col, delete_col = st.columns([7, 1])
+
+with label_col:
+    st.subheader("📥 데이터 붙여넣기")
+
+with delete_col:
+    # 입력칸만 비우는 전용 버튼
+    if st.button("🗑️ 입력 삭제"):
+        if "raw_input_main" in st.session_state:
+            st.session_state["raw_input_main"] = ""  # 값을 직접 빈 문자열로 강제 주입
+        st.session_state["last_raw_input"] = ""      # 비교용 데이터도 초기화
+        st.session_state["parsed_data"] = {}         # 파싱된 바구니도 비움
+        st.rerun()
+raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
+parsed = st.session_state.get("parsed_data", {})
+
+# 매입사원 선택
+v_username = st.selectbox(
+    "매입사원", 
+    ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
+    index=0
+)
     
-    st.session_state.output_message = msg
+# [핵심 수정] parsed 데이터를 세션에서 관리합니다.
+if "parsed_data" not in st.session_state:
+    st.session_state["parsed_data"] = {}
 
-def send_document_text():
-    """Document guidance message"""
-    msg = f"""[서류 안내]
-차량번호: {st.session_state.plate}
-
-필요 서류:
-1. 자동차등록증
-2. 인감증명서
-3. 양도증명서
-4. 위임장
-5. 사업자등록증 사본
-
-업체: {st.session_state.company}
-연락처: {st.session_state.phone}
-
-서류 준비 부탁드립니다."""
-    
-    st.session_state.output_message = msg
-
-# ============================================================================
-# OCR FUNCTIONALITY
-# ============================================================================
-
-def handle_paste_auction_image(image_file):
-    """Gemini API OCR for auction images"""
-    try:
-        # Get API key
-        if 'gemini' in st.secrets and 'api_key' in st.secrets['gemini']:
-            api_key = st.secrets['gemini']['api_key']
-        else:
-            api_key = os.environ.get('GEMINI_API_KEY', '')
-        
-        if not api_key:
-            st.error("Gemini API 키가 없습니다.")
-            return
-        
-        # Configure Gemini
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-1.5-flash')
-        
-        # Load image
-        image = Image.open(image_file)
-        
-        # Create prompt
-        prompt = """이 경매 이미지에서 다음 정보를 추출해주세요:
-- 차명 (car_name)
-- 차량번호 (plate)
-- VIN
-- 낙찰가 (price)
-- 수수료 (fee)
-- 합계 (total)
-- 업체명 (company)
-- 계좌번호 (account)
-- 지역 (region)
-- 회차 (session)
-
-JSON 형식으로 응답해주세요."""
-        
-        # Generate content
-        response = model.generate_content([prompt, image])
-        
-        # Parse response
-        if response.text:
-            # Try to extract JSON
-            json_match = re.search(r'\{.*\}', response.text, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                
-                # Fill fields
-                if 'car_name' in data:
-                    st.session_state.car_name = data['car_name']
-                if 'plate' in data:
-                    st.session_state.plate = data['plate']
-                if 'vin' in data:
-                    st.session_state.vin = data['vin'].upper()
-                    st.session_state.brand = detect_brand_from_vin(st.session_state.vin)
-                    st.session_state.year = detect_vin_year(st.session_state.vin)
-                if 'price' in data:
-                    st.session_state.price = str(data['price'])
-                if 'fee' in data:
-                    st.session_state.fee = str(data['fee'])
-                if 'total' in data:
-                    st.session_state.total = str(data['total'])
-                if 'company' in data:
-                    st.session_state.company = data['company']
-                if 'account' in data:
-                    st.session_state.vehicle_account = data['account']
-                if 'region' in data:
-                    st.session_state.region = data['region']
-                if 'session' in data:
-                    st.session_state.session = data['session']
-                
-                calculate_total()
-                update_declaration()
-                
-                st.success("OCR 완료!")
-            else:
-                st.warning("JSON 파싱 실패. 응답: " + response.text)
-    except Exception as e:
-        st.error(f"OCR 오류: {e}")
-
-# ============================================================================
-# EXCHANGE RATE SCRAPING
-# ============================================================================
-
-def get_exchange_rate():
-    """Selenium scraping from Woori Bank"""
-    try:
-        with st.spinner('환율 조회 중...'):
-            # Setup Chrome options
-            chrome_options = Options()
-            chrome_options.add_argument('--headless')
-            chrome_options.add_argument('--no-sandbox')
-            chrome_options.add_argument('--disable-dev-shm-usage')
-            chrome_options.add_argument('--disable-gpu')
+# --- 1. 파싱 및 외부 데이터 조회 로직 (위젯 선언보다 상단에 위치) ---
+if raw_input:
+    # 중복 실행 방지: 이전 입력값과 다를 때만 실행
+    if st.session_state.get("last_raw_input") != raw_input:
+        with st.spinner("데이터를 분석하고 외부 정보를 조회 중입니다..."):
+            # A. 기초 데이터 파싱 (logic.py)
+            parsed_result = lg.parse_excel_data(raw_input)
             
-            # Setup driver
-            service = Service(ChromeDriverManager().install())
-            driver = webdriver.Chrome(service=service, options=chrome_options)
+            # B. 주요 변수 추출
+            plate = parsed_result.get('plate', "").strip()
+            contact = parsed_result.get('dealer_phone', "").strip()
+            buyer = parsed_result.get('buyer', "").strip()
+            original_car_name = parsed_result.get('car_name', "")
+            parsed_address = parsed_result.get('address', "")
             
+            # 1️⃣ [P.Source 세션 저장]
+            st.session_state["v_psource"] = parsed_result.get('psource', "")
+
+            # 2️⃣ [인스펙션 조회] (Inspectioncheck.py)
+            if plate:
+                res_status = Inspectioncheck.fetch_inspection_status(plate)
+                st.session_state["inspection_status"] = res_status
+                # 위젯용 변수에 저장
+                st.session_state["v_inspection_key"] = res_status 
+
+            # 3️⃣ [딜러 정보 조회] (dealerinfo.py)
+            # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 파싱된 주소를 사용
+            dealer_found = False
+            if contact:
+                dealer_res = dealerinfo.search_dealer_info(contact)
+                if dealer_res.get("status") == "success":
+                    st.session_state["dealer_data"] = dealer_res
+                    # 위젯 연결용 세션 변수들 업데이트
+                    st.session_state["v_address_key"] = dealer_res.get("address", "")
+                    st.session_state["v_biz_name_input"] = dealer_res.get("company", "")
+                    st.session_state["v_biz_num_input"] = dealer_res.get("biz_num", "")
+                    st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
+                    st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
+                    # 입금자명을 대문자로 변환하여 저장
+                    sender_val = dealer_res.get("sender", "")
+                    st.session_state["sender_input"] = sender_val.upper() if sender_val else ""
+                    dealer_found = True
+                else:
+                    st.session_state["dealer_data"] = {}
+            
+            # 딜러 정보를 찾지 못한 경우 파싱된 주소 사용
+            if not dealer_found:
+                st.session_state["v_address_key"] = parsed_address
+                # 지역 추출은 아래 5️⃣ 단계에서 통합 처리됨
+
+            # 4️⃣ [바이어 국가 조회] (country.py)
+            if buyer:
+                country_res = country.handle_buyer_country(buyer, "")
+                if country_res.get("status") == "fetched":
+                    st.session_state["country_data"] = country_res["country"]
+
+            # 5️⃣ [지역 추출] (mapping.py)
+            # 세션에 저장된 주소를 기반으로 지역 매핑
+            current_address = st.session_state.get("v_address_key", "")
+            if current_address:
+                detected_region = mapping.get_region_from_address(current_address)
+                st.session_state["v_region_key"] = detected_region
+
+            # 6️⃣ [차명 매핑 및 송금용 차명 결정] (google_sheet_manager.py)
             try:
-                # Navigate to Woori Bank exchange rate page
-                driver.get('https://spot.wooribank.com/pot/Dream?withyou=FXXRT0016')
-                
-                # Wait for exchange rate element
-                wait = WebDriverWait(driver, 10)
-                element = wait.until(
-                    EC.presence_of_element_located((By.XPATH, "//td[contains(text(), 'USD')]"))
-                )
-                
-                # Find exchange rate in the same row
-                parent_row = element.find_element(By.XPATH, './..')
-                rate_element = parent_row.find_element(By.XPATH, ".//td[3]")
-                rate = rate_element.text.strip().replace(',', '')
-                
-                # Update session state
-                st.session_state.exchange_rate = rate
-                st.session_state.exchange_date = datetime.now().strftime('%Y-%m-%d')
-                
-                st.success(f"환율 조회 완료: {rate}원")
-                
-            finally:
-                driver.quit()
-                
-    except Exception as e:
-        st.error(f"환율 조회 오류: {e}")
+                import google_sheet_manager as gsm
+                car_map = gsm.get_car_name_map()
+                alt_name = lg.get_alt_car_name(original_car_name, car_map)
+                st.session_state["auto_alt_car_name"] = alt_name.upper() if alt_name else ""
+            except:
+                st.session_state["auto_alt_car_name"] = original_car_name.upper() if original_car_name else ""
 
-# ============================================================================
-# UI HELPER FUNCTIONS
-# ============================================================================
+            # 7️⃣ [기타 금액 데이터]
+            st.session_state["parsed_data"] = parsed_result
+            st.session_state["last_raw_input"] = raw_input
+            
+            # 처리가 끝났으므로 페이지 재실행 (상단부터 다시 그리면서 값 채움)
+            st.rerun()
 
-def reset_all_fields():
-    """Reset all form fields"""
-    fields_to_reset = [
-        'plate', 'vin', 'car_name', 'car_name_alt', 'brand', 'year', 'km', 'color',
-        'phone', 'address', 'business_num', 'company',
-        'vehicle_account', 'fee_account', 'remitter_name',
-        'buyer_name', 'buyer_country',
-        'price', 'fee', 'invoice_x', 'total', 'deposit', 'balance', 'declaration',
-        'autowini_company', 'exchange_date', 'exchange_rate', 'usd_price', 'zero_rate',
-        'heydealer_type', 'heydealer_id', 'delivery',
-        'site', 'sales_team',
-        'region', 'session', 'number'
-    ]
+# 현재 화면에서 사용할 parsed 데이터 로드
+parsed = st.session_state.get("parsed_data", {})
     
-    for field in fields_to_reset:
-        st.session_state[field] = ''
+# 리셋 버튼을 위해 컬럼 나눔
+top_col1, top_col2 = st.columns([8, 1])
+
+top_col1, top_col2 = st.columns([8, 1])
+with top_col2:
+    if st.button("♻️ 전체 리셋"):
+        # 1. 모든 세션 상태 변수를 완전히 삭제 (초기화)
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        
+        # 2. 필수 기본값 재설정 (페이지 이탈 방지)
+        st.session_state["current_page"] = "buyprogram"
+        st.session_state["inspection_status"] = "X"
+        st.session_state["v_inspection_key"] = "X"
+        st.session_state["parsed_data"] = {}
+        st.session_state["dealer_data"] = {}
+        st.session_state["country_data"] = ""
+        st.session_state["detected_region"] = ""
+        
+        # 3. Tab 결과값 초기화
+        st.session_state["out_tab1_final"] = ""
+        st.session_state["out_tab2_final"] = ""
+        st.session_state["out_tab3"] = ""
+        
+        # 4. 모든 위젯 키 초기화 (명시적으로)
+        for widget_key in ALL_WIDGET_KEYS:
+            st.session_state[widget_key] = ""
+        
+        # 5. 추가 위젯 키들 초기화
+        st.session_state["last_raw_input"] = ""
+        st.session_state["output_text"] = ""
+        st.session_state["remit_name_widget"] = ""  # 차명(송금용) 위젯 초기화 추가
+        st.session_state["psource_widget"] = ""     # P.Source 위젯 초기화 추가
+        
+        # 6. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
+        st.rerun()
+
+if "inspection_status" not in st.session_state:
+    st.session_state["inspection_status"] = "X"
+st.divider()
+        
+# --- 2. 메인 화면 구성 (70% : 30%) ---
+col_info, col_list = st.columns([0.7, 0.3])
+
+# --- [좌측: 매입정보 (70%)] ---
+with col_info:
+    d_data = st.session_state.get("dealer_data", {})
+    title_col, insp_col = st.columns([4, 1])
+    with title_col:
+        st.markdown("### 🚗 매입 정보")
+    with insp_col:
+        # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
+        insp_list = ["X", "S", "C"]
+        current_insp = st.session_state.get("inspection_status", "X")
+        try:
+            insp_idx = insp_list.index(current_insp)
+        except:
+            insp_idx = 0
+
+        v_inspection = st.selectbox(
+            "Inspection", 
+            insp_list, 
+            index=insp_idx, 
+            key="v_inspection_key", # 유일한 키 유지
+            label_visibility="collapsed"
+        )
+
+   
+    # R1: 차번호, 연식, 차명, 차명(송금용)
+    r1_1, r1_2, r1_3, r1_4 = st.columns(4)
+    v_plate = r1_1.text_input("차번호", value=parsed.get('plate', ""))
+    v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
+    v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
+    default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
+    # 차명(송금용) - 입력값을 대문자로 변환하여 저장
+    remit_input = r1_4.text_input(
+        "차명(송금용)", 
+        value=st.session_state.get("auto_alt_car_name", ""),
+        key="remit_name_widget"
+    )
+    v_car_name_remit = remit_input.upper() if remit_input else ""
+
+    # R2: 브랜드, VIN, km, color
+    r2_1, r2_2, r2_3, r2_4 = st.columns(4)
+    v_brand = r2_1.text_input("브랜드", value=parsed.get('brand', ""))
+    v_vin = r2_2.text_input("VIN", value=parsed.get('vin', ""))
+    v_km = r2_3.text_input("km", value=parsed.get('km', ""))
+    v_color = r2_4.text_input("color", value=parsed.get('color', ""))
+
+    # R3: 사이트, 세일즈팀, 바이어, 나라, 확인버튼
+    r3_1, r3_2, r3_3, r3_4, r3_5 = st.columns([1.5, 1.5, 1.5, 1.5, 1])
+    v_site = r3_1.text_input("사이트", value=parsed.get('site', ""))
+    v_sales = r3_2.text_input("세일즈팀", value=parsed.get('sales', ""))
+    v_buyer = r3_3.text_input("바이어", value=parsed.get('buyer', ""))
     
-    st.session_state.output_message = ''
-    st.success("입력 필드를 초기화했습니다.")
+    # 세션에 저장된 나라 정보가 있으면 그걸 먼저 보여줌
+    current_country_val = st.session_state.get("country_data", "")
+    v_country = r3_4.text_input("나라", value=current_country_val if current_country_val else "")
 
-def copy_to_clipboard():
-    """Copy output message to clipboard"""
-    if st.session_state.output_message:
-        st.write("메시지를 복사하세요:")
-        st.code(st.session_state.output_message, language=None)
+    if r3_5.button("확인", key="btn_country_confirm"):
+        with st.spinner("데이터 처리 중..."):
+            res = country.handle_buyer_country(v_buyer, v_country)
+            
+            if res["status"] == "fetched":
+                st.session_state["country_data"] = res["country"]
+                st.success(f"조회 완료: {res['country']}")
+                st.rerun()
+            elif res["status"] == "updated":
+                st.success(f"정보 수정 완료: {v_country}")
+            elif res["status"] == "added":
+                st.success(f"새로운 바이어 추가 완료: {v_buyer}")
+            elif res["status"] == "match":
+                st.info("정보가 이미 일치합니다.")
+            else:
+                st.error(res.get("message", "오류가 발생했습니다."))
+    # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
+    d_data = st.session_state.get("dealer_data")
+    if not isinstance(d_data, dict):
+        d_data = {}
+    
+    # 주소 결정 (구글 시트 우선 -> 없으면 엑셀 파싱 데이터)
+    sheet_address = d_data.get("address", "")
+    parsed_address = parsed.get('address', "")
+    final_address = sheet_address if sheet_address else parsed_address
+    
+    # R4: 연락처, 주소, 지역 (한 줄로 배치)
+    r4_1, r4_2, r4_3 = st.columns([1.5, 3, 1.5])
+    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
+    v_address = r4_2.text_input(
+        "주소", 
+        value=st.session_state.get("v_address_key", ""), 
+        key="v_address_key",
+        on_change=update_region
+    )
+    v_region = r4_3.text_input(
+        "지역", 
+        value=st.session_state.get("v_region_key", ""), 
+        key="v_region_key"
+    )
 
-# ============================================================================
-# MAIN APPLICATION
-# ============================================================================
+    # 딜러/판매자 정보 프레임
+    with st.container(border=True):
+        st.caption("🏢 딜러/판매자 정보")
+        biz_c1, biz_c2 = st.columns(2) # 2개 컬럼 생성
+        v_biz_name = biz_c1.text_input("상사명", value=d_data.get("company", ""), key="v_biz_name_input")
+        # 변수명을 v_biz_num으로 통일하여 NameError 방지
+        v_biz_num = biz_c2.text_input(
+            "사업자번호", 
+            value=d_data.get("biz_num") if d_data.get("biz_num") else parsed.get('dealer_number', ""),
+            key="v_biz_num_input"
+        )
 
-def main():
-    st.set_page_config(
-        page_title="차량 매입 관리",
-        page_icon="🚗",
-        layout="wide"
+    # 계좌 정보 섹션
+    acc1, acc2 = st.columns([2, 3])
+    # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
+    v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
+    # DECLARATION 자동 계산 - 차량대금(price) 기반으로 항상 자동 계산
+    auto_decl_val = pm.calculate_declaration(v_price)
+    v_acc_o = acc2.text_input("차량대 계좌", value=d_data.get("acc_o", ""), key="acc_o_input")
+
+    acc3, acc4 = st.columns([2, 3])
+    v_contract_x = acc3.text_input("계산서X", value=pm.format_number(parsed.get('contract', "")))
+    v_acc_x = acc4.text_input("계산서X 계좌", value=d_data.get("acc_x", ""))
+
+    acc5, acc6 = st.columns([2, 3])
+    v_fee = acc5.text_input("매도비", value=pm.format_number(parsed.get('fee', "")))
+    v_acc_fee = acc6.text_input("매도비 계좌", value=d_data.get("acc_fee", ""))
+
+    # 들여쓰기를 왼쪽으로 맞춰야 합니다.
+    total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
+    
+    r5_1, r5_2, r5_3, r5_4 = st.columns([2, 2, 2, 2])
+    v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
+    v_declaration = r5_2.text_input("DECLARATION", value=pm.format_number(auto_decl_val), key="v_declaration_key")
+    sender_input = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
+    v_sender = sender_input.upper() if sender_input else ""
+    v_psource = r5_4.text_input(
+        "P.Source", 
+        value=st.session_state.get("v_psource", ""), 
+        key="psource_widget"  # 위젯 key를 변경하여 session_state와 충돌 방지
     )
     
-    st.title("🚗 차량 매입 관리 시스템")
     
-    # Initialize session state
-    init_session_state()
+    # 🏦 계좌확인 버튼 클릭 시
+    if r5_2.button("🏦 계좌확인"):
+        with st.spinner("구글 시트에서 정보를 불러오는 중..."):
+            result = dealerinfo.search_dealer_info(v_dealer_phone)
+            
+            if result["status"] == "success":
+                # 찾은 정보들을 세션 상태나 위젯의 기본값에 반영하기 위해 rerun 혹은 직접 할당
+                # 여기서는 가장 간단하게 toast로 알리고 필드 값을 업데이트하는 로직이 필요합니다.
+                # (Streamlit은 rerun 없이 위젯 값을 바꾸기 어려우므로, 결과값을 session_state에 담아 활용하는 것을 권장합니다.)
+                st.session_state["dealer_data"] = result
+                st.success(f"정보 조회 성공: {result['company']}")
+                st.rerun() # 업데이트된 값을 화면에 보여주기 위해 재실행
+            
+            elif result["status"] == "empty":
+                st.warning(result["message"])
+            else:
+                st.error(result["message"])
+    if r5_3.button("📝 정보 추가&수정", type="primary"):
+    # 아래 딕셔너리의 키 이름들을 dealerinfo.py의 data.get() 이름과 맞춥니다.
+        current_data = {
+            "phone": v_dealer_phone,     # dealerinfo에서는 'phone'으로 찾음
+            "biz_num": v_biz_num,       # 'biz_num'
+            "biz_name": v_biz_name,     # 'biz_name' (상사명)
+            "address": v_address,       # 'address'
+            "acc_o": v_acc_o,           # 'acc_o'
+            "acc_fee": v_acc_fee,       # 'acc_fee'
+            "sender": v_sender          # 'sender'
+        }
     
-    # ========================================================================
-    # SIDEBAR
-    # ========================================================================
-    with st.sidebar:
-        st.header("⚙️ 설정")
-        
-        st.subheader("경매 정보")
-        st.session_state.auction_type = st.selectbox(
-            "경매 타입",
-            ['선택 안함', '현대글로비스', '오토허브', '롯데', 'K car'],
-            key='auction_type_select'
-        )
-        
-        st.subheader("헤이딜러 정보")
-        st.session_state.heydealer_type_select = st.selectbox(
-            "헤이딜러 타입",
-            ['선택 안함', '일반', '제로', '바로낙찰'],
-            key='hd_type_select'
-        )
-        
-        st.session_state.heydealer_id_select = st.selectbox(
-            "헤이딜러 ID",
-            ['선택 안함', 'seobuk', 'inter77', 'leeks21'],
-            key='hd_id_select'
-        )
-        
-        st.divider()
-        
-        st.subheader("시스템 정보")
-        st.info(f"현재 시각: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        
-        if st.session_state.cache_last_load:
-            st.caption(f"캐시 로드: {st.session_state.cache_last_load.strftime('%H:%M:%S')}")
-    
-    # ========================================================================
-    # MAIN TABS
-    # ========================================================================
-    tab1, tab2, tab3 = st.tabs(["📝 정보 입력", "💬 메시지 출력", "👥 딜러/바이어 조회"])
-    
-    # ========================================================================
-    # TAB 1: INFORMATION INPUT
-    # ========================================================================
-    with tab1:
-        st.header("차량 정보 입력")
-        
-        # Paste data section
-        with st.expander("📋 데이터 붙여넣기", expanded=False):
-            paste_data = st.text_area(
-                "탭으로 구분된 데이터 (차량번호, VIN, 차명, 연식, 주행거리, 색상, 가격, 수수료)",
-                height=100
-            )
-            if st.button("데이터 파싱", type="primary"):
-                fill_entries_from_input(paste_data)
-                st.rerun()
-        
-        # Main form
-        col_left, col_right = st.columns(2)
-        
-        with col_left:
-            st.subheader("기본 정보")
-            st.session_state.plate = st.text_input("차량번호", value=st.session_state.plate)
-            st.session_state.vin = st.text_input("VIN", value=st.session_state.vin).upper()
+        with st.spinner("구글 시트 업데이트 중..."):
+            save_res = dealerinfo.save_or_update_dealer(current_data)
             
-            if st.session_state.vin and st.button("VIN 자동 감지"):
-                st.session_state.brand = detect_brand_from_vin(st.session_state.vin)
-                detected_year = detect_vin_year(st.session_state.vin)
-                if detected_year:
-                    st.session_state.year = detected_year
-                st.rerun()
-            
-            col_car1, col_car2 = st.columns([3, 1])
-            with col_car1:
-                st.session_state.car_name = st.text_input("차명", value=st.session_state.car_name)
-            with col_car2:
-                if st.button("차명 매핑"):
-                    st.session_state.car_name_alt = detect_alt_car_name(st.session_state.car_name)
-                    st.rerun()
-            
-            st.session_state.car_name_alt = st.text_input("차명(변환)", value=st.session_state.car_name_alt)
-            st.session_state.brand = st.text_input("브랜드", value=st.session_state.brand)
-            st.session_state.year = st.text_input("연식", value=st.session_state.year)
-            st.session_state.km = st.text_input("주행거리", value=st.session_state.km)
-            st.session_state.color = st.text_input("색상", value=st.session_state.color)
-            
-            st.divider()
-            st.subheader("딜러 정보")
-            
-            col_phone1, col_phone2 = st.columns([3, 1])
-            with col_phone1:
-                st.session_state.phone = st.text_input("전화번호", value=st.session_state.phone)
-            with col_phone2:
-                if st.button("계좌 조회"):
-                    dealer_info = 계좌확인(st.session_state.phone)
-                    if dealer_info:
-                        st.session_state.company = dealer_info['company']
-                        st.session_state.business_num = dealer_info['business_num']
-                        st.session_state.vehicle_account = dealer_info['vehicle_account']
-                        st.session_state.fee_account = dealer_info['fee_account']
-                        st.session_state.remitter_name = dealer_info['remitter_name']
-                        st.success("계좌 정보 로드 완료!")
-                        st.rerun()
-                    else:
-                        st.warning("등록된 정보가 없습니다.")
-            
-            st.session_state.address = st.text_input("주소", value=st.session_state.address)
-            if st.session_state.address and st.button("지역 자동 감지"):
-                st.session_state.region = detect_region_from_address(st.session_state.address)
-                st.rerun()
-            
-            st.session_state.business_num = st.text_input("사업자번호", value=st.session_state.business_num)
-            st.session_state.company = st.text_input("상호", value=st.session_state.company)
-            
-            st.divider()
-            st.subheader("계좌 정보")
-            st.session_state.vehicle_account = st.text_input("차량대금 계좌", value=st.session_state.vehicle_account)
-            st.session_state.fee_account = st.text_input("수수료 계좌", value=st.session_state.fee_account)
-            st.session_state.remitter_name = st.text_input("송금자명", value=st.session_state.remitter_name)
-            
-            st.divider()
-            st.subheader("바이어 정보")
-            
-            col_buyer1, col_buyer2 = st.columns([3, 1])
-            with col_buyer1:
-                st.session_state.buyer_name = st.text_input("바이어명", value=st.session_state.buyer_name)
-            with col_buyer2:
-                if st.button("국가 조회"):
-                    country = 확인버튼_동작(st.session_state.buyer_name)
-                    if country:
-                        st.session_state.buyer_country = country
-                        st.success(f"국가: {country}")
-                        st.rerun()
-                    else:
-                        st.warning("등록된 바이어가 없습니다.")
-            
-            st.session_state.buyer_country = st.text_input("국가", value=st.session_state.buyer_country)
-        
-        with col_right:
-            st.subheader("금액 정보")
-            st.session_state.price = st.text_input("차량대금", value=st.session_state.price)
-            st.session_state.fee = st.text_input("수수료", value=st.session_state.fee)
-            st.session_state.invoice_x = st.text_input("기타 비용", value=st.session_state.invoice_x)
-            
-            if st.button("합계 계산", type="primary"):
-                calculate_total()
-                update_declaration()
-                st.rerun()
-            
-            st.session_state.total = st.text_input("총 금액", value=st.session_state.total, disabled=True)
-            st.session_state.deposit = st.text_input("계약금", value=st.session_state.deposit)
-            
-            if st.session_state.deposit:
-                calculate_balance()
-            
-            st.session_state.balance = st.text_input("잔금", value=st.session_state.balance, disabled=True)
-            st.session_state.declaration = st.text_input("신고가 (10%)", value=st.session_state.declaration, disabled=True)
-            
-            st.divider()
-            st.subheader("오토위니 정보")
-            st.session_state.autowini_company = st.text_input("오토위니 업체", value=st.session_state.autowini_company)
-            st.session_state.exchange_date = st.text_input("환율 기준일", value=st.session_state.exchange_date)
-            
-            col_ex1, col_ex2 = st.columns([3, 1])
-            with col_ex1:
-                st.session_state.exchange_rate = st.text_input("환율", value=st.session_state.exchange_rate)
-            with col_ex2:
-                if st.button("환율 조회"):
-                    get_exchange_rate()
-                    st.rerun()
-            
-            st.session_state.usd_price = st.text_input("USD 가격", value=st.session_state.usd_price)
-            st.session_state.zero_rate = st.text_input("제로금리 (%)", value=st.session_state.zero_rate)
-            
-            st.divider()
-            st.subheader("헤이딜러 정보")
-            st.session_state.heydealer_type = st.text_input("타입", value=st.session_state.heydealer_type_select if st.session_state.heydealer_type_select != '선택 안함' else '')
-            st.session_state.heydealer_id = st.text_input("ID", value=st.session_state.heydealer_id_select if st.session_state.heydealer_id_select != '선택 안함' else '')
-            st.session_state.delivery = st.text_input("배송", value=st.session_state.delivery)
-            
-            st.divider()
-            st.subheader("사이트/영업")
-            st.session_state.site = st.text_input("사이트", value=st.session_state.site)
-            st.session_state.sales_team = st.text_input("영업팀", value=st.session_state.sales_team)
-        
-        st.divider()
-        
-        # Auction frame
-        with st.expander("🖼️ 경매 이미지 OCR", expanded=False):
-            uploaded_file = st.file_uploader("경매 이미지 업로드", type=['png', 'jpg', 'jpeg'])
-            if uploaded_file and st.button("OCR 실행"):
-                handle_paste_auction_image(uploaded_file)
-                st.rerun()
-            
-            col_auc1, col_auc2, col_auc3 = st.columns(3)
-            with col_auc1:
-                st.session_state.region = st.text_input("경매 지역", value=st.session_state.region)
-            with col_auc2:
-                st.session_state.session = st.text_input("회차", value=st.session_state.session)
-            with col_auc3:
-                st.session_state.number = st.text_input("번호", value=st.session_state.number)
-        
-        st.divider()
-        
-        # Action buttons
-        st.subheader("작업")
-        col_action1, col_action2, col_action3 = st.columns(3)
-        
-        with col_action1:
-            if st.button("📝 재고 등록", type="primary", use_container_width=True):
-                등록_통합_처리()
-        
-        with col_action2:
-            if st.button("💾 ODOO 입력", use_container_width=True):
-                insert_ODOO()
-        
-        with col_action3:
-            if st.button("🔄 입력 초기화", use_container_width=True):
-                reset_all_fields()
-                st.rerun()
-    
-    # ========================================================================
-    # TAB 2: MESSAGE OUTPUT
-    # ========================================================================
-    with tab2:
-        st.header("메시지 생성 및 출력")
-        
-        st.subheader("확인 메시지")
-        col_conf1, col_conf2, col_conf3, col_conf4 = st.columns(4)
-        
-        with col_conf1:
-            if st.button("검수 확인", use_container_width=True):
-                handle_confirm('inspector')
-        
-        with col_conf2:
-            if st.button("영업 확인", use_container_width=True):
-                handle_confirm('sales')
-        
-        with col_conf3:
-            if st.button("외주 요청", use_container_width=True):
-                handle_confirm('outsourcing')
-        
-        with col_conf4:
-            if st.button("주소 공유", use_container_width=True):
-                handle_confirm('share_address')
-        
-        st.divider()
-        
-        st.subheader("송금 안내")
-        col_rem1, col_rem2, col_rem3 = st.columns(3)
-        
-        with col_rem1:
-            if st.button("일반 송금", use_container_width=True):
-                extract_message('regular')
-            if st.button("계약금", use_container_width=True):
-                extract_message('down_payment')
-        
-        with col_rem2:
-            if st.button("폐차 송금", use_container_width=True):
-                extract_message('scrap')
-            if st.button("오토위니", use_container_width=True):
-                extract_message('autowini')
-        
-        with col_rem3:
-            if st.button("송금 완료", use_container_width=True):
-                st.session_state.output_message = "송금이 완료되었습니다.\n확인 부탁드립니다."
-            if st.button("헤이딜러", use_container_width=True):
-                extract_message('heydealer')
-        
-        st.divider()
-        
-        st.subheader("기타 메시지")
-        col_other1, col_other2, col_other3 = st.columns(3)
-        
-        with col_other1:
-            if st.button("입고 정보", use_container_width=True):
-                show_entry_info()
-        
-        with col_other2:
-            if st.button("경매 출고", use_container_width=True):
-                handle_auction_output_unified()
-        
-        with col_other3:
-            if st.button("서류 안내", use_container_width=True):
-                send_document_text()
-        
-        st.divider()
-        
-        # Output area
-        st.subheader("출력 메시지")
-        output_text = st.text_area(
-            "메시지 내용",
-            value=st.session_state.output_message,
-            height=300,
-            key='output_display'
-        )
-        
-        col_out1, col_out2 = st.columns(2)
-        with col_out1:
-            if st.button("📋 클립보드 복사", use_container_width=True):
-                copy_to_clipboard()
-        
-        with col_out2:
-            if st.session_state.output_message:
-                st.download_button(
-                    "💾 텍스트 다운로드",
-                    data=st.session_state.output_message,
-                    file_name=f"message_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt",
-                    mime="text/plain",
-                    use_container_width=True
-                )
-    
-    # ========================================================================
-    # TAB 3: DEALER/BUYER LOOKUP
-    # ========================================================================
-    with tab3:
-        st.header("딜러/바이어 정보 조회")
-        
-        col_lookup1, col_lookup2 = st.columns(2)
-        
-        with col_lookup1:
-            st.subheader("📞 딜러 조회")
-            lookup_phone = st.text_input("전화번호로 조회", key='lookup_phone')
-            
-            if st.button("딜러 검색"):
-                dealer_info = 계좌확인(lookup_phone)
-                if dealer_info:
-                    st.success("딜러 정보를 찾았습니다!")
-                    st.write(f"**상호:** {dealer_info['company']}")
-                    st.write(f"**사업자번호:** {dealer_info['business_num']}")
-                    st.write(f"**차량계좌:** {dealer_info['vehicle_account']}")
-                    st.write(f"**수수료계좌:** {dealer_info['fee_account']}")
-                    st.write(f"**송금자명:** {dealer_info['remitter_name']}")
-                else:
-                    st.warning("등록된 딜러 정보가 없습니다.")
-            
-            st.divider()
-            
-            st.subheader("✏️ 딜러 정보 업데이트")
-            
-            if st.button("업데이트 모드"):
-                st.session_state.dealer_update_mode = not st.session_state.dealer_update_mode
-            
-            if st.session_state.dealer_update_mode:
-                with st.form("dealer_update_form"):
-                    update_phone = st.text_input("전화번호", value=st.session_state.phone)
-                    update_company = st.text_input("상호", value=st.session_state.company)
-                    update_business = st.text_input("사업자번호", value=st.session_state.business_num)
-                    update_vehicle = st.text_input("차량계좌", value=st.session_state.vehicle_account)
-                    update_fee = st.text_input("수수료계좌", value=st.session_state.fee_account)
-                    update_remitter = st.text_input("송금자명", value=st.session_state.remitter_name)
-                    
-                    if st.form_submit_button("딜러 정보 저장"):
-                        if 계좌업데이트(update_phone, update_company, update_business, 
-                                       update_vehicle, update_fee, update_remitter):
-                            st.success("딜러 정보가 업데이트되었습니다!")
-                            st.session_state.dealer_update_mode = False
-                            st.rerun()
-        
-        with col_lookup2:
-            st.subheader("👤 바이어 조회")
-            lookup_buyer = st.text_input("바이어명으로 조회", key='lookup_buyer')
-            
-            if st.button("바이어 검색"):
-                country = 확인버튼_동작(lookup_buyer)
-                if country:
-                    st.success(f"**바이어:** {lookup_buyer}")
-                    st.write(f"**국가:** {country}")
-                else:
-                    st.warning("등록된 바이어 정보가 없습니다.")
-            
-            st.divider()
-            
-            st.subheader("📋 바이어 목록")
-            if st.button("전체 바이어 조회"):
-                try:
-                    sheet = get_google3_sheet()
-                    if sheet:
-                        records = sheet.get_all_records()
-                        if records:
-                            df = pd.DataFrame(records)
-                            st.dataframe(df, use_container_width=True)
-                        else:
-                            st.info("등록된 바이어가 없습니다.")
-                except Exception as e:
-                    st.error(f"바이어 목록 조회 오류: {e}")
+            if save_res["status"] == "success":
+                st.success(save_res["message"])
+                # 저장 성공 후 화면의 데이터를 최신으로 유지하기 위해 세션 업데이트
+                st.session_state["dealer_data"] = {
+                    "biz_num": v_biz_num,
+                    "company": v_biz_name,
+                    "address": v_address,
+                    "acc_o": v_acc_o,
+                    "acc_fee": v_acc_fee,
+                    "sender": v_sender
+                }
+                # st.rerun()  # 필요시 화면 새로고침
+            else:
+                st.error(save_res["message"])
 
-if __name__ == "__main__":
-    main()
+    # 하단 세부 정산 프레임
+    row_bottom = st.columns(2)
+    with row_bottom[0]:
+        # 첫 번째 프레임: 세부정산
+        with st.container(border=True):
+            st.caption("💰 세부정산")
+            v_deposit = st.text_input("계약금(만원 단위)", value="0")
+            
+            # 실시간 잔금 계산 로직
+            balance_val = pm.calculate_balance(v_total, v_deposit)
+            v_balance = st.text_input("잔금", value=pm.format_number(balance_val))
+            
+            # 계약금 확인용 안내 (import re 필요)
+            st.write(f"ℹ️ 적용된 계약금: {pm.format_number(pm.get_clean_deposit(v_deposit))}")
+        
+        with st.container(border=True):
+            st.caption("📱 헤이딜러 정보")
+            # selectbox는 value 대신 index를 맞춰야 하므로 간단히 기본값 설정
+            v_h_type = st.selectbox("헤이딜러 타입", ["선택", "일반", "제로", "바로낙찰"], index=0)
+            v_h_id = st.selectbox("헤이딜러 ID", ["선택", "seobuk", "inter77", "leeks21"], index=0)
+            v_h_delivery = st.text_input("헤이딜러 탁송", value=parsed.get('heydlr_delivery', ""))
+    with row_bottom[0]: # 기존 헤이딜러 정보 container 아래에 추가하거나 새로 생성
+            with st.container(border=True):
+                st.caption("🔨 경매(옥션) 정보")
+                auc_c1, auc_c2 = st.columns(2)
+                v_auc_type = auc_c1.selectbox("옥션 타입", ["선택", "현대글로비스", "오토허브", "롯데", "K car"], index=0)
+                v_auc_region = auc_c2.text_input("옥션 지역(회차)", value="")
+
+    with row_bottom[1]:
+        with st.container(border=True):
+            st.caption("🌐 오토위니 (수출)")
+            v_company = st.text_input("업체명", value="")
+            c_ex1, c_ex2, c_ex3 = st.columns([2, 2, 1])
+            v_ex_date = c_ex1.text_input("환율기준일", value="")
+            v_ex_rate = c_ex2.text_input("환율", value="")
+            if c_ex3.button("조회"): 
+                # 여기서 lg.get_exchange_rate() 연동 가능
+                pass
+            
+            v_usd = st.text_input("차량대금($)", value="")
+            v_won = st.text_input("영세율금액(원)", value="")
+
+# --- [우측: 리스트탭 (30%)] ---
+with col_list:
+    st.markdown("### 📋 리스트 탭")
+    tab1, tab2, tab3 = st.tabs(["💬 문자전송", "💵 송금요청", "➕ 기타"])
+
+    # --- Tab 1: 문자전송 ---
+    with tab1:
+        input_data = {
+            "year": v_year, "car_name": v_car_name, "plate": v_plate,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
+            "sales": v_sales, "address": v_address, "dealer_phone": v_dealer_phone,
+            "region": v_region, "site": v_site
+        }
+
+        m_c1, m_c2 = st.columns(2)
+        
+        if m_c1.button("확인후", key="btn_confirm"):
+            st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "confirm")
+            st.rerun()
+            
+        if m_c2.button("세일즈팀", key="btn_sales"):
+            st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "salesteam")
+            st.rerun()
+
+        if m_c1.button("검수자", key="btn_insp"):
+            st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "inspection")
+            st.rerun()
+
+        if m_c2.button("문자", key="btn_sms"):
+            st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "sms")
+            st.rerun()
+
+        if m_c1.button("아웃소싱", key="btn_out"):
+            st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "outsource")
+            st.rerun()
+
+        if m_c2.button("주소공유", key="btn_share"):
+            st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "share_address")
+            st.rerun()
+
+        st.divider()
+        
+        current_content1 = st.session_state.get("out_tab1_final", "")
+        
+        # 2. 데이터가 있을 때만 출력창 보여주기
+        if current_content1:
+            st.markdown("##### 📄 생성된 메시지")
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
+            # 언어 설정 language=None 혹은 language="markdown" 권장
+            st.code(current_content1, language=None)
+            
+            # 리셋 버튼 배치
+            if st.button("♻️ 내용 리셋", key="reset_tab1"):
+                st.session_state["out_tab1_final"] = ""
+                st.rerun()
+        else:
+            st.info("버튼을 클릭하면 메시지가 생성됩니다.")
+
+    # --- Tab 2: 송금요청 ---
+    with tab2:
+        remit_data = {
+            "plate": v_plate, "year": v_year, "car_name": v_car_name, "vin": v_vin,
+            "address": v_address, "dealer_phone": v_dealer_phone,
+            "price_acc": v_acc_o, "notbill_acc": v_acc_x, "fee_acc": v_acc_fee,
+            "sender_name": v_sender, "brand": v_brand, "dealer_number": v_biz_num,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
+            "total": v_total, "deposit": v_deposit, "balance": v_balance,
+            "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
+            "usd_price": v_usd, "won_price": v_won, "car_name_remit": v_car_name_remit,
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
+        }
+
+        r_c1, r_c2 = st.columns(2)
+        if r_c1.button("일반매입 송금", key="btn_remit_1"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "일반매입")
+            st.rerun()
+    
+        if r_c2.button("계약금 송금", key="btn_remit_2"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "계약금")
+            st.rerun()
+
+        if r_c1.button("폐자원 송금", key="btn_remit_3"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "폐자원매입")
+            st.rerun()
+
+        if r_c2.button("송금완료 확인", key="btn_remit_4"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "송금완료")
+            st.rerun()
+
+        if r_c1.button("오토위니 송금", key="btn_remit_5"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "오토위니")
+            st.rerun()
+
+        if r_c2.button("헤이딜러 송금", key="btn_remit_6"):
+            st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
+            st.rerun()
+
+
+        st.divider()
+
+        current_content2 = st.session_state.get("out_tab2_final", "")
+        if current_content2:
+            st.markdown("##### 💵 송금 요청서")
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
+            st.code(current_content2, language=None)
+            
+            if st.button("♻️ 내용 리셋", key="reset_tab2"):
+                st.session_state["out_tab2_final"] = ""
+                st.rerun()
+        else:
+            st.info("송금 유형 버튼을 클릭하세요.")
+
+    # --- Tab 3: 기타 ---
+    with tab3:
+        etc_data = {
+            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+            "deposit": v_deposit, "company": v_company, 
+            "biz_name": v_biz_name, "biz_num": v_biz_num,
+            "declaration": v_declaration, "ex_rate": v_ex_rate
+        }
+        
+        e_c1, e_c2 = st.columns(2)
+        if e_c1.button("입고방 알림", key="btn_etc1"):
+            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
+            st.rerun()
+            
+        if e_c2.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
+            with st.spinner("시트에 등록 중..."):
+                res = inventoryenter.run_integrated_registration(etc_data)
+                if res["status"] in ["success", "partial"]:
+                    st.success(res["message"])
+                else:
+                    st.error(res["message"])
+
+        if e_c2.button("서류안내 문자", key="btn_etc2"):
+            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
+            st.rerun()
+            
+        # buyprogram.py 내 버튼 로직 예시
+        if st.button("📊 이카운트 품목 및 구매 최종 등록", key="btn_ecount_final"):
+            # etc_data에서 VIN(차대번호) 추출
+            vin_to_check = etc_data.get("vin")
+            
+            if not vin_to_check:
+                st.error("VIN(차대번호) 정보가 없습니다. 데이터를 먼저 확인해주세요.")
+            else:
+                with st.spinner("구글 시트 조회 및 이카운트 등록 중..."):
+                    # 1단계: inventoryenter.py의 함수를 사용하여 구글 시트 NO(순번) 조회
+                    import inventoryenter
+                    importlib.reload(inventoryenter) # 최신 데이터 반영을 위해 리로드
+                    
+                    # 제공해주신 get_no_by_vin 함수 호출
+                    existing_no = inventoryenter.get_no_by_vin(vin_to_check)
+                    
+                    if not existing_no:
+                        # 구글 시트에 없으면 등록 자체가 불가능하므로 경고 후 중단
+                        st.warning("⚠️ 구글 시트에서 해당 VIN을 찾을 수 없습니다. [🚀 정보등록]을 먼저 완료해주세요.")
+                    else:
+                        st.info(f"🔍 확인됨: 구글 시트 순번 NO.{existing_no}")
+                        
+                        # 2단계: 이카운트 세션 획득 및 API 호출
+                        import ecount
+                        session_id = ecount.get_session_id()
+                        
+                        if session_id:
+                            # [Step A] 품목 등록
+                            item_res = ecount.register_item(etc_data, session_id, existing_no)
+                            
+                            if str(item_res.get("Status")) == "200":
+                                st.info("✅ 1. 이카운트 품목 등록 완료")
+                                
+                                # [Step B] 구매 입력 (v_username은 상단 selectbox 변수)
+                                pur_res = ecount.register_purchase(etc_data, session_id, v_username)
+                                
+                                if str(pur_res.get("Status")) == "200":
+                                    st.success("✅ 2. 이카운트 구매입력 전표 생성 완료!")
+                                    st.balloons()
+                                else:
+                                    st.error(f"❌ 구매입력 실패: {pur_res.get('Message')}")
+                            else:
+                                # 이미 등록된 품목(VIN)인 경우에 대한 처리 (필요시)
+                                st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
+                        else:
+                            st.error("❌ 이카운트 로그인에 실패했습니다. API 키를 확인해주세요.")
+
+        if v_site and v_site.startswith("http"):
+            e_c2.link_button("🌐 사이트 이동", v_site)
+        else:
+            e_c2.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
+
+        st.divider()
+        
+# 결과 출력 섹션
+        current_content3 = st.session_state.get("out_tab3", "")
+        if current_content3:
+            st.markdown("##### ➕ 기타 알림 내용")
+            st.caption("👇 우측 상단 복사 아이콘 클릭")
+            st.code(current_content3, language=None)
+
+            if st.button("♻️ 내용 리셋", key="reset_tab3"):
+                st.session_state["out_tab3"] = ""
+                st.rerun()
+        else:
+            st.info("알림 생성 버튼을 클릭하세요.")
