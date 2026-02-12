@@ -245,6 +245,7 @@ if raw_input:
 
             # 3️⃣ [딜러 정보 조회] (dealerinfo.py)
             # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 파싱된 주소를 사용
+            dealer_found = False
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res.get("status") == "success":
@@ -256,11 +257,12 @@ if raw_input:
                     st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
                     st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
                     st.session_state["sender_input"] = dealer_res.get("sender", "")
+                    dealer_found = True
                 else:
                     st.session_state["dealer_data"] = {}
-                    st.session_state["v_address_key"] = parsed_address
-            else:
-                # 연락처가 없을 경우 파싱된 주소 사용
+            
+            # 딜러 정보를 찾지 못한 경우 파싱된 주소 사용
+            if not dealer_found:
                 st.session_state["v_address_key"] = parsed_address
 
             # 4️⃣ [바이어 국가 조회] (country.py)
