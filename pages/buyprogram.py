@@ -244,7 +244,7 @@ if raw_input:
                 st.session_state["v_inspection_key"] = res_status 
 
             # 3️⃣ [딜러 정보 조회] (dealerinfo.py)
-            # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 엑셀 파싱 데이터를 우선순위로 설정
+            # 조회된 정보가 있으면 구글 시트 데이터를, 없으면 파싱된 주소를 사용
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res.get("status") == "success":
@@ -267,10 +267,10 @@ if raw_input:
                     st.session_state["country_data"] = country_res["country"]
 
             # 5️⃣ [지역 추출] (mapping.py)
-            # 최종 결정된 주소를 기반으로 지역 매핑
-            final_addr = st.session_state.get("v_address_key", "")
-            if final_addr:
-                detected_region = mapping.get_region_from_address(final_addr)
+            # 세션에 저장된 주소를 기반으로 지역 매핑
+            current_address = st.session_state.get("v_address_key", "")
+            if current_address:
+                detected_region = mapping.get_region_from_address(current_address)
                 st.session_state["v_region_key"] = detected_region
 
             # 6️⃣ [차명 매핑 및 송금용 차명 결정] (google_sheet_manager.py)
