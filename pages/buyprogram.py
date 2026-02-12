@@ -62,6 +62,27 @@ def update_region():
 # 전체 입력 및 출력칸 시각화 최적화
 st.markdown("""
     <style>
+        /* ===== 배경색 설정 ===== */
+    .stApp {
+        background-color: #2b2b2b !important;
+    }
+    
+    .main {
+        background-color: #2b2b2b !important;
+    }
+    
+    [data-testid="stAppViewContainer"] {
+        background-color: #2b2b2b !important;
+    }
+    
+    [data-testid="stHeader"] {
+        background-color: rgba(43, 43, 43, 0.95) !important;
+    }
+    
+    /* ===== 텍스트 색상 조정 (배경이 어두워졌으므로) ===== */
+    .stMarkdown, .stText, h1, h2, h3, h4, h5, h6, p, label {
+        color: #FFFFFF !important;
+    }
     /* 1. 기본 설정: 모든 입력창 및 텍스트 영역 글자색 검정 고정 */
     input, textarea, select, .stSelectbox div {
         color: #000000 !important;
