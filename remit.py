@@ -10,6 +10,7 @@ def handle_remit(data, r_type="일반매입"):
     plate = data.get('plate', '')
     year = data.get('year', '')
     car_name = data.get('car_name', '')
+    car_name_remit = data.get('car_name_remit', '')
     vin = data.get('vin', '')
     address = data.get('address', '')
     phone = data.get('dealer_phone', '')
@@ -57,7 +58,7 @@ def handle_remit(data, r_type="일반매입"):
     if r_type == "계약금":
         if not is_zero(raw_price) and not is_zero(raw_contract_x):
             # 분리 매입 케이스
-            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n계산서(O): {raw_price}\n계산서(X): {raw_contract_x}\n"
+            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n계산서(O): {raw_price}\n계산서(X): {raw_contract_x}\n"
             if not is_zero(raw_fee): message += f"매도비: {raw_fee}\n"
             message += f"합계: {raw_total}\n\n계좌\n계산서(O): {account}\n계산서(X): {notbill}\n"
             if not is_zero(raw_fee) and feeaccount: message += f"매도비: {feeaccount}\n"
@@ -68,7 +69,7 @@ def handle_remit(data, r_type="일반매입"):
         else:
             # 일반 매입 케이스
             fee_line = "매도비포함" if is_zero(raw_fee) else f"매도비: {raw_fee}"
-            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
+            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
             if not is_zero(raw_fee) and feeaccount: message += f"매도비: {feeaccount}\n"
             
             fee_part = f"+{raw_fee}" if not is_zero(raw_fee) else ""
@@ -77,24 +78,24 @@ def handle_remit(data, r_type="일반매입"):
 
     # [폐자원 매입 양식]
     elif r_type == "폐자원매입":
-        message += f" 주식회사*\n\n@@@폐자원매입@@@\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n\n계좌(차주 개인확인, 차주 계좌로 직접송금)\n차량대: {account}\n\n{sender_name}{name_suffix} 송금 부탁드립니다."
+        message += f" 주식회사*\n\n@@@폐자원매입@@@\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n\n계좌(차주 개인확인, 차주 계좌로 직접송금)\n차량대: {account}\n\n{sender_name}{name_suffix} 송금 부탁드립니다."
 
     # [송금완료 양식]
     elif r_type == "송금완료":
         fee_line = "매도비포함" if is_zero(raw_fee) else f"매도비: {raw_fee}"
-        message += f" 주식회사*\n\n@@@송금완료@@@\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
+        message += f" 주식회사*\n\n@@@송금완료@@@\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
         if feeaccount and not is_zero(raw_fee): message += f"매도비: {feeaccount}\n"
         message += f"\n{sender_name}{name_suffix} 송금 부탁드립니다."
 
     # [오토위니 양식]
     elif r_type == "오토위니":
-        message += f"-{company}*\n*서북인터내셔널-{company}*\n\n모델: {year} {brand} {car_name}\nVIN: {vin}\n\n회사: {company}\n번호: {phone}\n차량대금: {usd_price} USD\n\nUSD 외화\n{account}\n영세율 계산서 거래\n구매확인서 발급\n\n영세율 계산서 금액\n{ex_date} 기준환율 {ex_rate}원\n{ex_rate} * ${usd_price} ={won_price}원\n\n*서북인터내셔널-{company}*\n*서북인터내셔널-{company}*"
+        message += f"-{company}*\n*서북인터내셔널-{company}*\n\n모델: {year} {brand} {car_name_remit}\nVIN: {vin}\n\n회사: {company}\n번호: {phone}\n차량대금: {usd_price} USD\n\nUSD 외화\n{account}\n영세율 계산서 거래\n구매확인서 발급\n\n영세율 계산서 금액\n{ex_date} 기준환율 {ex_rate}원\n{ex_rate} * ${usd_price} ={won_price}원\n\n*서북인터내셔널-{company}*\n*서북인터내셔널-{company}*"
 
     # [헤이딜러 양식]
     elif r_type == "헤이딜러":
         h_id_display = h_id if h_id != "선택" else "ID 미선택"
         message = f"*서북인터내셔널 주식회사 *\n\n@@@폐자원매입@@@\n\n헤이딜러 {h_type} (사전판매완료 id: {h_id_display})\n"
-        message += f"차번호: {plate} // {year} {car_name}\nVIN: {vin}\n"
+        message += f"차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n"
         if h_type == "일반":
             message += f"주소: {address}\n번호: {phone}\n\n차량가: {raw_price}\n계좌: {account}\n\n차량번호로 송금 부탁드립니다."
         else: # 제로, 바로낙찰
@@ -104,7 +105,7 @@ def handle_remit(data, r_type="일반매입"):
     else:
         # 1. 계산서(O) + 계산서(X)가 모두 있는 경우 (분리 매입)
         if not is_zero(raw_price) and not is_zero(raw_contract_x):
-            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n계산서(O): {raw_price}\n계산서(X): {raw_contract_x}\n"
+            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n계산서(O): {raw_price}\n계산서(X): {raw_contract_x}\n"
             
             # 매도비가 있을 때만 출력
             if not is_zero(raw_fee):
@@ -121,7 +122,7 @@ def handle_remit(data, r_type="일반매입"):
         # 2. 단일 매입 (계산서 분리 조건 불충족)
         else:
             fee_line = "매도비포함" if is_zero(raw_fee) else f"매도비: {raw_fee}"
-            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
+            message += f" 주식회사*\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n\n사업자번호: {dealer_num}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n{fee_line}\n합계: {raw_total}\n\n계좌\n차량대: {account}\n"
             
             # 매도비 계좌가 별도로 있을 때만 출력
             if not is_zero(raw_fee) and feeaccount:
