@@ -557,26 +557,20 @@ with col_list:
                 key="edit_tab1"
             )
         
-            # 4. 버튼 배치 (내용복사 | 내용 리셋)
-            copy_col, reset_col = st.columns([1, 1])
-        
-            with copy_col:
-                # 텍스트가 있을 때만 복사 버튼 표시
+            # 출력 및 수정창
+            tab1_out = st.session_state.get("out_tab1_final", "")
+            edited_tab1 = st.text_area("💬 문자 내용 수정", value=tab1_out, height=300, key="edit_tab1")
+    
+            # 복사 및 리셋 버튼
+            cp1, rs1 = st.columns(2)
+            with cp1:
                 if edited_tab1:
-                    st_copy_to_clipboard(
-                        edited_tab1, 
-                        before_copy_label="📋 내용복사", 
-                        after_copy_label="✅ 복사완료! (Ctrl+V 가능)"
-                    )
+                    st_copy_to_clipboard(edited_tab1, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
                 else:
-                    st.button("📋 내용복사", disabled=True, help="복사할 내용이 없습니다.")
-        
-            with reset_col:
-                if st.button("♻️ 내용 리셋", key="reset_btn_tab1"):
-                    # 출력값과 수정창 모두 초기화
+                    st.button("📋 내용복사", disabled=True, key="cp1_dis")
+            with rs1:
+                if st.button("♻️ 내용리셋", key="rs_tab1"):
                     st.session_state["out_tab1_final"] = ""
-                    if "edit_tab1" in st.session_state:
-                        st.session_state["edit_tab1"] = ""
                     st.rerun()
             
     with tab2:
@@ -612,23 +606,23 @@ with col_list:
         if r_c2.button("헤이딜러 송금"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
             st.rerun()
+
+        st.divider()
     
    
-        current_content2 = st.session_state.get("out_tab2_final", "")
-        
-        # 사용자가 직접 수정할 수 있는 창
-        edited_text2 = st.text_area("송금 내용 수정", value=current_content2, height=400)
-    
-        # 버튼 배치
-        col_copy, col_reset = st.columns([1, 1])
-        
-        with col_copy:
-            if edited_text2:
-                # 이 버튼을 누르면 즉시 클립보드에 복사되어 Ctrl+V가 가능해집니다.
-                st_copy_to_clipboard(edited_text2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
-        
-        with col_reset:
-            if st.button("♻️ 내용 리셋", key="reset_tab2"):
+# 출력 및 수정창
+        tab2_out = st.session_state.get("out_tab2_final", "")
+        edited_tab2 = st.text_area("💵 송금 내용 수정", value=tab2_out, height=400, key="edit_tab2")
+
+        # 복사 및 리셋 버튼
+        cp2, rs2 = st.columns(2)
+        with cp2:
+            if edited_tab2:
+                st_copy_to_clipboard(edited_tab2, before_copy_label="📋 내용복사", after_copy_label="✅ 복사완료!")
+            else:
+                st.button("📋 내용복사", disabled=True, key="cp2_dis")
+        with rs2:
+            if st.button("♻️ 내용리셋", key="rs_tab2"):
                 st.session_state["out_tab2_final"] = ""
                 st.rerun()
 
