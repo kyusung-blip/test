@@ -735,29 +735,33 @@ with col_list:
             st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
             
-        if st.button("📊 이카운트 품목 최종 등록", key="btn_ecount_final"):
-            vin_to_check = etc_data.get("vin")
-            if not vin_to_check:
+        # buyprogram.py 내 버튼 로직 예시
+        if st.button("📊 이카운트 품목 및 구매 최종 등록", key="btn_ecount_final"):
+            if not etc_data.get("vin"):
                 st.error("VIN(차대번호) 정보가 없습니다.")
             else:
-                with st.spinner("정보 확인 중..."):
-                    import inventoryenter
-                    importlib.reload(inventoryenter)
-                    existing_no = inventoryenter.get_no_by_vin(vin_to_check)
+                with st.spinner("이카운트 동기화 중..."):
+                    import ecount
+                    session_id = ecount.get_session_id()
                     
-                    if existing_no:
-                        st.info(f"확인됨: 구글 시트 순번 NO.{existing_no}")
-                        import ecount
-                        session_id = ecount.get_session_id()
-                        if session_id:
-                            item_res = ecount.register_item(etc_data, session_id, existing_no)
-                            if str(item_res.get("Status")) == "200":
-                                st.success(f"✅ 이카운트 동기화 완료! (순번: {existing_no})")
+                    if session_id:
+                        # 1단계: 품목 등록
+                        item_res = ecount.register_item(etc_data, session_id, existing_no)
+                        
+                        if str(item_res.get("Status")) == "200":
+                            st.info("1. 품목 등록 완료")
+                            
+                            # 2단계: 구매 입력 (품목 등록 성공 시에만 실행)
+                            # v_username은 buyprogram.py 상단에서 선택된 값
+                            pur_res = ecount.register_purchase(etc_data, session_id, v_username)
+                            
+                            if str(pur_res.get("Status")) == "200":
+                                st.success("✅ 품목 등록 및 구매입력 최종 완료!")
                                 st.balloons()
                             else:
-                                st.error(f"❌ 이카운트 등록 실패: {item_res.get('Message')}")
-                    else:
-                        st.warning("⚠️ 구글에 먼저 등록해주세요.")
+                                st.error(f"❌ 구매입력 실패: {pur_res.get('Message')}")
+                        else:
+                            st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
 
         if v_site and v_site.startswith("http"):
             e_c2.link_button("🌐 사이트 이동", v_site)
