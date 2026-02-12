@@ -544,12 +544,15 @@ with col_list:
 
         st.divider()
 
-        # 3. 출력 창 및 유틸리티 버튼
-        st.text_area("문자 출력 결과", height=400, key="out_tab1_final")
-        content1 = st.session_state.get("out_tab1", "")
+        # 1. 시각적인 확인을 위한 텍스트 에어리어
+        # key를 통해 세션 상태와 연결됨
+        content1 = st.session_state.get("out_tab1_final", "")
+        st.text_area("문자 출력 결과", value=content1, height=300, key="out_tab1_display")
+        
+        # 2. [핵심] 복사 전용 코드 블록
         if content1:
-            st.caption("👇 우측 상단 복사 아이콘 클릭")
-            st.code(content1, language=None)
+            st.caption("👇 아래 박스 우측 상단의 아이콘을 클릭하여 복사하세요")
+            st.code(content1, language=None) # language=None 설정 시 강조 없이 텍스트만 깔끔하게 표시
 
         if st.button("♻️ 내용리셋", key="rs1"):
             st.session_state["out_tab1"] = ""
@@ -589,10 +592,13 @@ with col_list:
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
             st.rerun()
     
-        st.text_area("송금 요청 결과", height=600, key="out_tab2_final")
-        content2 = st.session_state.get("out_tab2", "")
+   
+        # 1. 시각적인 확인용
+        content2 = st.session_state.get("out_tab2_final", "")
+        st.text_area("송금 요청 결과", value=content2, height=400, key="out_tab2_display")        
+        # 2. [핵심] 복사 전용 코드 블록
         if content2:
-            st.caption("👇 우측 상단 복사 아이콘 클릭")
+            st.caption("👇 아래 박스 우측 상단의 아이콘을 클릭하여 복사하세요")
             st.code(content2, language=None)
 
         if st.button("♻️ 내용리셋", key="rs2"):
