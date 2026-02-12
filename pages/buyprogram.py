@@ -217,67 +217,70 @@ if "parsed_data" not in st.session_state:
     st.session_state["parsed_data"] = {}
 
 if raw_input:
-    # 1. 중복 실행 방지 체크
     if st.session_state.get("last_raw_input") != raw_input:
         with st.spinner("데이터 파싱 및 통합 조회 중..."):
-            # A. 기본 데이터 파싱
             parsed_result = lg.parse_excel_data(raw_input)
-            st.session_state["parsed_data"] = parsed_result
-            st.session_state["last_raw_input"] = raw_input
-
-            # B. 주요 변수 추출
+            
+            # [중요] 세션 상태를 직접 수정하기 전에 임시 딕셔너리에 담기
+            updates = {}
+            
+            # A. 기본 데이터 추출
             plate = parsed_result.get('plate', "").strip()
             contact = parsed_result.get('dealer_phone', "").strip()
             buyer = parsed_result.get('buyer', "").strip()
             original_car_name = parsed_result.get('car_name', "")
-            parsed_address = parsed_result.get('address', "")
-
-            # 1️⃣ [인스펙션 조회]
+            
+            # 1. 인스펙션
             if plate:
                 res_status = Inspectioncheck.fetch_inspection_status(plate)
-                st.session_state["inspection_status"] = res_status
-                st.session_state["v_inspection_key"] = res_status # 셀렉트박스 동기화
+                updates["inspection_status"] = res_status
+                updates["v_inspection_key"] = res_status
 
-            # 2️⃣ [딜러 정보 조회] 및 위젯 데이터 주입
+            # 2. 딜러 정보 및 주소
+            final_address = parsed_result.get('address', "")
             if contact:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res.get("status") == "success":
-                    st.session_state["dealer_data"] = dealer_res
-                    # 화면 위젯(key)에 직접 할당
-                    st.session_state["address_input_widget"] = dealer_res.get("address", "")
-                    st.session_state["v_biz_name_input"] = dealer_res.get("company", "")
-                    st.session_state["v_biz_num_input"] = dealer_res.get("biz_num", "")
-                    st.session_state["acc_o_input"] = dealer_res.get("acc_o", "")
-                    st.session_state["acc_fee_input"] = dealer_res.get("acc_fee", "")
-                    st.session_state["sender_input"] = dealer_res.get("sender", "")
+                    updates["dealer_data"] = dealer_res
+                    updates["address_input_widget"] = dealer_res.get("address", "")
+                    updates["v_biz_name_input"] = dealer_res.get("company", "")
+                    updates["v_biz_num_input"] = dealer_res.get("biz_num", "")
+                    updates["acc_o_input"] = dealer_res.get("acc_o", "")
+                    updates["acc_fee_input"] = dealer_res.get("acc_fee", "")
+                    updates["sender_input"] = dealer_res.get("sender", "")
+                    final_address = dealer_res.get("address", final_address)
                 else:
-                    st.session_state["dealer_data"] = {}
-                    st.session_state["address_input_widget"] = parsed_address
+                    updates["dealer_data"] = {}
+                    updates["address_input_widget"] = final_address
 
-            # 3️⃣ [바이어 국가 조회]
+            # 3. 바이어/국가
             if buyer:
                 country_res = country.handle_buyer_country(buyer, "")
                 if country_res.get("status") == "fetched":
-                    st.session_state["country_data"] = country_res["country"]
+                    updates["country_data"] = country_res["country"]
 
-            # 4️⃣ [차명 매핑 및 송금용 차명 결정]
+            # 4. 차명 매핑
             try:
                 car_map = gsm.get_car_name_map()
-                alt_name = lg.get_alt_car_name(original_car_name, car_map)
-                st.session_state["auto_alt_car_name"] = alt_name
-            except Exception:
-                st.session_state["auto_alt_car_name"] = original_car_name
+                updates["auto_alt_car_name"] = lg.get_alt_car_name(original_car_name, car_map)
+            except:
+                updates["auto_alt_car_name"] = original_car_name
 
-            # 5️⃣ [지역 추출] 결정된 주소 기반
-            final_addr = st.session_state.get("address_input_widget", parsed_address)
-            if final_addr:
-                detected_region = mapping.get_region_from_address(final_addr)
-                st.session_state["region_input_widget"] = detected_region
+            # 5. 지역 추출 (최종 주소 기반)
+            if final_address:
+                updates["region_input_widget"] = mapping.get_region_from_address(final_address)
 
-            # 6️⃣ [P.Source]
-            st.session_state["psource_widget"] = parsed_result.get('psource', "")
+            # 6. P.Source (오류 발생 지점)
+            updates["psource_widget"] = parsed_result.get('psource', "")
 
-            # 모든 데이터가 세션에 기록되었으므로 화면 갱신
+            # --- [핵심] updates에 담긴 모든 값을 세션에 일괄 적용 ---
+            for k, v in updates.items():
+                st.session_state[k] = v
+            
+            # 마지막 입력값 업데이트 후 리런
+            st.session_state["parsed_data"] = parsed_result
+            st.session_state["last_raw_input"] = raw_input
+            
             st.rerun()
 
 # 현재 화면에서 사용할 parsed 데이터 로드
