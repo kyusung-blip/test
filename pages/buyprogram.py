@@ -58,6 +58,34 @@ st.markdown("""
         color: #000000 !important;
         border: 1px solid #d1d5db;
     }
+    
+    /* 1. 선택박스 전체 영역 (배경을 흰색으로, 테두리는 빨간색 강조) */
+    div[data-testid="stSelectbox"] > div {
+        background-color: #FFFFFF !important;
+        border: 2px solid #EF4444 !important; /* 인스펙션 강조용 빨간 테두리 */
+        border-radius: 8px !important;
+    }
+
+    /* 2. 선택박스 내부의 글자색 (검정 고정) */
+    div[data-testid="stSelectbox"] div[data-baseweb="select"] > div {
+        color: #000000 !important;
+        font-weight: bold !important;
+    }
+
+    /* 3. 드롭다운 화살표 아이콘 색상 (검정) */
+    div[data-testid="stSelectbox"] svg {
+        fill: #000000 !important;
+    }
+
+    /* 4. 클릭 시 나타나는 드롭다운 목록(Pop-over) 글자색 보정 */
+    div[data-baseweb="popover"] ul {
+        background-color: #FFFFFF !important;
+    }
+    
+    div[data-baseweb="popover"] li {
+        color: #000000 !important;
+        font-weight: 500 !important;
+    }
 
     /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
