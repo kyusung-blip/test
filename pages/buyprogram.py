@@ -64,7 +64,7 @@ st.markdown("""
     <style>
     /* 1. 기본 설정: 모든 입력창 및 텍스트 영역 글자색 검정 고정 */
     input, textarea, select, .stSelectbox div {
-        color: #FFFFFF !important;
+        color: #000000 !important;
         font-weight: 500 !important;
     }
 
