@@ -565,7 +565,7 @@ with col_list:
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x,
             "total": v_total, "deposit": v_deposit, "balance": v_balance,
             "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
-            "usd_price": v_usd, "won_price": v_won,
+            "usd_price": v_usd, "won_price": v_won, "car_name_remit": v_car_name_remit,
             "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
         }
 
