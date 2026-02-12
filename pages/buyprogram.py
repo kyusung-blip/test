@@ -80,40 +80,6 @@ st.markdown("""
         color: #000000 !important;
     }
 
-    /* 4. 리스트 탭(Tabs) 글자색 및 배경 최종 보정 */
-    /* 탭 메뉴 전체의 글자색을 검정으로 강제 */
-    button[data-baseweb="tab"] p {
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-
-    /* 선택된 탭의 배경을 흰색으로, 선을 파란색으로 */
-    button[data-baseweb="tab"][aria-selected="true"] {
-        background-color: #FFFFFF !important;
-        border-top: 3px solid #2196F3 !important;
-        border-radius: 5px 5px 0 0 !important;
-    }
-
-    /* 선택되지 않은 탭의 배경을 약간 어두운 회색으로 */
-    button[data-baseweb="tab"][aria-selected="false"] {
-        background-color: #E2E8F0 !important;
-    }
-
-    /* 5. 텍스트 영역(Textarea) 출력칸 가독성 강화 */
-    textarea {
-        background-color: #F0F9FF !important; /* 연한 하늘색 배경 */
-        color: #000000 !important; /* 글자색 검정 */
-        border: 1px solid #BAE6FD !important;
-        font-weight: 500 !important;
-    }
-
-    /* 6. 전역 라벨(Label) 색상 보정 */
-    label p {
-        color: #000000 !important;
-        font-weight: bold !important;
-    }
-
-
     /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
     input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
