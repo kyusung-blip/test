@@ -20,7 +20,7 @@ def parse_excel_data(raw_text):
         "vin": parts[11] if len(parts) > 11 else "",
         "heydlr_delivery": parts[12] if len(parts) > 12 else "",
         "color": parts[13] if len(parts) > 13 else "",
-        "p.source" parts[14] if len(parts) > 14 else "",
+        "p.source" : parts[14] if len(parts) > 14 else "",
         "address": parts[16] if len(parts) > 16 else "",
         "dealer_phone": parts[18] if len(parts) > 18 else "",
         "region": parts[19] if len(parts) > 19 else "",
