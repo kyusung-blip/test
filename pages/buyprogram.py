@@ -44,7 +44,6 @@ st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시�
 # 전체 입력 및 출력칸 시각화 최적화
 st.markdown("""
     <style>
-<style>
     /* 1. 전체 앱 배경색을 연한 회색으로 설정 */
     .stApp {
         background-color: #F0F2F5 !important;
@@ -60,47 +59,35 @@ st.markdown("""
     .stTextInput>div>div>input {
         color: #000000 !important;
     }
-    /* 2. 버튼 스타일 (전체 동일) */
-    .stButton>button { 
-        width: 100%; 
-        border-radius: 8px; 
-        font-weight: bold; 
-        background-color: #f0f2f6; 
-        color: #000000 !important;
-        border: 1px solid #d1d5db;
-    }
 
-    /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
+    /* --- 기존 섹션별 색상 유지 --- */
+
+    /* 차량 기본 정보 (연한 회색 바탕에 흰색 칸) */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
     input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
     input[aria-label="color"] {
-        background-color: #F9FAFB !important;
+        background-color: #FFFFFF !important;
         border: 1px solid #D1D5DB !important;
     }
 
-    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라 */
+    /* 업무 및 바이어 정보 (연한 보라) */
     input[aria-label="사이트"], input[aria-label="세일즈팀"], 
     input[aria-label="바이어"], input[aria-label="나라"] {
         background-color: #F5F3FF !important;
         border: 1px solid #DDD6FE !important;
     }
 
-    /* 5. 연락처 및 주소 정보 (연한 녹색) - 연락처, 지역, 주소 */
-    input[aria-label="딜러연락처"], input[aria-label="지역"], input[aria-label="주소"] {
-        background-color: #F0FDF4 !important;
-        border: 1px solid #BBF7D0 !important;
-    }
-
-    /* 6. 핵심 상사 및 계좌 정보 (연한 노랑) - 상사명, 사업자번호, 계좌들 */
+    /* 핵심 상사/계좌 정보 (연한 노랑) */
     input[aria-label="상사명"], input[aria-label="사업자번호"], 
     input[aria-label="차량대"], input[aria-label="계산서X"], input[aria-label="매도비"],
-    input[aria-label="차량대 계좌"], input[aria-label="계산서X 계좌"], input[aria-label="매도비 계좌"] {
+    input[aria-label="차량대 계좌"], input[aria-label="계산서X 계좌"], input[aria-label="매도비 계좌"],
+    input[aria-label="계약금(만원 단위)"] {
         background-color: #FEFCE8 !important;
         border: 1px solid #FEF08A !important;
         font-weight: bold !important;
     }
 
-    /* 7. 시스템 자동계산 및 중요 행정 (연한 주황) - 합계금액, 잔금, DECLARATION, 입금자명, 송금용차명 */
+    /* 시스템 자동계산 (연한 주황) */
     input[aria-label="합계금액 (자동계산)"], input[aria-label="잔금"], 
     input[aria-label="DECLARATION"], input[aria-label="입금자명"], 
     input[aria-label="차명(송금용)"] {
@@ -108,25 +95,24 @@ st.markdown("""
         border: 1px solid #FFEDD5 !important;
     }
 
-    /* 8. 출력칸 스타일 (연한 하늘색) - 문자 출력 결과, 송금 요청 결과 등 */
+    /* 출력창 (연한 하늘색) */
     textarea {
         background-color: #F0F9FF !important;
-        color: #000000 !important;
         border: 1px solid #BAE6FD !important;
-        font-family: 'Malgun Gothic', sans-serif !important;
-        font-size: 15px !important;
     }
 
-    /* 9. 인스펙션 및 선택창 강조 (테두리 강조) */
-    div[data-testid="stSelectbox"] {
-        border: 2px solid #EF4444 !important;
-        border-radius: 5px;
-        background-color: #FFFFFF !important;
+    /* 탭(Tab) 영역 가독성 */
+    button[data-baseweb="tab"] {
+        background-color: transparent !important;
     }
-
-    /* 10. 탭(Tab) 글자색 보정 */
     button[data-baseweb="tab"] div p {
         color: #000000 !important;
+        font-weight: bold !important;
+    }
+
+    /* 사이드바가 있다면 사이드바 배경도 통일 */
+    [data-testid="stSidebar"] {
+        background-color: #E9ECEF !important;
     }
     </style>
 """, unsafe_allow_html=True)
