@@ -61,7 +61,7 @@ st.markdown("""
     
     /* 1. 선택박스 전체 영역 (배경을 흰색으로) */
     div[data-testid="stSelectbox"] > div {
-        background-color: #FFFFFF !important;
+        background-color: #000000 !important;
         border-radius: 8px !important;
     }
 
