@@ -45,6 +45,15 @@ if st.session_state["current_page"] != "buyprogram":
 # --- 2. 기본 페이지 설정 ---
 st.set_page_config(layout="wide", page_title="서북인터내셔널 매매 시스템")
 
+# --- 1-1. 콜백 함수 정의 (주소 변경 시 지역 자동 추출) ---
+def update_region():
+    address_val = st.session_state.get("v_address_key", "")
+    if address_val:
+        # mapping 모듈을 사용하여 지역 추출
+        detected = mapping.get_region_from_address(address_val)
+        # 지역 위젯의 키값에 직접 저장
+        st.session_state["v_region_key"] = detected
+
 # 전체 입력 및 출력칸 시각화 최적화
 st.markdown("""
     <style>
@@ -348,21 +357,18 @@ with col_info:
     parsed_address = parsed.get('address', "")
     final_address = sheet_address if sheet_address else parsed_address
     # 주소 (구글 시트 우선)
+# [수정] 주소 입력창: on_change 콜백 추가
     v_address = r4_3.text_input(
-    "주소", 
-    value=final_address,
-    key="v_address_key"
+        "주소", 
+        value=final_address,
+        key="v_address_key",
+        on_change=update_region  # <--- 주소 입력 후 엔터 시 지역 즉시 갱신
     )
-    # [수정] 주소가 변경되었을 때 실시간으로 지역을 다시 추출
-    if v_address:
-        new_detected = mapping.get_region_from_address(v_address)
-        if new_detected:
-            st.session_state["detected_region"] = new_detected
-    
-    # [결과] 지역 입력창
+
+    # [수정] 지역 입력창: 세션 상태값을 value로 사용
     v_region = r4_2.text_input(
         "지역", 
-        value=st.session_state.get("detected_region", ""), 
+        value=st.session_state.get("v_region_key", ""), 
         key="v_region_key"
     )
 
