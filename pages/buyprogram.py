@@ -12,35 +12,28 @@ import mapping
 import inventoryenter
 import Inspectioncheck
 import socket
+import google_sheet_manager as gsm
 
 # --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
 ALL_WIDGET_KEYS = [
     "raw_input_main", "v_region_key", "v_address_key", 
     "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
     "acc_x_input", "acc_fee_input", "sender_input", 
-    "v_declaration_key", "v_inspection_key"
+    "v_declaration_key", "v_inspection_key", "auto_alt_car_name"
 ]
 
 # --- 1. 페이지 상태 및 리셋 로직 ---
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
 
-# 만약 페이지가 바뀌었다면 초기화 실행
 if st.session_state["current_page"] != "buyprogram":
-    # 1. 위젯 상태 강제 비우기
     for k in ALL_WIDGET_KEYS:
         if k in st.session_state:
             del st.session_state[k]
-            
-    # 2. 데이터 바구니 초기화
     st.session_state["dealer_data"] = {}
     st.session_state["detected_region"] = ""
     st.session_state["country_data"] = ""
     st.session_state["inspection_status"] = "X"
-    st.session_state["last_searched_phone"] = ""
-    st.session_state["last_checked_plate"] = ""
-
-    # 3. 현재 페이지 갱신 후 리런
     st.session_state["current_page"] = "buyprogram"
     st.rerun()
 
@@ -138,33 +131,20 @@ parsed = st.session_state.get("parsed_data", {})
 # 리셋 버튼을 위해 컬럼 나눔
 top_col1, top_col2 = st.columns([8, 1])
 
+top_col1, top_col2 = st.columns([8, 1])
 with top_col2:
     if st.button("♻️ 전체 리셋"):
-        # 1. 위젯 연결 키 완전 삭제 (상단 입력칸 'raw_input_main' 포함)
         for k in ALL_WIDGET_KEYS:
-            if k in st.session_state:
-                del st.session_state[k]
-        
-        # 2. 파싱 기록 및 데이터 바구니 초기화
-        st.session_state["last_raw_input"] = ""  # 비교 대상 초기화
+            if k in st.session_state: del st.session_state[k]
+        st.session_state["last_raw_input"] = ""
         st.session_state["parsed_data"] = {}
         st.session_state["dealer_data"] = {}
-        st.session_state["detected_region"] = ""
-        st.session_state["country_data"] = ""
-        st.session_state["inspection_status"] = "X"
-        
-        # 3. 결과 메시지창들도 초기화
-        for out_key in ["out_tab1_final", "out_tab2_final", "out_tab3"]:
-            st.session_state[out_key] = ""
-
-        # 4. 즉시 리런하여 깨끗한 상태로 렌더링
         st.rerun()
-        
 
 if "inspection_status" not in st.session_state:
-st.session_state["inspection_status"] = "X"
+    st.session_state["inspection_status"] = "X"
 st.divider()
-
+        
 # --- 2. 메인 화면 구성 (70% : 30%) ---
 col_info, col_list = st.columns([0.7, 0.3])
 
