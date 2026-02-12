@@ -87,7 +87,10 @@ if raw_input:
             # 1. Inspection 조회
             plate = parsed.get('plate', "").strip()
             if plate:
-                st.session_state["inspection_status"] = Inspectioncheck.fetch_inspection_status(plate)
+                res_status = Inspectioncheck.fetch_inspection_status(plate)
+                st.session_state["inspection_status"] = res_status
+                # [추가] 셀렉트박스 위젯 키 강제 동기화
+                st.session_state["v_inspection_key"] = res_status
 
             # 2. 딜러 정보 조회
             contact = parsed.get('dealer_phone', "")
@@ -95,7 +98,7 @@ if raw_input:
                 dealer_res = dealerinfo.search_dealer_info(contact)
                 if dealer_res["status"] == "success":
                     st.session_state["dealer_data"] = dealer_res
-                    # --- [중요] 위젯 키에 직접 할당 ---
+                    # --- 위젯 키에 직접 할당하여 화면 즉시 반영 ---
                     st.session_state["v_address_key"] = dealer_res.get("address", "")
                     st.session_state["v_biz_name_input"] = dealer_res.get("company", "")
                     st.session_state["v_biz_num_input"] = dealer_res.get("biz_num", "")
@@ -111,19 +114,20 @@ if raw_input:
                 res = country.handle_buyer_country(buyer, "")
                 if res["status"] == "fetched":
                     st.session_state["country_data"] = res["country"]
-            # [추가] 차명 매핑 데이터 가져오기
+
+            # [추가] 차명 매핑 및 송금용 차명 결정
             import google_sheet_manager as gsm
             car_map = gsm.get_car_name_map()
-            
-            # [추가] 송금용 차명 자동 결정
             original_car_name = parsed.get('car_name', "")
             alt_name = lg.get_alt_car_name(original_car_name, car_map)
+            st.session_state["auto_alt_car_name"] = alt_name # 세션에 저장
             
             # [추가] 주소에서 지역 추출 로직
             parsed_address = parsed.get('address', "")
             detected = mapping.get_region_from_address(parsed_address)
-            st.session_state["detected_region"] = detected  # 찾은 지역 저장 (없으면 "")
+            st.session_state["detected_region"] = detected  # 찾은 지역 저장
 
+            # 마무리 상태 저장 및 리런
             st.session_state["last_raw_input"] = raw_input
             st.session_state["parsed_data"] = parsed
             st.rerun()
