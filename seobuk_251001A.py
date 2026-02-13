@@ -13,20 +13,30 @@ import Personal_path as Pp
 import google_sheet_manager as gm
 warnings.filterwarnings(action='ignore')
 
-# =========================
-# 공통 설정 (수정됨)
-# =========================
-SHEET_NAME = "NUEVO PROJECTION#2" # 또는 사용하시는 시트명
-# FILE_NAME 등 기존 Pp 관련 변수들을 gm 함수 호출로 대체할 예정입니다.
+SHEET_NAME = "NUEVO PROJECTION#2" 
 
-# 기존 gc 설정 부분을 함수화하여 안전하게 변경
-def get_google_sheet_client():
+def flush_to_sheet(rows, start_row):
+    """지정한 NUEVO PROJECTION#2 시트에 크롤링 데이터 기록"""
     try:
-        # gm 모듈에서 관리하는 시트를 직접 가져옵니다.
-        return gm.get_main_2026_sheet()
+        # 매니저를 통해 특정 시트 가져오기
+        ws = gm.get_nuevo_projection_sheet()
+        
+        # 데이터 업데이트 (기존 로직 유지)
+        ws.update(f'A{start_row}', rows, value_input_option='USER_ENTERED')
+
+        # 테두리 서식 설정 등 (기존 로직 유지)
+        last_row = start_row + len(rows) - 1
+        cell_range = f'A{start_row}:AH{last_row}'
+        cell_format = {
+            'borders': {
+                'top': {'style': 'SOLID'}, 'bottom': {'style': 'SOLID'},
+                'left': {'style': 'SOLID'}, 'right': {'style': 'SOLID'}
+            }
+        }
+        ws.format(cell_range, cell_format)
+        print(f"Successfully updated {len(rows)} rows to {SHEET_NAME}")
     except Exception as e:
-        print(f"Error connecting to Google Sheet via Manager: {e}")
-        return None
+        print(f"Error updating Google Sheet: {e}")
 # USER_NAME  = Pp.User() # 이제 GUI에서 사용자 이름이 직접 전달되므로 주석 처리 또는 제거
 SOLD_TAG = "판매완료 or 삭제 / Sold out or Deleted"
 
