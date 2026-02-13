@@ -17,7 +17,12 @@ def add_tasks(user, hd_id, links, buyers):
         buyers: list[str] - 바이어 목록
     Returns:
         int - 추가된 작업 수
+    Raises:
+        ValueError: links와 buyers의 길이가 다를 경우
     """
+    if len(links) != len(buyers):
+        raise ValueError(f"링크와 바이어 개수가 일치하지 않습니다: {len(links)} vs {len(buyers)}")
+    
     sheet = gsm.get_crawling_queue_sheet()
     all_data = sheet.get_all_values()
     next_no = len(all_data)  # 헤더 포함이므로 다음 번호
