@@ -1375,130 +1375,104 @@ def flush_to_sheet(rows, start_row):
     ws.format(cell_range, cell_format)
 
 # =========================
-# 메인 파이프라인 함수 수정
-# 사용자 이름(user_name) 인수를 추가합니다.
+# 수정된 run_pipeline 함수
 # =========================
-def run_pipeline(list_pairs, user_name: str, headless: bool = False, hd_login_id: str = None):
+def run_pipeline(list_pairs, user_name, headless=True, hd_login_id=None):
     """
-    1) 소스별 크롤링 → records 메모리 저장
+    1) 소스별 크롤링 → records 메모리 저장 (Streamlit 화면에 진행상황 표시)
     2) plate 모아 carmanager를 1회 로그인 후 대량 조회
     3) cm 결과를 records에 병합
-    4) 시트에 배치 기록
+    4) 'SEOBUK PROJECTION' 시트의 'NUEVO PROJECTION#2'에 기록
     """
-    if gc is None:
-        print("Google Sheet connection failed. Cannot proceed.")
-        return
-
-    driver = make_driver(headless=headless) # ✅ headless 인수를 사용합니다.
-    print(f"Start pipeline for user: {user_name}. Headless: {headless}")
-
-    # A단계: 소스 긁기
-    start_row = read_existing_row_index()
+    
+    # 1. 드라이버 초기화 알림
+    st.info(f"🚀 {user_name} 님, 크롤링 시스템을 시작합니다. (대상: {len(list_pairs)}건)")
+    driver = make_driver(headless=headless) 
+    
     records = []
     plates = []
     hd_logged_in = False
     
-    # HEYDEALER_ACCOUNTS는 이 파일 내에 정의되어 있으므로 모듈 이름 없이 직접 접근합니다.
-    hd_login_pw = HEYDEALER_ACCOUNTS.get(hd_login_id) if hd_login_id else None
+    # 시작 행 결정 (기존 데이터 아래에 추가하기 위해 시트 로드)
+    try:
+        ws = gm.get_nuevo_projection_sheet()
+        start_row = len(ws.get_all_values()) + 1
+    except Exception as e:
+        st.error(f"시트 로딩 실패: {e}")
+        driver.quit()
+        return
 
-    # ✅ (url, buyer) 쌍으로 받음
-    for idx, (url, buyer) in enumerate(list_pairs, start=0):
-        row_hint = start_row + len(records)  # 예상 행
+    # A단계: 소스별 스크래핑
+    for idx, (url, buyer) in enumerate(list_pairs):
+        row_hint = start_row + len(records)
         url = url.strip()
-        lower_url = url.lower()
         buyer = buyer.strip()
+        
+        # 현재 진행 상황을 화면에 표시
+        st.write(f"🔄 ({idx+1}/{len(list_pairs)}) 데이터 수집 중... | {url[:40]}...")
         
         rec = None
         skip_cm = False
 
-        if "encar" in url:
-            print(f"{idx+1}/{len(list_pairs)} Encar - Buyer:{buyer}")
-            rec = scrape_encar(driver, url, row_hint)
-        elif "seobuk" in url:
-            print(f"{idx+1}/{len(list_pairs)} SEOBUK - Buyer:{buyer}")
-            rec = scrape_seobuk(driver, url, row_hint)
-        elif "kbchachacha" in url:
-            print(f"{idx+1}/{len(list_pairs)} KB - Buyer:{buyer}")
-            rec = scrape_kb(driver, url, row_hint)
-        elif "autowini" in lower_url:  # ✅ 이 조건이 문제없이 작동해야 합니다.
-            print(f"{idx+1}/{len(list_pairs)} AUTOWINI - Buyer:{buyer}")
-            rec = scrape_autowini(driver, url, row_hint)
-        elif "heydealer" in url:
-            print(f"{idx+1}/{len(list_pairs)} HEYDEALER - Buyer:{buyer}")
-            
-            # HEYDEALER 로그인 로직: 최초 1회만 시도
-            if not hd_logged_in and hd_login_id and hd_login_pw:
-                print(f"[HEYDEALER] Attempting login with ID: {hd_login_id} (GUI Selected)")
+        try:
+            if "encar" in url:
+                rec = scrape_encar(driver, url, row_hint)
+            elif "seobuk" in url:
+                rec = scrape_seobuk(driver, url, row_hint)
+            elif "kbchachacha" in url:
+                rec = scrape_kb(driver, url, row_hint)
+            elif "autowini" in url.lower():
+                rec = scrape_autowini(driver, url, row_hint)
+            elif "heydealer" in url:
+                # 헤이딜러 로그인 처리 (최초 1회)
+                if not hd_logged_in and hd_login_id:
+                    hd_login_pw = HEYDEALER_ACCOUNTS.get(hd_login_id)
+                    if heydealer_login(driver, hd_login_id, hd_login_pw):
+                        hd_logged_in = True
                 
-                # 👇👇👇 heydealer_login 호출 시 모듈 이름 제거 (같은 파일 내 함수) 👇👇👇
-                if heydealer_login(driver, hd_login_id, hd_login_pw):
-                    hd_logged_in = True
-                else:
-                    print(f"[HEYDEALER] Fatal: Login failed. Skipping HEYDEALER links.")
-                    hd_login_id = None # 로그인 실패 시 이후 링크 처리 중단
+                if hd_logged_in:
+                    rec = scrape_heydealer(driver, url, row_hint)
+                    if rec: rec["hd_login_id"] = hd_login_id
+                    skip_cm = True
             
-            # 로그인 성공 상태일 때만 스크래핑 진행
-            if hd_logged_in:
-                rec = scrape_heydealer(driver, url, row_hint)
-                if rec:
-                    rec["hd_login_id"] = hd_login_id
+            if rec:
+                rec["buyer"] = buyer
+                rec["user"] = user_name
+                records.append(rec)
+                if rec.get("plate") and not skip_cm:
+                    plates.append(rec["plate"])
+                st.write(f"✅ 수집 성공: {rec.get('name_ko', '차명 미확인')}")
             else:
-                # 로그인에 필요한 정보가 없거나 로그인이 실패한 경우 스킵
-                continue
-            
-            skip_cm = True
-            rec["cm_skip"] = True
-        else:
-            print(f"{idx+1}/{len(list_pairs)} Unknown link skipped")
+                st.warning(f"⚠️ {url} 수집에 실패했습니다.")
+
+        except Exception as e:
+            st.error(f"❌ {url} 처리 중 에러 발생: {e}")
             continue
 
-        if rec is None:
-            continue
-            
-        # ✅ buyer와 user_name을 기록에 추가
-        rec["buyer"] = buyer
-        rec["user"] = user_name
-        rec["timestamp"] = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime()) # 타임스탬프 추가
+    # B단계: 카매니저 통합 조회
+    if plates:
+        st.write(f"🔎 카매니저 정보 조회 중... (대상: {len(set(plates))}대)")
+        cm_map = crawl_carmanager_many(driver, list(dict.fromkeys(plates)))
+        
+        # C단계: 결과 병합
+        for rec in records:
+            if not rec.get("cm_skip"):
+                p = rec.get("plate", "")
+                cm = cm_map.get(p, {})
+                rec["cm_dealer"]   = cm.get("dealer", "")
+                rec["cm_location"] = cm.get("location", "")
+                rec["cm_price"]    = cm.get("price", 0)
 
-        records.append(rec)
-        if rec.get("plate") and not skip_cm:
-            plates.append(rec["plate"])
-
-    # B단계: 카매니저 1회 로그인 후 다건 조회
-    plates = [p for p in dict.fromkeys(plates) if p]  # 중복 제거 + 빈값 제거
-    try:
-        if plates:
-            print(f"[CM] {len(plates)} plates → CarManager crawling start")
-            cm_map = crawl_carmanager_many(driver, plates)
-        else:
-            print("[CM] No plates to lookup (sold/hidden) → skip CarManager")
-            cm_map = {}
-    except Exception as e:
-        print(f"[CM] fatal error while crawling: {e}")
-        cm_map = {}
-
-    # 혹시라도 None 들어오면 빈 dict로
-    if not isinstance(cm_map, dict):
-        cm_map = {}
-
-
-    # C단계: cm 결과 병합
-    for rec in records:
-        # HEYDEALER 차량은 CM 정보를 빈 값/0으로 고정
-        if rec.get("cm_skip"):
-            rec["cm_location"] = "-"
-            rec["cm_price"]    = 0
-            continue 
-            
-        p = rec.get("plate","")
-        cm = cm_map.get(p, {})
-        rec["cm_dealer"]   = cm.get("dealer","")
-        rec["cm_location"] = f'{cm.get("location","")}'
-        rec["cm_price"]    = cm.get("price",0)
-
-    # D단계: 시트 배치 쓰기
-    rows = to_sheet_rows(records, start_row, user_name) # ✅ user_name을 to_sheet_rows로 전달
-    flush_to_sheet(rows, start_row)
+    # D단계: 시트 쓰기
+    if records:
+        st.write("📝 구글 스프레드시트에 기록 중...")
+        try:
+            rows = to_sheet_rows(records, start_row, user_name)
+            flush_to_sheet(rows, start_row) # 이 내부에서 gm.get_nuevo_projection_sheet() 사용
+            st.success(f"🎊 총 {len(records)}건의 데이터가 'NUEVO PROJECTION#2'에 기록되었습니다.")
+        except Exception as e:
+            st.error(f"시트 기록 실패: {e}")
+    else:
+        st.error("❌ 수집된 데이터가 없어 시트를 업데이트하지 않았습니다.")
 
     driver.quit()
-    print("SEOBUK CRAWLING COMPLETE")
