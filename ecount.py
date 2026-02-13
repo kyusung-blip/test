@@ -98,25 +98,30 @@ def register_purchase(data, session_id, username):
     h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
     custom_code1 = h_map.get(data.get("h_id", ""), "")
     
-    # 3. 숫자 변환 유틸리티
+    # 3. 숫자 변환 유틸리티 (만원 처리 추가)
     def to_float(val):
+        """금액 문자열을 숫자로 변환 (만원 단위 처리)"""
         if not val: return 0
-        clean = re.sub(r'[^0-9.]', '', str(val))
+        
+        val_str = str(val)
+        
+        # "만원" 처리
+        if "만원" in val_str:
+            clean = re.sub(r'[^0-9.]', '', val_str)
+            if clean:
+                return float(clean) * 10000  # 만원 → 원 변환
+            return 0
+        
+        # "원" 처리 (만원 없이)
+        if "원" in val_str:
+            clean = re.sub(r'[^0-9.]', '', val_str)
+            return float(clean) if clean else 0
+        
+        # 숫자만 있는 경우
+        clean = re.sub(r'[^0-9.]', '', val_str)
         return float(clean) if clean else 0
 
     vin = str(data.get("vin", ""))
-        # 🔍 디버깅: 기본 데이터 확인
-    print("=" * 50)
-    print("구매입력 전송 데이터 확인:")
-    print(f"거래처번호(원본): {biz_num}")
-    print(f"거래처코드(정제): {cust_code}")
-    print(f"VIN: {vin}")
-    print(f"username: {username}")
-    print(f"h_id: {data.get('h_id')} → CustomCode1: {custom_code1}")
-    print(f"price: {data.get('price')} → {to_float(data.get('price', 0))}")
-    print(f"fee: {data.get('fee')} → {to_float(data.get('fee', 0))}")
-    print(f"contract_x: {data.get('contract_x')} → {to_float(data.get('contract_x', 0))}")
-    print("=" * 50)
     purchase_list = []
 
     # --- 하단 품목 구성 로직 ---
@@ -183,22 +188,9 @@ def register_purchase(data, session_id, username):
         })
 
     payload = {"PurchaseList": purchase_list}
-        # 🔍 디버깅: 최종 Payload 확인
-    print(f"전송할 품목 수: {len(purchase_list)}")
-    print(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}")
-    print("=" * 50)
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
-        result = response.json()
-        
-        # 🔍 디버깅: 응답 확인
-        print(f"응답 Status: {result.get('Status')}")
-        print(f"응답 Data: {json.dumps(result.get('Data', {}), indent=2, ensure_ascii=False)}")
-        print("=" * 50)
-        
-        return result
+        return response.json()
     except Exception as e:
-        error_result = {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
-        print(f"❌ 오류 발생: {error_result}")
-        return error_result
+        return {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
