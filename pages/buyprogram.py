@@ -731,6 +731,14 @@ with col_list:
             st.session_state["out_tab2_final"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
 
+        if r_c1.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
+            with st.spinner("시트에 등록 중..."):
+                res = inventoryenter.run_integrated_registration(etc_data)
+                if res["status"] in ["success", "partial"]:
+                    st.success(res["message"])
+                else:
+                    st.error(res["message"])
+
 
 
         st.divider()
