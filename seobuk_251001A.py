@@ -10,13 +10,23 @@ from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 import Personal_path as Pp
+import google_sheet_manager as gm
 warnings.filterwarnings(action='ignore')
 
 # =========================
-# 공통 설정
+# 공통 설정 (수정됨)
 # =========================
-SHEET_NAME = Pp.Sheet_name()
-FILE_NAME  = Pp.File_name()
+SHEET_NAME = "NUEVO PROJECTION#2" # 또는 사용하시는 시트명
+# FILE_NAME 등 기존 Pp 관련 변수들을 gm 함수 호출로 대체할 예정입니다.
+
+# 기존 gc 설정 부분을 함수화하여 안전하게 변경
+def get_google_sheet_client():
+    try:
+        # gm 모듈에서 관리하는 시트를 직접 가져옵니다.
+        return gm.get_main_2026_sheet()
+    except Exception as e:
+        print(f"Error connecting to Google Sheet via Manager: {e}")
+        return None
 # USER_NAME  = Pp.User() # 이제 GUI에서 사용자 이름이 직접 전달되므로 주석 처리 또는 제거
 SOLD_TAG = "판매완료 or 삭제 / Sold out or Deleted"
 
@@ -1337,7 +1347,7 @@ def to_sheet_rows(records, start_row, user_name, seq_start=1):
     return rows
 
 def flush_to_sheet(rows, start_row):
-    ws = gc.worksheet(SHEET_NAME)
+    ws = gm.get_main_2026_sheet()
 
     # ✅ append 대신 정확한 위치에 update
     ws.update(f'A{start_row}', rows, value_input_option='USER_ENTERED')
