@@ -775,39 +775,51 @@ with col_list:
            
         # buyprogram.py 내 버튼 로직 예시
         if st.button("📊 이카운트 등록", key="btn_ecount_final"):
-            # etc_data에서 VIN(차대번호) 추출
             vin_to_check = etc_data.get("vin")
             
             if not vin_to_check:
                 st.error("VIN(차대번호) 정보가 없습니다. 데이터를 먼저 확인해주세요.")
             else:
                 with st.spinner("구글 시트 조회 및 이카운트 등록 중..."):
-                    # 1단계: inventoryenter.py의 함수를 사용하여 구글 시트 NO(순번) 조회
                     import inventoryenter
-                    importlib.reload(inventoryenter) # 최신 데이터 반영을 위해 리로드
+                    importlib.reload(inventoryenter)
                     
-                    # 제공해주신 get_no_by_vin 함수 호출
                     existing_no = inventoryenter.get_no_by_vin(vin_to_check)
                     
                     if not existing_no:
-                        # 구글 시트에 없으면 등록 자체가 불가능하므로 경고 후 중단
                         st.warning("⚠️ 구글 시트에서 해당 VIN을 찾을 수 없습니다. [🚀 정보등록]을 먼저 완료해주세요.")
                     else:
                         st.info(f"🔍 확인됨: 구글 시트 순번 NO.{existing_no}")
                         
-                        # 2단계: 이카운트 세션 획득 및 API 호출
                         import ecount
                         session_id = ecount.get_session_id()
                         
                         if session_id:
                             # [Step A] 품목 등록
                             item_res = ecount.register_item(etc_data, session_id, existing_no)
-                            st.write("품목등록 응답:", item_res)  # 임시로 추가
+                            
+                            # 🔍 품목 등록 응답 전체 출력
+                            st.write("**품목 등록 응답:**", item_res)
+                            
                             if str(item_res.get("Status")) == "200":
                                 st.info("✅ 1. 이카운트 품목 등록 완료")
                                 
-                                # [Step B] 구매 입력 (v_username은 상단 selectbox 변수)
+                                # [Step B] 구매 입력
                                 pur_res = ecount.register_purchase(etc_data, session_id, v_username)
+                                
+                                # 🔍 구매입력 응답 전체 출력
+                                st.write("**구매입력 응답:**", pur_res)
+                                
+                                # 🔍 전송한 데이터도 확인
+                                st.write("**전송한 데이터:**")
+                                st.json({
+                                    "biz_num": etc_data.get("biz_num"),
+                                    "price": etc_data.get("price"),
+                                    "fee": etc_data.get("fee"),
+                                    "contract_x": etc_data.get("contract_x"),
+                                    "h_id": etc_data.get("h_id"),
+                                    "username": v_username
+                                })
                                 
                                 if str(pur_res.get("Status")) == "200":
                                     st.success("✅ 2. 이카운트 구매입력 전표 생성 완료!")
@@ -815,7 +827,6 @@ with col_list:
                                 else:
                                     st.error(f"❌ 구매입력 실패: {pur_res.get('Message')}")
                             else:
-                                # 이미 등록된 품목(VIN)인 경우에 대한 처리 (필요시)
                                 st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
                         else:
                             st.error("❌ 이카운트 로그인에 실패했습니다. API 키를 확인해주세요.")
