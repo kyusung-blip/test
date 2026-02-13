@@ -770,7 +770,7 @@ with col_list:
         e_c1, e_c2 = st.columns(2)
            
         # buyprogram.py 내 버튼 로직 예시
-        if st.button("📊 이카운트 품목 및 구매 최종 등록", key="btn_ecount_final"):
+        if st.button("📊 이카운트 등록", key="btn_ecount_final"):
             # etc_data에서 VIN(차대번호) 추출
             vin_to_check = etc_data.get("vin")
             
