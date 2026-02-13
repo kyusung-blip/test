@@ -86,7 +86,7 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
 
 def register_purchase(data, session_id, username):
-    """이카운트 구매입력(전표) 저장 API - 최소 필드 테스트"""
+    """이카운트 구매입력(전표) 저장 API - 차량대만 테스트"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
@@ -116,51 +116,36 @@ def register_purchase(data, session_id, username):
 
     vin = str(data.get("vin", ""))
     v_price = to_float(data.get("price", 0))
-    v_fee = to_float(data.get("fee", 0))
     
     io_date = datetime.now().strftime("%Y%m%d")
     
-    # 최소 필드만 사용한 간단한 payload
-    purchase_list = []
+    # ✅ 차량대 1개만!
+    if v_price <= 0:
+        return {"Status": "400", "Message": "차량대 금액이 없습니다."}
     
-    # A. 차량대 - 필수 필드만
-    if v_price > 0:
-        purchase_list.append({
-            "BulkDatas": {
-                "IO_DATE": io_date,
-                "CUST": cust_code,
-                "PROD_CD": vin,
-                "QTY": 1,
-                "PRICE": v_price
+    payload = {
+        "PurchaseList": [
+            {
+                "BulkDatas": {
+                    "IO_DATE": io_date,
+                    "CUST": cust_code,
+                    "PROD_CD": vin,
+                    "QTY": 1,
+                    "PRICE": v_price
+                }
             }
-        })
-    
-    # B. 매도비 - 필수 필드만
-    if v_fee > 0:
-        purchase_list.append({
-            "BulkDatas": {
-                "IO_DATE": io_date,
-                "CUST": cust_code,
-                "PROD_CD": vin,
-                "QTY": 1,
-                "PRICE": v_fee
-            }
-        })
-    
-    if len(purchase_list) == 0:
-        return {"Status": "400", "Message": "등록할 품목이 없습니다."}
-    
-    payload = {"PurchaseList": purchase_list}
+        ]
+    }
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
         result = response.json()
         
         result["_DEBUG_INFO"] = {
-            "테스트": "최소 필드만 사용",
+            "테스트": "차량대 1개만",
             "변환_v_price": v_price,
-            "변환_v_fee": v_fee,
             "cust_code": cust_code,
+            "vin": vin,
             "payload": payload
         }
         
