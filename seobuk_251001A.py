@@ -1361,25 +1361,6 @@ def to_sheet_rows(records, start_row, user_name, seq_start=1):
 
     return rows
 
-def flush_to_sheet(rows, start_row):
-    ws = gm.get_main_2026_sheet()
-
-    # ✅ append 대신 정확한 위치에 update
-    ws.update(f'A{start_row}', rows, value_input_option='USER_ENTERED')
-
-    # 테두리(선택)
-    last_row = start_row + len(rows) - 1
-    cell_range = f'A{start_row}:AH{last_row}'
-    cell_format = {
-        'borders': {
-            'top': {'style': 'SOLID'},
-            'bottom': {'style': 'SOLID'},
-            'left': {'style': 'SOLID'},
-            'right': {'style': 'SOLID'}
-        }
-    }
-    ws.format(cell_range, cell_format)
-
 # =========================
 # 수정된 run_pipeline 함수
 # =========================
