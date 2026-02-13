@@ -1380,42 +1380,48 @@ def flush_to_sheet(rows, start_row):
 # =========================
 def run_pipeline(list_pairs, user_name, headless=True, hd_login_id=None):
     """
-    1) 소스별 크롤링 → records 메모리 저장 (Streamlit 화면에 진행상황 표시)
+    1) 소스별 크롤링 → records 메모리 저장
     2) plate 모아 carmanager를 1회 로그인 후 대량 조회
     3) cm 결과를 records에 병합
-    4) 'SEOBUK PROJECTION' 시트의 'NUEVO PROJECTION#2'에 기록
+    4) 시트에 배치 기록 (SEOBUK PROJECTION / NUEVO PROJECTION#2)
     """
-    
-    # 1. 드라이버 초기화 알림
-    st.info(f"🚀 {user_name} 님, 크롤링 시스템을 시작합니다. (대상: {len(list_pairs)}건)")
-    driver = make_driver(headless=headless) 
+    if gm.get_nuevo_projection_sheet() is None:
+        st.error("구글 시트 연결에 실패했습니다. 설정을 확인하세요.")
+        return
+
+    # 1. 초기화 및 알림
+    st.info(f"🚀 {user_name} 님, 크롤링을 시작합니다. (대상: {len(list_pairs)}건)")
+    driver = make_driver(headless=headless)
     
     records = []
     plates = []
     hd_logged_in = False
     
-    # 시작 행 결정 (기존 데이터 아래에 추가하기 위해 시트 로드)
+    # 시작 행 결정 (NUEVO PROJECTION#2 시트 기준)
     try:
         ws = gm.get_nuevo_projection_sheet()
-        start_row = len(ws.get_all_values()) + 1
+        all_vals = ws.get_all_values()
+        start_row = len(all_vals) + 1
+        st.write(f"📊 현재 시트 데이터: {len(all_vals)}행 (기록 시작 위치: {start_row}행)")
     except Exception as e:
-        st.error(f"시트 로딩 실패: {e}")
+        st.error(f"시트 정보를 가져오지 못했습니다: {e}")
         driver.quit()
         return
 
-    # A단계: 소스별 스크래핑
-    for idx, (url, buyer) in enumerate(list_pairs):
+    # A단계: 소스별 스크래핑 루프
+    for idx, (url, buyer) in enumerate(list_pairs, start=1):
         row_hint = start_row + len(records)
         url = url.strip()
         buyer = buyer.strip()
         
-        # 현재 진행 상황을 화면에 표시
-        st.write(f"🔄 ({idx+1}/{len(list_pairs)}) 데이터 수집 중... | {url[:40]}...")
+        st.write(f"---")
+        st.write(f"🔄 ({idx}/{len(list_pairs)}) 수집 중: {url[:50]}...")
         
         rec = None
         skip_cm = False
 
         try:
+            # 사이트별 분기 로직 (기존 로직 유지)
             if "encar" in url:
                 rec = scrape_encar(driver, url, row_hint)
             elif "seobuk" in url:
@@ -1428,52 +1434,68 @@ def run_pipeline(list_pairs, user_name, headless=True, hd_login_id=None):
                 # 헤이딜러 로그인 처리 (최초 1회)
                 if not hd_logged_in and hd_login_id:
                     hd_login_pw = HEYDEALER_ACCOUNTS.get(hd_login_id)
+                    st.write(f"🔑 헤이딜러 로그인 시도 중 ({hd_login_id})...")
                     if heydealer_login(driver, hd_login_id, hd_login_pw):
                         hd_logged_in = True
+                        st.write("✅ 헤이딜러 로그인 성공")
                 
                 if hd_logged_in:
                     rec = scrape_heydealer(driver, url, row_hint)
                     if rec: rec["hd_login_id"] = hd_login_id
-                    skip_cm = True
-            
+                else:
+                    st.warning("⚠️ 헤이딜러 로그인이 되지 않아 스킵합니다.")
+                    continue
+                
+                skip_cm = True # 헤이딜러는 카매니저 조회 제외
+
+            # 결과 처리
             if rec:
                 rec["buyer"] = buyer
                 rec["user"] = user_name
                 records.append(rec)
+                st.write(f"✅ 수집 성공: {rec.get('name_ko', '차명 미확인')}")
+                
+                # 카매니저 조회를 위해 번호판 수집
                 if rec.get("plate") and not skip_cm:
                     plates.append(rec["plate"])
-                st.write(f"✅ 수집 성공: {rec.get('name_ko', '차명 미확인')}")
             else:
-                st.warning(f"⚠️ {url} 수집에 실패했습니다.")
+                st.warning(f"⚠️ {url} 에서 데이터를 가져오지 못했습니다.")
 
         except Exception as e:
-            st.error(f"❌ {url} 처리 중 에러 발생: {e}")
+            st.error(f"❌ 처리 중 상세 오류 발생: {e}")
             continue
 
-    # B단계: 카매니저 통합 조회
+    # B단계: 카매니저 통합 조회 (로그인 1회 후 여러 plate 처리)
     if plates:
-        st.write(f"🔎 카매니저 정보 조회 중... (대상: {len(set(plates))}대)")
-        cm_map = crawl_carmanager_many(driver, list(dict.fromkeys(plates)))
-        
-        # C단계: 결과 병합
-        for rec in records:
-            if not rec.get("cm_skip"):
-                p = rec.get("plate", "")
-                cm = cm_map.get(p, {})
-                rec["cm_dealer"]   = cm.get("dealer", "")
-                rec["cm_location"] = cm.get("location", "")
-                rec["cm_price"]    = cm.get("price", 0)
-
-    # D단계: 시트 쓰기
-    if records:
-        st.write("📝 구글 스프레드시트에 기록 중...")
+        unique_plates = list(dict.fromkeys(plates))
+        st.write(f"🔎 카매니저 정보 조회 시작 ({len(unique_plates)}대)...")
         try:
-            rows = to_sheet_rows(records, start_row, user_name)
-            flush_to_sheet(rows, start_row) # 이 내부에서 gm.get_nuevo_projection_sheet() 사용
-            st.success(f"🎊 총 {len(records)}건의 데이터가 'NUEVO PROJECTION#2'에 기록되었습니다.")
+            cm_map = crawl_carmanager_many(driver, unique_plates)
+            
+            # C단계: 수집된 records에 카매니저 결과 병합
+            for rec in records:
+                if not rec.get("cm_skip") and rec.get("plate"):
+                    p = rec["plate"]
+                    cm = cm_map.get(p, {})
+                    rec["cm_dealer"]   = cm.get("dealer", "")
+                    rec["cm_location"] = cm.get("location", "")
+                    rec["cm_price"]    = cm.get("price", 0)
+            st.write("✅ 카매니저 정보 매핑 완료")
         except Exception as e:
-            st.error(f"시트 기록 실패: {e}")
+            st.error(f"카매니저 조회 중 오류 발생: {e}")
+
+    # D단계: 구글 시트 배치 업데이트
+    if records:
+        st.write(f"📝 시트에 데이터 기록 중... (대상: {len(records)}건)")
+        try:
+            # 데이터 행 변환
+            rows = to_sheet_rows(records, start_row, user_name)
+            # 시트 전송 (gm 모듈 사용)
+            flush_to_sheet(rows, start_row)
+            st.success(f"🎊 모든 작업이 완료되었습니다! {len(records)}건이 시트에 반영되었습니다.")
+        except Exception as e:
+            st.error(f"시트 기록 중 오류 발생: {e}")
     else:
-        st.error("❌ 수집된 데이터가 없어 시트를 업데이트하지 않았습니다.")
+        st.warning("⚠️ 수집된 데이터가 없어 시트를 업데이트하지 않았습니다.")
 
     driver.quit()
