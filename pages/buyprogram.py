@@ -768,6 +768,10 @@ with col_list:
         }
         
         e_c1, e_c2 = st.columns(2)
+        if v_site and v_site.startswith("http"):
+            e_c1.link_button("🌐 사이트 이동", v_site)
+            else:
+                e_c1.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
            
         # buyprogram.py 내 버튼 로직 예시
         if st.button("📊 이카운트 등록", key="btn_ecount_final"):
@@ -815,11 +819,6 @@ with col_list:
                                 st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
                         else:
                             st.error("❌ 이카운트 로그인에 실패했습니다. API 키를 확인해주세요.")
-
-        if v_site and v_site.startswith("http"):
-            e_c2.link_button("🌐 사이트 이동", v_site)
-        else:
-            e_c2.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
 
         st.divider()
         
