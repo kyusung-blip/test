@@ -51,6 +51,14 @@ def register_item(data, session_id, sheet_no):
     w = to_float(data.get("width", 0))
     h = to_float(data.get("height", 0))
     cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
+        # 🔍 디버깅: 전송 전 데이터 확인
+    print("=" * 50)
+    print("전송 데이터 확인:")
+    print(f"VIN: {data.get('vin')}")
+    print(f"car_name_remit: '{data.get('car_name_remit')}'")  # 빈 값 확인용
+    print(f"brand: {data.get('brand')}")
+    print(f"plate: {data.get('plate')}")
+    print("=" * 50)
 
     # 이카운트 BulkDatas 표준 필드 매핑
     payload = {
@@ -66,7 +74,7 @@ def register_item(data, session_id, sheet_no):
                     "CONT3": str(data.get("km", "")),                # 문자형추가항목3: km (주행거리)
                     "CONT4": str(data.get("color", "")),             # 문자형추가항목4: COLOR (색상)
                     "CONT5": str(data.get("year", "")),              # 문자형추가항목5: YEAR (연식)
-                    "ADD_DATE_01_T": datetime.now().strftime("YYYYMMDD"),        # 추가일자형식1: 등록일자
+                    "ADD_DATE_01_T": datetime.now().strftime("%Y%m%d"),        # 추가일자형식1: 등록일자
                     "NO_USER2": l,                                   # 숫자형추가항목2: 길이
                     "NO_USER3": w,                                   # 숫자형추가항목3: 너비
                     "NO_USER4": h,                                   # 숫자형추가항목4: 높이
