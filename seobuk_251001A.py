@@ -57,18 +57,20 @@ except Exception as e:
 def make_driver(headless=False):
     opts = webdriver.ChromeOptions()
     
-    # 서버 환경(Streamlit Cloud)을 위한 필수 옵션들
     if headless:
         opts.add_argument("--headless=new")
     
-    opts.add_argument("--no-sandbox") # 리눅스 환경 필수
-    opts.add_argument("--disable-dev-shm-usage") # 공유 메모리 부족 방지 필수
+    # 서버 환경을 위한 필수 옵션
+    opts.add_argument("--no-sandbox")
+    opts.add_argument("--disable-dev-shm-usage")
     opts.add_argument("--disable-gpu")
-    opts.add_argument("--window-size=1920,1080")
+    opts.add_argument("--disable-extensions")
+    opts.add_argument("--remote-debugging-port=9222") # 포트 충돌 방지
     
-    # 기존 코드의 로컬 경로(C:\Python_Practice)는 서버에서 에러를 유발하므로 
-    # 다운로드 경로 설정을 서버용으로 변경하거나 제거해야 합니다.
-    # 배포 환경에서는 상대 경로를 사용하는 것이 좋습니다.
+    # 경로 설정 (Streamlit Cloud 리눅스 환경 표준 경로)
+    opts.binary_location = "/usr/bin/chromium" 
+    
+    # 다운로드 경로 설정 (os 임포트 확인 필요)
     download_path = os.path.join(os.getcwd(), "downloads")
     if not os.path.exists(download_path):
         os.makedirs(download_path)
@@ -78,11 +80,13 @@ def make_driver(headless=False):
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "safebrowsing.enabled": True,
-        "profile.default_content_setting_values.automatic_downloads": 1
     })
     
-    # 자동 관리되는 Service 객체 사용 (Selenium 4.6+ 권장 방식)
-    return webdriver.Chrome(options=opts)
+    # Service 객체를 명시적으로 사용하여 실행
+    from selenium.webdriver.chrome.service import Service
+    service = Service("/usr/bin/chromedriver")
+    
+    return webdriver.Chrome(service=service, options=opts)
 
 def one_line(s):
     # \r, \n, \t 포함 모든 연속 공백을 한 칸으로
