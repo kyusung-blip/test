@@ -802,7 +802,7 @@ with col_list:
                         if session_id:
                             # [Step A] 품목 등록
                             item_res = ecount.register_item(etc_data, session_id, existing_no)
-                            
+                            st.write("품목등록 응답:", item_res)  # 임시로 추가
                             if str(item_res.get("Status")) == "200":
                                 st.info("✅ 1. 이카운트 품목 등록 완료")
                                 
