@@ -77,6 +77,16 @@ def register_item(data, session_id, sheet_no):
             }
         ]
     }
+        # 🔍 디버깅: 전송할 데이터 확인
+    print("=" * 50)
+    print("전송 데이터:")
+    print(f"VIN: {data.get('vin')}")
+    print(f"car_name_remit: {data.get('car_name_remit')}")
+    print(f"brand: {data.get('brand')}")
+    print(f"plate: {data.get('plate')}")
+    print(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}")
+    print("=" * 50)
+
     
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
