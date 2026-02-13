@@ -764,7 +764,7 @@ with col_list:
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
             "deposit": v_deposit, "company": v_company, 
             "biz_name": v_biz_name, "biz_num": v_biz_num,
-            "declaration": v_declaration, "ex_rate": v_ex_rate
+            "declaration": v_declaration, "ex_rate": v_ex_rate,"psource": st.session_state.get("v_psource", "")
         }
         
         e_c1, e_c2 = st.columns(2)
