@@ -51,14 +51,6 @@ def register_item(data, session_id, sheet_no):
     w = to_float(data.get("width", 0))
     h = to_float(data.get("height", 0))
     cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
-        # 🔍 디버깅: 전송 전 데이터 확인
-    print("=" * 50)
-    print("전송 데이터 확인:")
-    print(f"VIN: {data.get('vin')}")
-    print(f"car_name_remit: '{data.get('car_name_remit')}'")  # 빈 값 확인용
-    print(f"brand: {data.get('brand')}")
-    print(f"plate: {data.get('plate')}")
-    print("=" * 50)
 
     # 이카운트 BulkDatas 표준 필드 매핑
     payload = {
@@ -85,15 +77,6 @@ def register_item(data, session_id, sheet_no):
             }
         ]
     }
-        # 🔍 디버깅: 전송할 데이터 확인
-    print("=" * 50)
-    print("전송 데이터:")
-    print(f"VIN: {data.get('vin')}")
-    print(f"car_name_remit: {data.get('car_name_remit')}")
-    print(f"brand: {data.get('brand')}")
-    print(f"plate: {data.get('plate')}")
-    print(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}")
-    print("=" * 50)
 
     
     try:
@@ -122,6 +105,18 @@ def register_purchase(data, session_id, username):
         return float(clean) if clean else 0
 
     vin = str(data.get("vin", ""))
+        # 🔍 디버깅: 기본 데이터 확인
+    print("=" * 50)
+    print("구매입력 전송 데이터 확인:")
+    print(f"거래처번호(원본): {biz_num}")
+    print(f"거래처코드(정제): {cust_code}")
+    print(f"VIN: {vin}")
+    print(f"username: {username}")
+    print(f"h_id: {data.get('h_id')} → CustomCode1: {custom_code1}")
+    print(f"price: {data.get('price')} → {to_float(data.get('price', 0))}")
+    print(f"fee: {data.get('fee')} → {to_float(data.get('fee', 0))}")
+    print(f"contract_x: {data.get('contract_x')} → {to_float(data.get('contract_x', 0))}")
+    print("=" * 50)
     purchase_list = []
 
     # --- 하단 품목 구성 로직 ---
@@ -188,9 +183,22 @@ def register_purchase(data, session_id, username):
         })
 
     payload = {"PurchaseList": purchase_list}
+        # 🔍 디버깅: 최종 Payload 확인
+    print(f"전송할 품목 수: {len(purchase_list)}")
+    print(f"Payload: {json.dumps(payload, indent=2, ensure_ascii=False)}")
+    print("=" * 50)
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
-        return response.json()
+        result = response.json()
+        
+        # 🔍 디버깅: 응답 확인
+        print(f"응답 Status: {result.get('Status')}")
+        print(f"응답 Data: {json.dumps(result.get('Data', {}), indent=2, ensure_ascii=False)}")
+        print("=" * 50)
+        
+        return result
     except Exception as e:
-        return {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
+        error_result = {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
+        print(f"❌ 오류 발생: {error_result}")
+        return error_result
