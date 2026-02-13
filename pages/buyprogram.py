@@ -303,10 +303,8 @@ if raw_input:
                 import google_sheet_manager as gsm
                 car_map = gsm.get_car_name_map()
                 alt_name = lg.get_alt_car_name(original_car_name, car_map)
-                # 항상 대문자로 변환하여 저장
                 st.session_state["auto_alt_car_name"] = alt_name.upper() if alt_name else ""
             except:
-                # 예외 발생 시에도 대문자로 변환하여 저장
                 st.session_state["auto_alt_car_name"] = original_car_name.upper() if original_car_name else ""
 
             # 7️⃣ [기타 금액 데이터]
@@ -399,14 +397,13 @@ with col_info:
         val = st.session_state.get("remit_name_widget", "")
         st.session_state["remit_name_widget"] = val.upper()
     
-    # 차명(송금용) - 대문자 변환 적용
     remit_input = r1_4.text_input(
         "차명(송금용)", 
-        value=st.session_state.get("auto_alt_car_name", "").upper(),
+        value=st.session_state.get("auto_alt_car_name", ""),
         key="remit_name_widget",
         on_change=uppercase_remit_name
     )
-    v_car_name_remit = st.session_state.get("remit_name_widget", "").upper()
+    v_car_name_remit = st.session_state.get("remit_name_widget", "")
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
@@ -495,9 +492,8 @@ with col_info:
     # 들여쓰기를 왼쪽으로 맞춰야 합니다.
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
     
-    # DECLARATION 자동 계산 - 차량대금(price) 기반으로 항상 자동 계산
+    # DECLARATION 자동 계산 및 세션 상태 저장
     auto_decl_val = pm.calculate_declaration(v_price)
-    # 세션 상태에 자동 계산 값 저장하여 위젯이 항상 최신 계산 값을 반영하도록 함
     st.session_state["v_declaration_key"] = pm.format_number(auto_decl_val)
     
     r5_1, r5_2, r5_3, r5_4 = st.columns([2, 2, 2, 2])
