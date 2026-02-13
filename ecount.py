@@ -191,6 +191,21 @@ def register_purchase(data, session_id, username):
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
-        return response.json()
+        result = response.json()
+        
+        # 🔍 디버깅: 결과에 변환된 값 추가
+        result["_DEBUG_INFO"] = {
+            "원본_price": data.get("price"),
+            "변환_v_price": v_price,
+            "원본_fee": data.get("fee"),
+            "변환_v_fee": v_fee,
+            "원본_contract_x": data.get("contract_x"),
+            "변환_v_contract": v_contract,
+            "cust_code": cust_code,
+            "purchase_list_count": len(purchase_list),
+            "payload_sample": payload["PurchaseList"][0] if len(purchase_list) > 0 else None
+        }
+        
+        return result
     except Exception as e:
         return {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
