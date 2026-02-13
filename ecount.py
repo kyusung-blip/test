@@ -86,7 +86,7 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
 
 def register_purchase(data, session_id, username):
-    """이카운트 구매입력(전표) 저장 API - 한 전표에 여러 품목"""
+    """이카운트 구매입력(전표) 저장 API - 여러 전표로 분리"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
@@ -98,119 +98,112 @@ def register_purchase(data, session_id, username):
     h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
     custom_code1 = h_map.get(data.get("h_id", ""), "")
     
-    # 3. 숫자 변환 유틸리티 (만원 처리 추가)
+    # 3. 숫자 변환 유틸리티
     def to_float(val):
         """금액 문자열을 숫자로 변환 (만원 단위 처리)"""
         if not val: return 0
         
         val_str = str(val)
         
-        # "만원" 처리
         if "만원" in val_str:
             clean = re.sub(r'[^0-9.]', '', val_str)
             if clean:
-                return float(clean) * 10000  # 만원 → 원 변환
+                return float(clean) * 10000
             return 0
         
-        # "원" 처리 (만원 없이)
         if "원" in val_str:
             clean = re.sub(r'[^0-9.]', '', val_str)
             return float(clean) if clean else 0
         
-        # 숫자만 있는 경우
         clean = re.sub(r'[^0-9.]', '', val_str)
         return float(clean) if clean else 0
 
     vin = str(data.get("vin", ""))
-    
-    # 금액 변환
     v_price = to_float(data.get("price", 0))
     v_fee = to_float(data.get("fee", 0))
     v_contract = to_float(data.get("contract_x", 0))
     
-    # 공통 정보
     io_date = datetime.now().strftime("%Y%m%d")
     plate = str(data.get("plate", ""))
     car_name_remit = str(data.get("car_name_remit", ""))
     
-    # --- 하나의 전표에 여러 품목 라인 추가 ---
-    detail_list = []
+    # 여러 전표를 PurchaseList에 담기
+    purchase_list = []
     
-    # A. 차량대 (Price)
+    # A. 차량대 전표
     if v_price > 0:
-        detail_list.append({
-            "PROD_CD": vin,
-            "QTY": 1,
-            "PRICE": v_price,
-            "U_MEMO1": plate,
-            "U_MEMO2": vin,
-            "U_MEMO3": str(data.get("psource", "")),
-            "U_MEMO4": car_name_remit,
-            "U_MEMO5": str(data.get("sales", "")),
-            "CustomField1": str(data.get("buyer", "")),
-            "CustomField2": str(data.get("country", "")),
-            "CustomField4": str(data.get("region", "")),
-            "CustomField5": str(data.get("year", "")),
-            "CustomField6": str(data.get("color", "")),
-            "CustomField7": str(data.get("km", "")),
-            "CustomField10": str(data.get("brand", "")),
-            "CustomCode1": custom_code1
+        purchase_list.append({
+            "BulkDatas": {
+                "IO_DATE": io_date,
+                "CUST": cust_code,
+                "EMP_CD": username,
+                "PROD_CD": vin,
+                "QTY": 1,
+                "PRICE": v_price,
+                "U_MEMO1": plate,
+                "U_MEMO2": vin,
+                "U_MEMO3": str(data.get("psource", "")),
+                "U_MEMO4": car_name_remit,
+                "U_MEMO5": str(data.get("sales", "")),
+                "CustomField1": str(data.get("buyer", "")),
+                "CustomField2": str(data.get("country", "")),
+                "CustomField4": str(data.get("region", "")),
+                "CustomField5": str(data.get("year", "")),
+                "CustomField6": str(data.get("color", "")),
+                "CustomField7": str(data.get("km", "")),
+                "CustomField10": str(data.get("brand", "")),
+                "CustomCode1": custom_code1
+            }
         })
     
-    # B. 매도비 (Fee)
+    # B. 매도비 전표
     if v_fee > 0:
-        detail_list.append({
-            "PROD_CD": vin,
-            "QTY": 1,
-            "PRICE": v_fee,
-            "U_MEMO1": plate,
-            "U_MEMO2": vin,
-            "U_MEMO4": f"[매도비] {car_name_remit}"
+        purchase_list.append({
+            "BulkDatas": {
+                "IO_DATE": io_date,
+                "CUST": cust_code,
+                "EMP_CD": username,
+                "PROD_CD": vin,
+                "QTY": 1,
+                "PRICE": v_fee,
+                "U_MEMO1": plate,
+                "U_MEMO2": vin,
+                "U_MEMO4": f"[매도비] {car_name_remit}"
+            }
         })
     
-    # C. 계산서X (Contract_x)
+    # C. 계산서X 전표
     if v_contract > 0:
-        detail_list.append({
-            "PROD_CD": vin,
-            "QTY": 1,
-            "SUPPLY_AMT": v_contract,
-            "U_MEMO1": plate,
-            "U_MEMO2": vin,
-            "U_MEMO4": f"[계산서X] {car_name_remit}"
+        purchase_list.append({
+            "BulkDatas": {
+                "IO_DATE": io_date,
+                "CUST": cust_code,
+                "EMP_CD": username,
+                "PROD_CD": vin,
+                "QTY": 1,
+                "SUPPLY_AMT": v_contract,
+                "U_MEMO1": plate,
+                "U_MEMO2": vin,
+                "U_MEMO4": f"[계산서X] {car_name_remit}"
+            }
         })
     
-    # 전표 생성 (품목이 있을 때만)
-    if len(detail_list) == 0:
+    if len(purchase_list) == 0:
         return {"Status": "400", "Message": "등록할 품목이 없습니다."}
     
-    # 하나의 전표로 구성
-    payload = {
-        "PurchaseList": [
-            {
-                "BulkDatas": {
-                    "IO_DATE": io_date,
-                    "CUST": cust_code,
-                    "EMP_CD": username
-                },
-                "DetailList": detail_list  # ✅ 여러 품목을 하나의 전표에!
-            }
-        ]
-    }
+    payload = {"PurchaseList": purchase_list}
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
         result = response.json()
         
-        # 🔍 디버깅 정보 추가
         result["_DEBUG_INFO"] = {
             "원본_price": data.get("price"),
             "변환_v_price": v_price,
             "원본_fee": data.get("fee"),
             "변환_v_fee": v_fee,
-            "원본_contract_x": data.get("contract_x"),
-            "변환_v_contract": v_contract,
             "cust_code": cust_code,
-            "detail_list_count": len(detail_list),
+            "purchase_count": len(purchase_list),
             "payload": payload
         }
         
