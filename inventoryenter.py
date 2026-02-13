@@ -27,9 +27,9 @@ def run_integrated_registration(data):
         sheet_main = gsm.get_main_2026_sheet()
         all_main_values = sheet_main.get_all_values()
         
-        # C열(차번호, index 2), D열(VIN, index 3) 추출
-        existing_plates = [row[2].strip().lower() for row in all_main_values if len(row) > 2]
-        existing_vins = [row[3].strip().lower() for row in all_main_values if len(row) > 3]
+        # C열(차번호, index 3), D열(VIN, index 4) 추출
+        existing_plates = [row[3].strip().lower() for row in all_main_values if len(row) > 3]
+        existing_vins = [row[4].strip().lower() for row in all_main_values if len(row) > 4]
         
         is_duplicate = (plate.lower() in existing_plates if plate else False) or \
                        (vin.lower() in existing_vins if vin else False)
