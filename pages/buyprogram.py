@@ -739,8 +739,6 @@ with col_list:
                 else:
                     st.error(res["message"])
 
-
-
         st.divider()
 
         current_content2 = st.session_state.get("out_tab2_final", "")
@@ -770,15 +768,7 @@ with col_list:
         }
         
         e_c1, e_c2 = st.columns(2)
-        
-        if e_c1.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
-            with st.spinner("시트에 등록 중..."):
-                res = inventoryenter.run_integrated_registration(etc_data)
-                if res["status"] in ["success", "partial"]:
-                    st.success(res["message"])
-                else:
-                    st.error(res["message"])
-            
+           
         # buyprogram.py 내 버튼 로직 예시
         if st.button("📊 이카운트 품목 및 구매 최종 등록", key="btn_ecount_final"):
             # etc_data에서 VIN(차대번호) 추출
