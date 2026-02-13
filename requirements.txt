@@ -10,4 +10,6 @@ pandas
 requests
 webdriver-manager
 st-copy-to-clipboard
+beautifulsoup4
+
 
