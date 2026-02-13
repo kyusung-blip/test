@@ -41,6 +41,10 @@ def get_inspection_data_sheet():
     # 스프레드시트 이름과 워크시트 이름을 정확히 지정합니다.
     return get_spreadsheet_open("Inspection Organization (24-23)").worksheet("인스팩션내용")
 
+def get_nuevo_projection_sheet():
+    """'SEOBUK PROJECTION' 스프레드시트의 'NUEVO PROJECTION#2' 워크시트 반환"""
+    return get_spreadsheet_open("SEOBUK PROJECTION").worksheet("NUEVO PROJECTION#2")
+
 # google_sheet_manager.py
 
 @st.cache_data(ttl=600)  # 10분간 캐시 유지
