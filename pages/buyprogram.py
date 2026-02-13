@@ -770,7 +770,7 @@ with col_list:
         e_c1, e_c2 = st.columns(2)
         if v_site and v_site.startswith("http"):
             e_c1.link_button("🌐 사이트 이동", v_site)
-            else:
+        else:
                 e_c1.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
            
         # buyprogram.py 내 버튼 로직 예시
