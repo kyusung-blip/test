@@ -86,7 +86,7 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
 
 def register_purchase(data, session_id, username):
-    """이카운트 구매입력(전표) 저장 API - 다중 품목 대응"""
+    """이카운트 구매입력(전표) 저장 API - 한 전표에 여러 품목"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
@@ -122,78 +122,86 @@ def register_purchase(data, session_id, username):
         return float(clean) if clean else 0
 
     vin = str(data.get("vin", ""))
-    purchase_list = []
-
-    # --- 하단 품목 구성 로직 ---
+    
+    # 금액 변환
+    v_price = to_float(data.get("price", 0))
+    v_fee = to_float(data.get("fee", 0))
+    v_contract = to_float(data.get("contract_x", 0))
+    
+    # 공통 정보
+    io_date = datetime.now().strftime("%Y%m%d")
+    plate = str(data.get("plate", ""))
+    car_name_remit = str(data.get("car_name_remit", ""))
+    
+    # --- 하나의 전표에 여러 품목 라인 추가 ---
+    detail_list = []
     
     # A. 차량대 (Price)
-    v_price = to_float(data.get("price", 0))
     if v_price > 0:
-        purchase_list.append({
-            "BulkDatas": {
-                "IO_DATE": datetime.now().strftime("%Y%m%d"),
-                "CUST": cust_code,
-                "PROD_CD": vin,
-                "QTY": 1,
-                "PRICE": v_price,
-                "EMP_CD": username,
-                "U_MEMO1": str(data.get("plate", "")),
-                "U_MEMO2": vin,
-                "U_MEMO3": str(data.get("psource", "")),
-                "U_MEMO4": str(data.get("car_name_remit", "")),
-                "U_MEMO5": str(data.get("sales", "")),
-                "CustomField1": str(data.get("buyer", "")),
-                "CustomField2": str(data.get("country", "")),
-                "CustomField4": str(data.get("region", "")),
-                "CustomField5": str(data.get("year", "")),
-                "CustomField6": str(data.get("color", "")),
-                "CustomField7": str(data.get("km", "")),
-                "CustomField10": str(data.get("brand", "")),
-                "CustomCode1": custom_code1
-            }
+        detail_list.append({
+            "PROD_CD": vin,
+            "QTY": 1,
+            "PRICE": v_price,
+            "U_MEMO1": plate,
+            "U_MEMO2": vin,
+            "U_MEMO3": str(data.get("psource", "")),
+            "U_MEMO4": car_name_remit,
+            "U_MEMO5": str(data.get("sales", "")),
+            "CustomField1": str(data.get("buyer", "")),
+            "CustomField2": str(data.get("country", "")),
+            "CustomField4": str(data.get("region", "")),
+            "CustomField5": str(data.get("year", "")),
+            "CustomField6": str(data.get("color", "")),
+            "CustomField7": str(data.get("km", "")),
+            "CustomField10": str(data.get("brand", "")),
+            "CustomCode1": custom_code1
         })
-
+    
     # B. 매도비 (Fee)
-    v_fee = to_float(data.get("fee", 0))
     if v_fee > 0:
-        purchase_list.append({
-            "BulkDatas": {
-                "IO_DATE": datetime.now().strftime("%Y%m%d"),
-                "CUST": cust_code,
-                "PROD_CD": vin,
-                "QTY": 1,
-                "PRICE": v_fee, # 매도비는 단가에 입력
-                "EMP_CD": username,
-                "U_MEMO1": str(data.get("plate", "")),
-                "U_MEMO2": vin,
-                "U_MEMO4": f"[매도비] {data.get('car_name_remit', '')}"
-            }
+        detail_list.append({
+            "PROD_CD": vin,
+            "QTY": 1,
+            "PRICE": v_fee,
+            "U_MEMO1": plate,
+            "U_MEMO2": vin,
+            "U_MEMO4": f"[매도비] {car_name_remit}"
         })
-
+    
     # C. 계산서X (Contract_x)
-    v_contract = to_float(data.get("contract_x", 0))
     if v_contract > 0:
-        purchase_list.append({
-            "BulkDatas": {
-                "IO_DATE": datetime.now().strftime("%Y%m%d"),
-                "CUST": cust_code,
-                "PROD_CD": vin,
-                "QTY": 1,
-                "SUPPLY_AMT": v_contract, # 계산서X는 공급가액에 직접 입력
-                "EMP_CD": username,
-                "U_MEMO1": str(data.get("plate", "")),
-                "U_MEMO2": vin,
-                "U_MEMO4": f"[계산서X] {data.get('car_name_remit', '')}"
-            }
+        detail_list.append({
+            "PROD_CD": vin,
+            "QTY": 1,
+            "SUPPLY_AMT": v_contract,
+            "U_MEMO1": plate,
+            "U_MEMO2": vin,
+            "U_MEMO4": f"[계산서X] {car_name_remit}"
         })
-
-    payload = {"PurchaseList": purchase_list}
+    
+    # 전표 생성 (품목이 있을 때만)
+    if len(detail_list) == 0:
+        return {"Status": "400", "Message": "등록할 품목이 없습니다."}
+    
+    # 하나의 전표로 구성
+    payload = {
+        "PurchaseList": [
+            {
+                "BulkDatas": {
+                    "IO_DATE": io_date,
+                    "CUST": cust_code,
+                    "EMP_CD": username
+                },
+                "DetailList": detail_list  # ✅ 여러 품목을 하나의 전표에!
+            }
+        ]
+    }
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
         result = response.json()
         
-        # 🔍 디버깅: 결과에 변환된 값 추가
+        # 🔍 디버깅 정보 추가
         result["_DEBUG_INFO"] = {
             "원본_price": data.get("price"),
             "변환_v_price": v_price,
@@ -202,8 +210,8 @@ def register_purchase(data, session_id, username):
             "원본_contract_x": data.get("contract_x"),
             "변환_v_contract": v_contract,
             "cust_code": cust_code,
-            "purchase_list_count": len(purchase_list),
-            "payload_sample": payload["PurchaseList"][0] if len(purchase_list) > 0 else None
+            "detail_list_count": len(detail_list),
+            "payload": payload
         }
         
         return result
