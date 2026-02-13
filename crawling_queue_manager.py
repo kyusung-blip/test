@@ -105,9 +105,14 @@ def update_status(row_num, status, result=""):
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
     if status == "진행중":
-        sheet.update(f"F{row_num}:H{row_num}", [[status, "", now]])
+        # F: Status, H: Started_At (G: Created_At는 유지)
+        sheet.update(f"F{row_num}", [[status]])
+        sheet.update(f"H{row_num}", [[now]])
     elif status in ["완료", "실패"]:
-        sheet.update(f"F{row_num}:J{row_num}", [[status, "", now, result]])
+        # F: Status, I: Completed_At, J: Result (G, H는 유지)
+        sheet.update(f"F{row_num}", [[status]])
+        sheet.update(f"I{row_num}", [[now]])
+        sheet.update(f"J{row_num}", [[result]])
 
 def run_next_task():
     """
