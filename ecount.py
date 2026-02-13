@@ -86,7 +86,7 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
 
 def register_purchase(data, session_id, username):
-    """이카운트 구매입력(전표) 저장 API - 여러 전표로 분리"""
+    """이카운트 구매입력(전표) 저장 API - 최소 필드 테스트"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
@@ -94,11 +94,7 @@ def register_purchase(data, session_id, username):
     biz_num = str(data.get("biz_num", ""))
     cust_code = re.sub(r'[^0-9]', '', biz_num)
     
-    # 2. h_id 매핑
-    h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
-    custom_code1 = h_map.get(data.get("h_id", ""), "")
-    
-    # 3. 숫자 변환 유틸리티
+    # 2. 숫자 변환 유틸리티
     def to_float(val):
         """금액 문자열을 숫자로 변환 (만원 단위 처리)"""
         if not val: return 0
@@ -121,70 +117,33 @@ def register_purchase(data, session_id, username):
     vin = str(data.get("vin", ""))
     v_price = to_float(data.get("price", 0))
     v_fee = to_float(data.get("fee", 0))
-    v_contract = to_float(data.get("contract_x", 0))
     
     io_date = datetime.now().strftime("%Y%m%d")
-    plate = str(data.get("plate", ""))
-    car_name_remit = str(data.get("car_name_remit", ""))
     
-    # 여러 전표를 PurchaseList에 담기
+    # 최소 필드만 사용한 간단한 payload
     purchase_list = []
     
-    # A. 차량대 전표
+    # A. 차량대 - 필수 필드만
     if v_price > 0:
         purchase_list.append({
             "BulkDatas": {
                 "IO_DATE": io_date,
                 "CUST": cust_code,
-                "EMP_CD": username,
                 "PROD_CD": vin,
                 "QTY": 1,
-                "PRICE": v_price,
-                "U_MEMO1": plate,
-                "U_MEMO2": vin,
-                "U_MEMO3": str(data.get("psource", "")),
-                "U_MEMO4": car_name_remit,
-                "U_MEMO5": str(data.get("sales", "")),
-                "CustomField1": str(data.get("buyer", "")),
-                "CustomField2": str(data.get("country", "")),
-                "CustomField4": str(data.get("region", "")),
-                "CustomField5": str(data.get("year", "")),
-                "CustomField6": str(data.get("color", "")),
-                "CustomField7": str(data.get("km", "")),
-                "CustomField10": str(data.get("brand", "")),
-                "CustomCode1": custom_code1
+                "PRICE": v_price
             }
         })
     
-    # B. 매도비 전표
+    # B. 매도비 - 필수 필드만
     if v_fee > 0:
         purchase_list.append({
             "BulkDatas": {
                 "IO_DATE": io_date,
                 "CUST": cust_code,
-                "EMP_CD": username,
                 "PROD_CD": vin,
                 "QTY": 1,
-                "PRICE": v_fee,
-                "U_MEMO1": plate,
-                "U_MEMO2": vin,
-                "U_MEMO4": f"[매도비] {car_name_remit}"
-            }
-        })
-    
-    # C. 계산서X 전표
-    if v_contract > 0:
-        purchase_list.append({
-            "BulkDatas": {
-                "IO_DATE": io_date,
-                "CUST": cust_code,
-                "EMP_CD": username,
-                "PROD_CD": vin,
-                "QTY": 1,
-                "SUPPLY_AMT": v_contract,
-                "U_MEMO1": plate,
-                "U_MEMO2": vin,
-                "U_MEMO4": f"[계산서X] {car_name_remit}"
+                "PRICE": v_fee
             }
         })
     
@@ -198,12 +157,10 @@ def register_purchase(data, session_id, username):
         result = response.json()
         
         result["_DEBUG_INFO"] = {
-            "원본_price": data.get("price"),
+            "테스트": "최소 필드만 사용",
             "변환_v_price": v_price,
-            "원본_fee": data.get("fee"),
             "변환_v_fee": v_fee,
             "cust_code": cust_code,
-            "purchase_count": len(purchase_list),
             "payload": payload
         }
         
