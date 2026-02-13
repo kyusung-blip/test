@@ -737,7 +737,7 @@ with col_list:
         etc_data = {
             "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
             "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
-            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, "dealer_phone": v_dealer_phone,
             "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
             "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
