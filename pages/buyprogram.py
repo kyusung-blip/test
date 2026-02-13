@@ -303,8 +303,10 @@ if raw_input:
                 import google_sheet_manager as gsm
                 car_map = gsm.get_car_name_map()
                 alt_name = lg.get_alt_car_name(original_car_name, car_map)
+                # 항상 대문자로 변환하여 저장
                 st.session_state["auto_alt_car_name"] = alt_name.upper() if alt_name else ""
             except:
+                # 예외 발생 시에도 대문자로 변환하여 저장
                 st.session_state["auto_alt_car_name"] = original_car_name.upper() if original_car_name else ""
 
             # 7️⃣ [기타 금액 데이터]
@@ -391,13 +393,20 @@ with col_info:
     v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
     v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
     default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
-    # 차명(송금용) - 입력값을 대문자로 변환하여 저장
+    
+    # 차명(송금용) - 실시간 대문자 변환을 위한 콜백 함수
+    def uppercase_remit_name():
+        val = st.session_state.get("remit_name_widget", "")
+        st.session_state["remit_name_widget"] = val.upper()
+    
+    # 차명(송금용) - 대문자 변환 적용
     remit_input = r1_4.text_input(
         "차명(송금용)", 
-        value=st.session_state.get("auto_alt_car_name", ""),
-        key="remit_name_widget"
+        value=st.session_state.get("auto_alt_car_name", "").upper(),
+        key="remit_name_widget",
+        on_change=uppercase_remit_name
     )
-    v_car_name_remit = remit_input.upper() if remit_input else ""
+    v_car_name_remit = st.session_state.get("remit_name_widget", "").upper()
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
@@ -602,6 +611,20 @@ with col_list:
             "sales": v_sales, "address": v_address, "dealer_phone": v_dealer_phone,
             "region": v_region, "site": v_site
         }
+        
+        # etc.py용 데이터 (입고방 알림, 서류안내 문자용)
+        etc_data = {
+            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+            "deposit": v_deposit, "company": v_company, 
+            "biz_name": v_biz_name, "biz_num": v_biz_num,
+            "declaration": v_declaration, "ex_rate": v_ex_rate,
+            "auc_type": v_auc_type, "auc_region": v_auc_region
+        }
 
         m_c1, m_c2 = st.columns(2)
         
@@ -627,6 +650,15 @@ with col_list:
 
         if m_c2.button("주소공유", key="btn_share"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "share_address")
+            st.rerun()
+        
+        # Tab3에서 이동한 버튼들 (2열 구성 유지)
+        if m_c1.button("입고방 알림", key="btn_etc1"):
+            st.session_state["out_tab1_final"] = etc.handle_etc(etc_data, "입고방")
+            st.rerun()
+            
+        if m_c2.button("서류안내 문자", key="btn_etc2"):
+            st.session_state["out_tab1_final"] = etc.handle_etc(etc_data, "서류문자")
             st.rerun()
 
         st.divider()
@@ -716,21 +748,14 @@ with col_list:
         }
         
         e_c1, e_c2 = st.columns(2)
-        if e_c1.button("입고방 알림", key="btn_etc1"):
-            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
-            st.rerun()
-            
-        if e_c2.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
+        
+        if e_c1.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
             with st.spinner("시트에 등록 중..."):
                 res = inventoryenter.run_integrated_registration(etc_data)
                 if res["status"] in ["success", "partial"]:
                     st.success(res["message"])
                 else:
                     st.error(res["message"])
-
-        if e_c2.button("서류안내 문자", key="btn_etc2"):
-            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
-            st.rerun()
             
         # buyprogram.py 내 버튼 로직 예시
         if st.button("📊 이카운트 품목 및 구매 최종 등록", key="btn_ecount_final"):
