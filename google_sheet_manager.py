@@ -45,6 +45,10 @@ def get_nuevo_projection_sheet():
     """'SEOBUK PROJECTION' 스프레드시트의 'NUEVO PROJECTION#2' 워크시트 반환"""
     return get_spreadsheet_open("SEOBUK PROJECTION").worksheet("NUEVO PROJECTION#2")
 
+def get_crawling_queue_sheet():
+    """'SEOBUK PROJECTION' 스프레드시트의 'Crawling_Queue' 워크시트 반환"""
+    return get_spreadsheet_open("SEOBUK PROJECTION").worksheet("Crawling_Queue")
+
 # google_sheet_manager.py
 
 @st.cache_data(ttl=600)  # 10분간 캐시 유지
