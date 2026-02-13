@@ -68,35 +68,26 @@ def main():
     if start_button:
         if not text_links or not text_buyers:
             st.warning("링크와 구매자 정보를 모두 입력해주세요.")
-            return
-
-        # 데이터 가공
-        list_links = [line.strip() for line in text_links.splitlines() if line.strip()]
-        list_buyers = [line.strip() for line in text_buyers.splitlines() if line.strip()]
-        list_pairs = list(zip(list_links, list_buyers))
-
-        # 진행 상태 표시 (Program Processing)
-        status_placeholder.markdown(
-            '<div class="status-box processing">Program Processing</div>', 
-            unsafe_allow_html=True
-        )
-
-        try:
-            # 실제 크롤링 함수 호출 (headless 옵션은 환경에 따라 조절)
-            # 웹 배포 시에는 반드시 headless=True 여야 합니다.
-            En.run_pipeline(list_pairs, selected_user, headless=True, hd_login_id=selected_hd_id)
-            
-            # 완료 표시 (Completed)
-            now = datetime.now().strftime("%m/%d _ %H:%M:%S")
-            status_placeholder.markdown(
-                f'<div class="status-box completed">Completed {now}</div>', 
-                unsafe_allow_html=True
-            )
-            st.balloons() # 시각적 효과
-            
-        except Exception as e:
-            st.error(f"오류 발생: {e}")
-            status_placeholder.empty()
+        else:
+            list_links = [line.strip() for line in text_links.splitlines() if line.strip()]
+            list_buyers = [line.strip() for line in text_buyers.splitlines() if line.strip()]
+            list_pairs = list(zip(list_links, list_buyers))
+    
+            status_placeholder.markdown('<div class="status-box processing">Program Processing...</div>', unsafe_allow_html=True)
+    
+            try:
+                # 호출 시 결과를 받거나 에러를 체크합니다.
+                En.run_pipeline(list_pairs, selected_user, headless=True, hd_login_id=selected_hd_id)
+                
+                now = datetime.now().strftime("%m/%d _ %H:%M:%S")
+                status_placeholder.markdown(f'<div class="status-box completed">Completed {now}</div>', unsafe_allow_html=True)
+                st.success("작업이 성공적으로 끝났습니다.")
+            except Exception as e:
+                # 🚨 이 부분이 중요합니다: 화면에 에러 내용을 직접 뿌려줍니다.
+                st.error(f"❌ 실행 중 오류 발생: {e}")
+                import traceback
+                st.code(traceback.format_exc()) # 상세 에러 추적 로그 표시
+                status_placeholder.empty()
 
 if __name__ == "__main__":
     main()
