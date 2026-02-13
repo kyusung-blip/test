@@ -651,14 +651,6 @@ with col_list:
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "share_address")
             st.rerun()
         
-        # Tab3에서 이동한 버튼들 (2열 구성 유지)
-        if m_c1.button("입고방 알림", key="btn_etc1"):
-            st.session_state["out_tab1_final"] = etc.handle_etc(etc_data, "입고방")
-            st.rerun()
-            
-        if m_c2.button("서류안내 문자", key="btn_etc2"):
-            st.session_state["out_tab1_final"] = etc.handle_etc(etc_data, "서류문자")
-            st.rerun()
 
         st.divider()
         
@@ -691,6 +683,19 @@ with col_list:
             "usd_price": v_usd, "won_price": v_won, "car_name_remit": v_car_name_remit,
             "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
         }
+                # etc.py용 데이터 (입고방 알림, 서류안내 문자용)
+        etc_data = {
+            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+            "deposit": v_deposit, "company": v_company, 
+            "biz_name": v_biz_name, "biz_num": v_biz_num,
+            "declaration": v_declaration, "ex_rate": v_ex_rate,
+            "auc_type": v_auc_type, "auc_region": v_auc_region
+        }
 
         r_c1, r_c2 = st.columns(2)
         if r_c1.button("일반매입 송금", key="btn_remit_1"):
@@ -716,6 +721,16 @@ with col_list:
         if r_c2.button("헤이딜러 송금", key="btn_remit_6"):
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
             st.rerun()
+
+                # Tab3에서 이동한 버튼들 (2열 구성 유지)
+        if r_c1.button("입고방 알림", key="btn_etc1"):
+            st.session_state["out_tab2_final"] = etc.handle_etc(etc_data, "입고방")
+            st.rerun()
+            
+        if r_c2.button("서류안내 문자", key="btn_etc2"):
+            st.session_state["out_tab2_final"] = etc.handle_etc(etc_data, "서류문자")
+            st.rerun()
+
 
 
         st.divider()
