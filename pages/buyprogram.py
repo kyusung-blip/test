@@ -792,44 +792,83 @@ with col_list:
                         st.info(f"🔍 확인됨: 구글 시트 순번 NO.{existing_no}")
                         
                         import ecount
+                        importlib.reload(ecount)
                         session_id = ecount.get_session_id()
                         
                         if session_id:
                             # [Step A] 품목 등록
                             item_res = ecount.register_item(etc_data, session_id, existing_no)
                             
-                            # 🔍 품목 등록 응답 전체 출력
                             st.write("**품목 등록 응답:**", item_res)
                             
                             if str(item_res.get("Status")) == "200":
-                                st.info("✅ 1. 이카운트 품목 등록 완료")
+                                st.success("✅ 1. 이카운트 품목 등록 완료")
                                 
-                                # [Step B] 구매 입력
-                                pur_res = ecount.register_purchase(etc_data, session_id, v_username)
-                                
-                                # 🔍 구매입력 응답 전체 출력
-                                st.write("**구매입력 응답:**", pur_res)
-                                
-                                # 🔍 전송한 데이터도 확인
-                                st.write("**전송한 데이터:**")
-                                st.json({
-                                    "biz_num": etc_data.get("biz_num"),
-                                    "price": etc_data.get("price"),
-                                    "fee": etc_data.get("fee"),
-                                    "contract_x": etc_data.get("contract_x"),
-                                    "h_id": etc_data.get("h_id"),
+                                # ✅ session_state에 저장해서 구매입력 준비
+                                st.session_state["ecount_ready"] = {
+                                    "etc_data": etc_data,
+                                    "session_id": session_id,
                                     "username": v_username
-                                })
+                                }
                                 
-                                if str(pur_res.get("Status")) == "200":
-                                    st.success("✅ 2. 이카운트 구매입력 전표 생성 완료!")
-                                    st.balloons()
-                                else:
-                                    st.error(f"❌ 구매입력 실패: {pur_res.get('Message')}")
                             else:
-                                st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
+                                # 품목이 이미 있는 경우
+                                st.warning("⚠️ 품목이 이미 등록되어 있습니다.")
+                                
+                                # ✅ 구매입력만 진행할지 물어보기
+                                st.session_state["ecount_ready"] = {
+                                    "etc_data": etc_data,
+                                    "session_id": session_id,
+                                    "username": v_username,
+                                    "skip_item": True  # 품목 등록 스킵
+                                }
                         else:
                             st.error("❌ 이카운트 로그인에 실패했습니다. API 키를 확인해주세요.")
+        
+        # ✅ 구매입력 진행 버튼 (품목 등록 후에만 표시)
+        if "ecount_ready" in st.session_state:
+            st.divider()
+            
+            if st.session_state["ecount_ready"].get("skip_item"):
+                st.info("💡 품목이 이미 있습니다. 구매입력만 진행하시겠습니까?")
+            else:
+                st.info("💡 구매입력 전표를 생성하시겠습니까?")
+            
+            col1, col2 = st.columns(2)
+            
+            if col1.button("✅ 예, 구매입력 진행", key="btn_purchase_yes", type="primary"):
+                ready_data = st.session_state["ecount_ready"]
+                
+                with st.spinner("구매입력 전표 생성 중..."):
+                    import ecount
+                    importlib.reload(ecount)
+                    
+                    pur_res = ecount.register_purchase(
+                        ready_data["etc_data"], 
+                        ready_data["session_id"], 
+                        ready_data["username"]
+                    )
+                    
+                    st.write("**구매입력 응답:**", pur_res)
+                    
+                    if "_DEBUG_INFO" in pur_res:
+                        st.write("**🔍 변환 확인:**")
+                        st.json(pur_res["_DEBUG_INFO"])
+                    
+                    if str(pur_res.get("Status")) == "200":
+                        st.success("✅ 2. 이카운트 구매입력 전표 생성 완료!")
+                        st.balloons()
+                        
+                        # 완료 후 세션 클리어
+                        del st.session_state["ecount_ready"]
+                        st.rerun()
+                    else:
+                        st.error(f"❌ 구매입력 실패: {pur_res.get('Message')}")
+            
+            if col2.button("❌ 아니오, 취소", key="btn_purchase_no"):
+                del st.session_state["ecount_ready"]
+                st.info("구매입력이 취소되었습니다.")
+                st.rerun()
 
         st.divider()
         
