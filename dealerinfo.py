@@ -48,8 +48,11 @@ def save_or_update_dealer(data):
     기존 '계좌업데이트' 함수 로직 이식:
     변경된 항목만 찾아 메인 시트와 상사정보 시트를 각각 업데이트/추가함.
     """
-    contact = normalize_phone(data.get('phone', ""))
-    if not contact:
+    # 원본 전화번호 형식 유지 (하이픈 포함) - 저장 시 사용
+    original_phone = data.get('phone', "")
+    normalized_contact = normalize_phone(original_phone)
+    
+    if not normalized_contact:
         return {"status": "error", "message": "연락처를 입력해주세요."}
 
     try:
@@ -60,12 +63,11 @@ def save_or_update_dealer(data):
         # 헤더명에 따른 열 번호 매핑 (사업자번호:3, 주소:4 ...)
         header_map = {header.strip(): idx + 1 for idx, header in enumerate(headers)}
         
-        normalized_input = normalize_phone(contact)
         found_row_idx = None
         target_record = None
 
         for i, record in enumerate(records):
-            if normalize_phone(str(record.get("연락처", ""))) == normalized_input:
+            if normalize_phone(str(record.get("연락처", ""))) == normalized_contact:
                 found_row_idx = i + 2
                 target_record = record
                 break
@@ -89,7 +91,7 @@ def save_or_update_dealer(data):
                         update_count += 1
         else:
             # --- 신규 딜러 추가 로직 ---
-            new_row = ["딜러명", contact, data.get("biz_num",""), data.get("address",""), 
+            new_row = ["딜러명", original_phone, data.get("biz_num",""), data.get("address",""), 
                        data.get("acc_o",""), data.get("acc_fee",""), data.get("sender","")]
             sheet.append_row(new_row, value_input_option="USER_ENTERED")
 
