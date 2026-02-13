@@ -35,24 +35,32 @@ except Exception as e:
 
 def make_driver(headless=False):
     opts = webdriver.ChromeOptions()
+    
+    # 서버 환경(Streamlit Cloud)을 위한 필수 옵션들
     if headless:
         opts.add_argument("--headless=new")
-        # ✨✨✨ 추가되는 부분입니다 ✨✨✨
-    # 이 옵션을 추가하면, ChromeDriver를 직접 다운로드할 필요 없이 자동으로 관리됩니다.
-    # Selenium 4.6.0 이상 버전에서 작동합니다.
-    opts.add_experimental_option("detach", True) # 브라우저 자동 종료 방지
     
-    # ✨✨✨ 나머지 기존 코드는 유지됩니다 ✨✨✨
-    opts.add_argument("window-size=1920x1080")
-    opts.add_argument("disable-gpu")
-    opts.add_experimental_option("excludeSwitches", ["enable-logging"])
+    opts.add_argument("--no-sandbox") # 리눅스 환경 필수
+    opts.add_argument("--disable-dev-shm-usage") # 공유 메모리 부족 방지 필수
+    opts.add_argument("--disable-gpu")
+    opts.add_argument("--window-size=1920,1080")
+    
+    # 기존 코드의 로컬 경로(C:\Python_Practice)는 서버에서 에러를 유발하므로 
+    # 다운로드 경로 설정을 서버용으로 변경하거나 제거해야 합니다.
+    # 배포 환경에서는 상대 경로를 사용하는 것이 좋습니다.
+    download_path = os.path.join(os.getcwd(), "downloads")
+    if not os.path.exists(download_path):
+        os.makedirs(download_path)
+
     opts.add_experimental_option("prefs", {
-        "download.default_directory": r"C:\Python_Practice",
+        "download.default_directory": download_path,
         "download.prompt_for_download": False,
         "download.directory_upgrade": True,
         "safebrowsing.enabled": True,
         "profile.default_content_setting_values.automatic_downloads": 1
     })
+    
+    # 자동 관리되는 Service 객체 사용 (Selenium 4.6+ 권장 방식)
     return webdriver.Chrome(options=opts)
 
 def one_line(s):
