@@ -86,52 +86,25 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
 
 def register_purchase(data, session_id, username):
-    """이카운트 구매입력(전표) 저장 API - 차량대만 테스트"""
+    """이카운트 구매입력(전표) 저장 API - 필수값만"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
-    # 1. 거래처 번호 정제
+    # 거래처 번호 정제
     biz_num = str(data.get("biz_num", ""))
     cust_code = re.sub(r'[^0-9]', '', biz_num)
     
-    # 2. 숫자 변환 유틸리티
-    def to_float(val):
-        """금액 문자열을 숫자로 변환 (만원 단위 처리)"""
-        if not val: return 0
-        
-        val_str = str(val)
-        
-        if "만원" in val_str:
-            clean = re.sub(r'[^0-9.]', '', val_str)
-            if clean:
-                return float(clean) * 10000
-            return 0
-        
-        if "원" in val_str:
-            clean = re.sub(r'[^0-9.]', '', val_str)
-            return float(clean) if clean else 0
-        
-        clean = re.sub(r'[^0-9.]', '', val_str)
-        return float(clean) if clean else 0
-
     vin = str(data.get("vin", ""))
-    v_price = to_float(data.get("price", 0))
-    
     io_date = datetime.now().strftime("%Y%m%d")
     
-    # ✅ 차량대 1개만!
-    if v_price <= 0:
-        return {"Status": "400", "Message": "차량대 금액이 없습니다."}
-    
+    # ✅ 필수값만: IO_DATE, PROD_CD, QTY
     payload = {
         "PurchaseList": [
             {
                 "BulkDatas": {
                     "IO_DATE": io_date,
-                    "CUST": cust_code,
                     "PROD_CD": vin,
-                    "QTY": 1,
-                    "PRICE": v_price
+                    "QTY": 1
                 }
             }
         ]
@@ -142,8 +115,7 @@ def register_purchase(data, session_id, username):
         result = response.json()
         
         result["_DEBUG_INFO"] = {
-            "테스트": "차량대 1개만",
-            "변환_v_price": v_price,
+            "테스트": "필수값만 (IO_DATE, PROD_CD, QTY)",
             "cust_code": cust_code,
             "vin": vin,
             "payload": payload
