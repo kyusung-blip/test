@@ -9,11 +9,10 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait as Wait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
-import Personal_path as Pp
 import google_sheet_manager as gm
 warnings.filterwarnings(action='ignore')
-
-SHEET_NAME = "NUEVO PROJECTION#2" 
+FILE_NAME = 'SEOBUK PROJECTION'
+SHEET_NAME = 'NUEVO PROJECTION#2'
 
 def flush_to_sheet(rows, start_row):
     """지정한 NUEVO PROJECTION#2 시트에 크롤링 데이터 기록"""
