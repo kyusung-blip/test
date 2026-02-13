@@ -86,7 +86,7 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": f"등록 통신 오류: {str(e)}"}
 
 def register_purchase(data, session_id, username):
-    """이카운트 구매입력(전표) 저장 API - 필수값만"""
+    """이카운트 구매입력(전표) 저장 API - 올바른 구조"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
@@ -94,30 +94,120 @@ def register_purchase(data, session_id, username):
     biz_num = str(data.get("biz_num", ""))
     cust_code = re.sub(r'[^0-9]', '', biz_num)
     
+    # 숫자 변환 유틸리티
+    def to_float(val):
+        """금액 문자열을 숫자로 변환 (만원 단위 처리)"""
+        if not val: return 0
+        
+        val_str = str(val)
+        
+        if "만원" in val_str:
+            clean = re.sub(r'[^0-9.]', '', val_str)
+            if clean:
+                return float(clean) * 10000
+            return 0
+        
+        if "원" in val_str:
+            clean = re.sub(r'[^0-9.]', '', val_str)
+            return float(clean) if clean else 0
+        
+        clean = re.sub(r'[^0-9.]', '', val_str)
+        return float(clean) if clean else 0
+
     vin = str(data.get("vin", ""))
-    io_date = datetime.now().strftime("%Y%m%d")
+    v_price = to_float(data.get("price", 0))
+    v_fee = to_float(data.get("fee", 0))
+    v_contract = to_float(data.get("contract_x", 0))
     
-    # ✅ 필수값만: IO_DATE, PROD_CD, QTY
-    payload = {
-        "PurchaseList": [
-            {
-                "BulkDatas": {
-                    "IO_DATE": io_date,
-                    "PROD_CD": vin,
-                    "QTY": 1
-                }
+    io_date = datetime.now().strftime("%Y%m%d")
+    plate = str(data.get("plate", ""))
+    car_name_remit = str(data.get("car_name_remit", ""))
+    
+    # h_id 매핑
+    h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
+    custom_code1 = h_map.get(data.get("h_id", ""), "")
+    
+    # ✅ PurchasesList (s 추가!)
+    purchases_list = []
+    
+    # A. 차량대
+    if v_price > 0:
+        purchases_list.append({
+            "BulkDatas": {
+                "IO_DATE": io_date,
+                "CUST": cust_code,
+                "EMP_CD": username,
+                "WH_CD": "100",  # ✅ 창고코드 100
+                "PROD_CD": vin,
+                "QTY": 1,
+                "PRICE": v_price,
+                "U_MEMO1": plate,
+                "U_MEMO2": vin,
+                "U_MEMO3": str(data.get("psource", "")),
+                "U_MEMO4": car_name_remit,
+                "U_MEMO5": str(data.get("sales", "")),
+                "CustomField1": str(data.get("buyer", "")),
+                "CustomField2": str(data.get("country", "")),
+                "CustomField4": str(data.get("region", "")),
+                "CustomField5": str(data.get("year", "")),
+                "CustomField6": str(data.get("color", "")),
+                "CustomField7": str(data.get("km", "")),
+                "CustomField10": str(data.get("brand", "")),
+                "CustomCode1": custom_code1
             }
-        ]
-    }
+        })
+    
+    # B. 매도비
+    if v_fee > 0:
+        purchases_list.append({
+            "BulkDatas": {
+                "IO_DATE": io_date,
+                "CUST": cust_code,
+                "EMP_CD": username,
+                "WH_CD": "100",  # ✅ 창고코드 100
+                "PROD_CD": vin,
+                "QTY": 1,
+                "PRICE": v_fee,
+                "U_MEMO1": plate,
+                "U_MEMO2": vin,
+                "U_MEMO4": f"[매도비] {car_name_remit}"
+            }
+        })
+    
+    # C. 계산서X
+    if v_contract > 0:
+        purchases_list.append({
+            "BulkDatas": {
+                "IO_DATE": io_date,
+                "CUST": cust_code,
+                "EMP_CD": username,
+                "WH_CD": "100",  # ✅ 창고코드 100
+                "PROD_CD": vin,
+                "QTY": 1,
+                "SUPPLY_AMT": v_contract,
+                "U_MEMO1": plate,
+                "U_MEMO2": vin,
+                "U_MEMO4": f"[계산서X] {car_name_remit}"
+            }
+        })
+    
+    if len(purchases_list) == 0:
+        return {"Status": "400", "Message": "등록할 품목이 없습니다."}
+    
+    # ✅ PurchasesList (끝에 s!)
+    payload = {"PurchasesList": purchases_list}
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
         result = response.json()
         
         result["_DEBUG_INFO"] = {
-            "테스트": "필수값만 (IO_DATE, PROD_CD, QTY)",
+            "원본_price": data.get("price"),
+            "변환_v_price": v_price,
+            "원본_fee": data.get("fee"),
+            "변환_v_fee": v_fee,
             "cust_code": cust_code,
-            "vin": vin,
+            "purchase_count": len(purchases_list),
             "payload": payload
         }
         
