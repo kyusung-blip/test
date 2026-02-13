@@ -65,7 +65,7 @@ def handle_remit(data, r_type="일반매입"):
             
             fee_part = f"+{raw_fee}" if not is_zero(raw_fee) else ""
             final_calc = f"{raw_diff}+{raw_contract_x}{fee_part}"
-            message += f"\n{sender_name}{name_suffix} 계약금 송금 부탁드립니다.\n\n@@@계약금 {raw_deposit} \n@@@잔금 {final_calc}"
+            message += f"\n{sender_name}{name_suffix} 계약금 송금 부탁드립니다.\n\n@@@계약금 {raw_deposit}만원 \n@@@잔금 {final_calc}"
         else:
             # 일반 매입 케이스
             fee_line = "매도비포함" if is_zero(raw_fee) else f"매도비: {raw_fee}"
@@ -74,11 +74,17 @@ def handle_remit(data, r_type="일반매입"):
             
             fee_part = f"+{raw_fee}" if not is_zero(raw_fee) else ""
             final_calc = f"{raw_diff}{fee_part}"
-            message += f"\n{sender_name}{name_suffix} 계약금 송금 부탁드립니다.\n\n@@@계약금 {raw_deposit} \n@@@잔금 {final_calc}"
+            message += f"\n{sender_name}{name_suffix} 계약금 송금 부탁드립니다.\n\n@@@계약금 {raw_deposit}만원 \n@@@잔금 {final_calc}"
 
     # [폐자원 매입 양식]
     elif r_type == "폐자원매입":
         message += f" 주식회사*\n\n@@@폐자원매입@@@\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n\n계좌(차주 개인확인, 차주 계좌로 직접송금)\n차량대: {account}\n\n{sender_name}{name_suffix} 송금 부탁드립니다."
+
+    # [폐자원 매입 양식]
+    elif r_type == "폐자원가계약":
+        message += f" 주식회사*\n\n@@@폐자원매입@@@\n\n차번호: {plate} // {year} {car_name_remit}\nVIN: {vin}\n주소: {address}\n번호: {phone}\n\n차량대: {raw_price}\n\n계좌(차주 개인확인, 차주 계좌로 직접송금)\n차량대: {account}\n\n{sender_name}{name_suffix} 송금 부탁드립니다."
+        message += f"\n{sender_name}{name_suffix} 계약금 송금 부탁드립니다.\n\n@@@계약금 {raw_deposit}만원 \n@@@잔금 {final_calc}"
+
 
     # [송금완료 양식]
     elif r_type == "송금완료":
