@@ -1,7 +1,6 @@
 import streamlit as st
 import crawling_queue_manager as cqm
 import time
-import google_sheet_manager as gsm  # 추가
 
 st.set_page_config(page_title="New 크롤링 시스템", layout="wide")
 

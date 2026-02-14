@@ -1,11 +1,63 @@
 """
-크롤링 작업 큐를 Google Sheets로 관리하는 모듈
+크롤링 작업 큐를 로컬 JSON 파일로 관리하는 모듈
 """
 import streamlit as st
 from datetime import datetime
-import google_sheet_manager as gsm
 import seobuk_251001A as En
 import time
+import json
+import os
+from pathlib import Path
+
+# JSON 파일 경로
+JSON_FILE = Path(__file__).parent / "crawling_queue.json"
+
+def _load_queue():
+    """JSON 파일에서 큐 데이터를 로드"""
+    if not JSON_FILE.exists():
+        # 파일이 없으면 초기 구조 생성
+        initial_data = {
+            "queue": [],
+            "last_updated": "",
+            "version": "1.0"
+        }
+        _save_queue(initial_data)
+        return initial_data
+    
+    try:
+        with open(JSON_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except json.JSONDecodeError as e:
+        st.error(f"큐 데이터 파일이 손상되었습니다: {e}")
+        return {"queue": [], "last_updated": "", "version": "1.0"}
+    except PermissionError as e:
+        st.error(f"큐 데이터 파일 접근 권한이 없습니다: {e}")
+        return {"queue": [], "last_updated": "", "version": "1.0"}
+    except Exception as e:
+        st.error(f"큐 데이터 로드 실패: {e}")
+        return {"queue": [], "last_updated": "", "version": "1.0"}
+
+def _save_queue(data):
+    """큐 데이터를 JSON 파일에 저장 (atomic write)"""
+    import tempfile
+    try:
+        data["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # 임시 파일에 먼저 쓰기
+        temp_fd, temp_path = tempfile.mkstemp(dir=JSON_FILE.parent, suffix='.tmp')
+        try:
+            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # 원자적으로 파일 교체
+            os.replace(temp_path, JSON_FILE)
+        except Exception:
+            # 실패 시 임시 파일 삭제
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise
+    except Exception as e:
+        st.error(f"큐 데이터 저장 실패: {e}")
 
 def add_tasks(user, hd_id, links, buyers):
     """
@@ -23,101 +75,95 @@ def add_tasks(user, hd_id, links, buyers):
     if len(links) != len(buyers):
         raise ValueError(f"링크와 바이어 개수가 일치하지 않습니다: {len(links)} vs {len(buyers)}")
     
-    sheet = gsm.get_crawling_queue_sheet()
-    all_data = sheet.get_all_values()
-    next_no = len(all_data)  # 헤더 포함이므로 다음 번호
+    data = _load_queue()
+    queue = data.get("queue", [])
+    
+    # 다음 작업 번호 계산
+    next_no = max((task.get("no", 0) for task in queue), default=0) + 1
     
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    rows = []
+    # 새 작업들 추가
     for link, buyer in zip(links, buyers):
+        queue.append({
+            "no": next_no,
+            "user": user,
+            "hd_id": hd_id,
+            "link": link,
+            "buyer": buyer,
+            "status": "대기중",
+            "created_at": now,
+            "started_at": "",
+            "completed_at": "",
+            "result": ""
+        })
         next_no += 1
-        rows.append([
-            next_no, user, hd_id, link, buyer,
-            "대기중", now, "", "", ""
-        ])
     
-    if rows:
-        start_row = len(all_data) + 1
-        sheet.append_rows(rows)
+    data["queue"] = queue
+    _save_queue(data)
     
-    return len(rows)
+    return len(links)
 
 def get_pending_tasks():
     """대기중인 작업 조회"""
-    sheet = gsm.get_crawling_queue_sheet()
-    all_data = sheet.get_all_values()
+    data = _load_queue()
+    queue = data.get("queue", [])
     
     tasks = []
-    for idx, row in enumerate(all_data[1:], start=2):  # 헤더 제외
-        if len(row) >= 6 and row[5] == "대기중":
-            tasks.append({
-                "row_num": idx,
-                "no": row[0],
-                "user": row[1],
-                "hd_id": row[2],
-                "link": row[3],
-                "buyer": row[4],
-                "status": row[5],
-                "created_at": row[6] if len(row) > 6 else ""
-            })
+    for idx, task in enumerate(queue):
+        if task.get("status") == "대기중":
+            task_copy = task.copy()
+            task_copy["row_num"] = idx  # 배열 인덱스 저장
+            tasks.append(task_copy)
     return tasks
 
 def get_running_tasks():
     """진행중인 작업 조회"""
-    sheet = gsm.get_crawling_queue_sheet()
-    all_data = sheet.get_all_values()
+    data = _load_queue()
+    queue = data.get("queue", [])
     
     tasks = []
-    for idx, row in enumerate(all_data[1:], start=2):
-        if len(row) >= 6 and row[5] == "진행중":
-            tasks.append({
-                "row_num": idx,
-                "no": row[0],
-                "user": row[1],
-                "hd_id": row[2],
-                "link": row[3],
-                "buyer": row[4],
-                "status": row[5],
-                "started_at": row[7] if len(row) > 7 else ""
-            })
+    for idx, task in enumerate(queue):
+        if task.get("status") == "진행중":
+            task_copy = task.copy()
+            task_copy["row_num"] = idx  # 배열 인덱스 저장
+            tasks.append(task_copy)
     return tasks
 
 def get_completed_tasks():
     """완료된 작업 조회"""
-    sheet = gsm.get_crawling_queue_sheet()
-    all_data = sheet.get_all_values()
+    data = _load_queue()
+    queue = data.get("queue", [])
     
     tasks = []
-    for idx, row in enumerate(all_data[1:], start=2):
-        if len(row) >= 6 and row[5] in ["완료", "실패"]:
-            tasks.append({
-                "row_num": idx,
-                "no": row[0],
-                "user": row[1],
-                "hd_id": row[2],
-                "link": row[3],
-                "buyer": row[4],
-                "status": row[5],
-                "completed_at": row[8] if len(row) > 8 else "",
-                "result": row[9] if len(row) > 9 else ""
-            })
+    for idx, task in enumerate(queue):
+        if task.get("status") in ["완료", "실패"]:
+            task_copy = task.copy()
+            task_copy["row_num"] = idx  # 배열 인덱스 저장
+            tasks.append(task_copy)
     return tasks
 
 def update_status(row_num, status, result=""):
     """작업 상태 업데이트"""
-    sheet = gsm.get_crawling_queue_sheet()
+    data = _load_queue()
+    queue = data.get("queue", [])
+    
+    if not (0 <= row_num < len(queue)):
+        st.warning(f"잘못된 작업 번호입니다: {row_num} (큐에 {len(queue)}개 작업 존재)")
+        return
+    
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
+    queue[row_num]["status"] = status
+    
     if status == "진행중":
-        # F: Status, H: Started_At (G: Created_At는 유지)
-        sheet.update(f"F{row_num}", [[status]])
-        sheet.update(f"H{row_num}", [[now]])
+        queue[row_num]["started_at"] = now
     elif status in ["완료", "실패"]:
-        # F: Status, I: Completed_At, J: Result (G, H는 유지)
-        sheet.update(f"F{row_num}", [[status]])
-        sheet.update(f"I{row_num}", [[now]])
-        sheet.update(f"J{row_num}", [[result]])
+        queue[row_num]["completed_at"] = now
+        queue[row_num]["result"] = result
+    
+    data["queue"] = queue
+    _save_queue(data)
 
 def run_next_task():
     """
