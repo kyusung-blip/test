@@ -27,16 +27,35 @@ def _load_queue():
     try:
         with open(JSON_FILE, "r", encoding="utf-8") as f:
             return json.load(f)
+    except json.JSONDecodeError as e:
+        st.error(f"큐 데이터 파일이 손상되었습니다: {e}")
+        return {"queue": [], "last_updated": "", "version": "1.0"}
+    except PermissionError as e:
+        st.error(f"큐 데이터 파일 접근 권한이 없습니다: {e}")
+        return {"queue": [], "last_updated": "", "version": "1.0"}
     except Exception as e:
         st.error(f"큐 데이터 로드 실패: {e}")
         return {"queue": [], "last_updated": "", "version": "1.0"}
 
 def _save_queue(data):
-    """큐 데이터를 JSON 파일에 저장"""
+    """큐 데이터를 JSON 파일에 저장 (atomic write)"""
+    import tempfile
     try:
         data["last_updated"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        with open(JSON_FILE, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
+        
+        # 임시 파일에 먼저 쓰기
+        temp_fd, temp_path = tempfile.mkstemp(dir=JSON_FILE.parent, suffix='.tmp')
+        try:
+            with os.fdopen(temp_fd, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            
+            # 원자적으로 파일 교체
+            os.replace(temp_path, JSON_FILE)
+        except:
+            # 실패 시 임시 파일 삭제
+            if os.path.exists(temp_path):
+                os.unlink(temp_path)
+            raise
     except Exception as e:
         st.error(f"큐 데이터 저장 실패: {e}")
 
@@ -60,7 +79,7 @@ def add_tasks(user, hd_id, links, buyers):
     queue = data.get("queue", [])
     
     # 다음 작업 번호 계산
-    next_no = max([task.get("no", 0) for task in queue], default=0) + 1
+    next_no = max((task.get("no", 0) for task in queue), default=0) + 1
     
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
@@ -129,19 +148,22 @@ def update_status(row_num, status, result=""):
     data = _load_queue()
     queue = data.get("queue", [])
     
-    if 0 <= row_num < len(queue):
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        queue[row_num]["status"] = status
-        
-        if status == "진행중":
-            queue[row_num]["started_at"] = now
-        elif status in ["완료", "실패"]:
-            queue[row_num]["completed_at"] = now
-            queue[row_num]["result"] = result
-        
-        data["queue"] = queue
-        _save_queue(data)
+    if not (0 <= row_num < len(queue)):
+        st.warning(f"잘못된 작업 번호입니다: {row_num} (큐에 {len(queue)}개 작업 존재)")
+        return
+    
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    queue[row_num]["status"] = status
+    
+    if status == "진행중":
+        queue[row_num]["started_at"] = now
+    elif status in ["완료", "실패"]:
+        queue[row_num]["completed_at"] = now
+        queue[row_num]["result"] = result
+    
+    data["queue"] = queue
+    _save_queue(data)
 
 def run_next_task():
     """
