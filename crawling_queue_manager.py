@@ -51,7 +51,7 @@ def _save_queue(data):
             
             # 원자적으로 파일 교체
             os.replace(temp_path, JSON_FILE)
-        except:
+        except Exception:
             # 실패 시 임시 파일 삭제
             if os.path.exists(temp_path):
                 os.unlink(temp_path)
