@@ -162,56 +162,48 @@ def register_purchase(data, session_id, username):
     def create_bulk(price_val, memo_suffix=""):
         # 요청하신 표준 필드 전체 구조 반영
         return {
-            "BulkDatas": {
-                "ORD_DATE": "",
-                "ORD_NO": "",
-                "IO_DATE": io_date,
-                "UPLOAD_SER_NO": "",
-                "CUST": cust_code,
-                "CUST_DES": "", # 비워둬도 CUST 코드로 자동 매칭됨
-                "EMP_CD": "",   # 이름(이규성) 대신 코드를 넣어야 할 수 있어 우선 공백 처리
-                "WH_CD": "100",
-                "IO_TYPE": "",
-                "EXCHANGE_TYPE": "",
-                "EXCHANGE_RATE": "",
-                "SITE": "",
-                "PJT_CD": "",
-                "DOC_NO": "",
-                "U_MEMO1": str(data.get("plate", "")),
-                "U_MEMO2": vin,
-                "U_MEMO3": str(data.get("psource", "")),
-                "U_MEMO4": f"{memo_suffix} {data.get('car_name_remit', '')}".strip(),
-                "U_MEMO5": str(data.get("sales", "")),
-                "U_TXT1": "",
-                "TTL_CTT": "",
-                "PROD_CD": vin,
-                "PROD_DES": "",
-                "SIZE_DES": "",
-                "UQTY": "",
-                "QTY": "1",
-                "PRICE": price_val,
-                "USER_PRICE_VAT": "",
-                "SUPPLY_AMT": price_val,
-                "SUPPLY_AMT_F": "",
-                "VAT_AMT": "0",
-                "REMARKS": "",
-                "ITEM_CD": "",
-                "P_AMT1": "",
-                "P_AMT2": "",
-                "P_REMARKS1": "",
-                "P_REMARKS2": "",
-                "P_REMARKS3": "",
-                "CUST_AMT": "",
-                # 커스텀 필드 (필요한 경우만 추가)
-                "CustomField1": str(data.get("buyer", "")),
-                "CustomField2": str(data.get("country", "")),
-                "CustomField4": str(data.get("region", "")),
-                "CustomField5": str(data.get("year", "")),
-                "CustomField6": str(data.get("color", "")),
-                "CustomField7": str(data.get("km", "")),
-                "CustomField10": str(data.get("brand", ""))
-            }
-        }
+      "BulkDatas": {
+       "ORD_DATE": "",
+       "ORD_NO": "",
+       "IO_DATE": "20191012",
+       "UPLOAD_SER_NO": "",
+       "CUST": "00001",
+       "CUST_DES": "(주)OO산업",
+       "EMP_CD": "",
+       "WH_CD": "00001",
+       "IO_TYPE": "",
+       "EXCHANGE_TYPE": "",
+       "EXCHANGE_RATE": "",
+       "PJT_CD": "",
+       "DOC_NO":"",
+       "U_MEMO1": "",
+       "U_MEMO2": "",
+       "U_MEMO3": "",
+       "U_MEMO4": "",
+       "U_MEMO5": "",
+       "U_TXT1": "",
+       "TTL_CTT": "",
+       "PROD_CD": "00001",
+       "PROD_DES": "test",
+       "SIZE_DES": "",
+       "UQTY": "",
+       "QTY": "1",
+       "PRICE": "",
+       "USER_PRICE_VAT": "",
+       "SUPPLY_AMT": "",
+       "SUPPLY_AMT_F": "",
+       "VAT_AMT": "",
+       "REMARKS": "",
+       "ITEM_CD": "",
+       "P_AMT1": "",
+       "P_AMT2": "",
+       "P_REMARKS1": "",
+       "P_REMARKS2": "",
+       "P_REMARKS3": "",
+       "CUST_AMT": ""
+      }
+     }]
+}
 
     purchases_list = []
     
