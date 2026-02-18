@@ -141,34 +141,30 @@ def register_purchase(data, session_id, username):
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     import re
-    # 거래처 번호 정제
     biz_num = str(data.get("biz_num", ""))
     cust_code = re.sub(r'[^0-9]', '', biz_num)
     
     def to_float(val):
         if not val: return 0
         val_str = str(val)
-        if "만원" in val_str:
-            clean = re.sub(r'[^0-9.]', '', val_str)
-            return float(clean) * 10000 if clean else 0
         clean = re.sub(r'[^0-9.]', '', val_str)
+        if "만원" in val_str:
+            return float(clean) * 10000 if clean else 0
         return float(clean) if clean else 0
 
     vin = str(data.get("vin", ""))
     v_price = to_float(data.get("price", 0))
     v_fee = to_float(data.get("fee", 0))
     v_contract = to_float(data.get("contract_x", 0))
-    
     io_date = datetime.now().strftime("%Y%m%d")
     
-    # h_id 매핑 (값이 있을 때만 입력하도록)
+    # h_id 매핑
     h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
-    custom_code1 = h_map.get(data.get("h_id", ""), None)
-    
+    custom_code1 = h_map.get(data.get("h_id", ""), "")
+
     purchases_list = []
     
-    # 공통 데이터 생성 함수 (중복 제거)
-    def create_bulk_data(price_val, memo4_suffix=""):
+    def create_bulk(price_val, memo_suffix=""):
         bulk = {
             "IO_DATE": io_date,
             "CUST": cust_code,
@@ -180,8 +176,7 @@ def register_purchase(data, session_id, username):
             "U_MEMO1": str(data.get("plate", "")),
             "U_MEMO2": vin,
             "U_MEMO3": str(data.get("psource", "")),
-            "U_MEMO4": f"{memo4_suffix} {data.get('car_name_remit', '')}".strip(),
-            "U_MEMO5": str(data.get("sales", "")),
+            "U_MEMO4": f"{memo_suffix} {data.get('car_name_remit', '')}".strip(),
             "CustomField1": str(data.get("buyer", "")),
             "CustomField2": str(data.get("country", "")),
             "CustomField4": str(data.get("region", "")),
@@ -190,41 +185,32 @@ def register_purchase(data, session_id, username):
             "CustomField7": str(data.get("km", "")),
             "CustomField10": str(data.get("brand", ""))
         }
-        # ✅ 값이 있을 때만 추가 (빈 값 에러 방지)
         if custom_code1:
             bulk["CustomCode1"] = custom_code1
         return {"BulkDatas": bulk}
 
-    if v_price > 0:
-        purchases_list.append(create_bulk_data(v_price))
-    if v_fee > 0:
-        purchases_list.append(create_bulk_data(v_fee, "[매도비]"))
-    if v_contract > 0:
-        # 공급가액 필드로 처리해야 하는 경우 PRICE 대신 SUPPLY_AMT 사용 가능
-        item = create_bulk_data(v_contract, "[계산서X]")
-        purchases_list.append(item)
-
-    if not purchases_list:
-        return {"Status": "400", "Message": "등록할 품목이 없습니다."}
+    if v_price > 0: purchases_list.append(create_bulk(v_price))
+    if v_fee > 0: purchases_list.append(create_bulk(v_fee, "[매도비]"))
+    if v_contract > 0: purchases_list.append(create_bulk(v_contract, "[계산서X]"))
 
     payload = {"PurchasesList": purchases_list}
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
+        # response 자체가 비어있는지 체크
+        if not response.text:
+            return {"Status": "500", "Message": "이카운트 서버에서 빈 응답을 보냈습니다."}
+            
         res_data = response.json()
         
-        # 이카운트 에러 상세 분석
+        # 안전한 에러 메시지 추출
         if str(res_data.get("Status")) != "200":
-            # Data.Errors 섹션이 있다면 첫 번째 에러 메시지를 가져옴
-            errors = res_data.get("Data", {}).get("Errors", [])
-            if errors:
-                res_data["Message"] = errors[0].get("Message", "알 수 없는 상세 에러")
-        
-        res_data["_DEBUG_INFO"] = {
-            "cust_code": cust_code,
-            "purchase_count": len(purchases_list),
-            "payload": payload
-        }
+            data_part = res_data.get("Data")
+            if data_part and isinstance(data_part, dict):
+                errors = data_part.get("Errors", [])
+                if errors and len(errors) > 0:
+                    res_data["Message"] = errors[0].get("Message", "상세 에러 메시지 없음")
+
         return res_data
     except Exception as e:
         return {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
