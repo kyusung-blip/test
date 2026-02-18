@@ -32,6 +32,58 @@ def get_session_id():
         print(f"로그인 통신 오류: {e}")
         return None
 
+def check_item_exists(session_id, prod_cd):
+    """
+    이카운트에 해당 품목코드(VIN)가 이미 등록되어 있는지 확인합니다.
+    """
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/GetListBasicProduct?SESSION_ID={session_id}"
+    
+    # 검색 조건: 품목코드(PROD_CD)가 입력받은 VIN과 일치하는 것
+    payload = {
+        "PROD_CD": str(prod_cd)
+    }
+    
+    try:
+        response = requests.post(url, json=payload, verify=False, timeout=10)
+        res_data = response.json()
+        
+        if str(res_data.get("Status")) == "200":
+            # Datas 리스트에 항목이 있으면 이미 존재하는 것임
+            items = res_data.get("Data", {}).get("Datas", [])
+            if len(items) > 0:
+                # 이미 존재하면 True와 해당 품목의 정보를 반환
+                return True, items[0]
+            return False, None
+        else:
+            print(f"조회 API 오류: {res_data.get('Message')}")
+            return False, None
+    except Exception as e:
+        print(f"품목 조회 중 통신 오류: {e}")
+        return False, None
+
+def check_customer_exists(session_id, biz_num):
+    """
+    사업자번호(CUST)로 거래처가 이미 등록되어 있는지 확인합니다.
+    """
+    import re
+    cust_code = re.sub(r'[^0-9]', '', str(biz_num)) # 숫자만 추출
+    
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/CustomerCenter/GetListCustomer?SESSION_ID={session_id}"
+    payload = {
+        "CUST": cust_code
+    }
+    
+    try:
+        response = requests.post(url, json=payload, verify=False, timeout=10)
+        res_data = response.json()
+        
+        if str(res_data.get("Status")) == "200":
+            customers = res_data.get("Data", {}).get("Datas", [])
+            return len(customers) > 0
+        return False
+    except:
+        return False
+
 def register_item(data, session_id, sheet_no):
     """정식 URL을 사용하여 실제 차량 데이터를 품목으로 등록"""
     # 정식 URL 적용
