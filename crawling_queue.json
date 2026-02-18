@@ -2,10 +2,22 @@
   "queue": [
     {
       "no": 1,
-      "user": "TEST_USER",
-      "hd_id": "test_id",
-      "link": "http://test1.com",
+      "user": "MINJI",
+      "hd_id": "inter77",
+      "link": "http://example.com/car1",
       "buyer": "Buyer1",
+      "status": "완료",
+      "created_at": "2024-01-01 10:00:00",
+      "started_at": "2024-01-01 10:05:00",
+      "completed_at": "2024-01-01 10:10:00",
+      "result": "크롤링 성공"
+    },
+    {
+      "no": 2,
+      "user": "MINJI",
+      "hd_id": "inter77",
+      "link": "http://example.com/car2",
+      "buyer": "Buyer2",
       "status": "대기중",
       "created_at": "2024-01-01 10:00:00",
       "started_at": "",
@@ -13,18 +25,30 @@
       "result": ""
     },
     {
-      "no": 2,
-      "user": "TEST_USER",
-      "hd_id": "test_id",
-      "link": "http://test2.com",
-      "buyer": "Buyer2",
+      "no": 3,
+      "user": "MINJI",
+      "hd_id": "inter77",
+      "link": "http://example.com/car3",
+      "buyer": "Buyer3",
       "status": "완료",
       "created_at": "2024-01-01 10:00:00",
-      "started_at": "2024-01-01 10:05:00",
-      "completed_at": "2024-01-01 10:10:00",
-      "result": "Success"
+      "started_at": "2024-01-01 10:11:00",
+      "completed_at": "2024-01-01 10:16:00",
+      "result": "크롤링 성공"
+    },
+    {
+      "no": 4,
+      "user": "MINJI",
+      "hd_id": "inter77",
+      "link": "http://example.com/car4",
+      "buyer": "Buyer4",
+      "status": "대기중",
+      "created_at": "2024-01-01 10:00:00",
+      "started_at": "",
+      "completed_at": "",
+      "result": ""
     }
   ],
-  "last_updated": "",
+  "last_updated": "2026-02-18 11:45:23",
   "version": "1.0"
 }
