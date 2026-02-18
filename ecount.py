@@ -144,73 +144,119 @@ def register_purchase(data, session_id, username):
     biz_num = str(data.get("biz_num", ""))
     cust_code = re.sub(r'[^0-9]', '', biz_num)
     
-    def to_float(val):
-        if not val: return 0
+    def to_float_str(val):
+        if not val: return ""
         val_str = str(val)
         clean = re.sub(r'[^0-9.]', '', val_str)
         if "만원" in val_str:
-            return float(clean) * 10000 if clean else 0
-        return float(clean) if clean else 0
+            return str(int(float(clean) * 10000)) if clean else ""
+        return clean
 
     vin = str(data.get("vin", ""))
-    v_price = to_float(data.get("price", 0))
-    v_fee = to_float(data.get("fee", 0))
-    v_contract = to_float(data.get("contract_x", 0))
     io_date = datetime.now().strftime("%Y%m%d")
     
-    # h_id 매핑
+    # h_id 매핑 (필요 시)
     h_map = {"seobuk": "001", "inter77": "002", "leeks21": "003"}
     custom_code1 = h_map.get(data.get("h_id", ""), "")
 
+    def create_bulk(price_val, memo_suffix=""):
+        # 요청하신 표준 필드 전체 구조 반영
+        return {
+            "BulkDatas": {
+                "ORD_DATE": "",
+                "ORD_NO": "",
+                "IO_DATE": io_date,
+                "UPLOAD_SER_NO": "",
+                "CUST": cust_code,
+                "CUST_DES": "", # 비워둬도 CUST 코드로 자동 매칭됨
+                "EMP_CD": "",   # 이름(이규성) 대신 코드를 넣어야 할 수 있어 우선 공백 처리
+                "WH_CD": "100",
+                "IO_TYPE": "",
+                "EXCHANGE_TYPE": "",
+                "EXCHANGE_RATE": "",
+                "SITE": "",
+                "PJT_CD": "",
+                "DOC_NO": "",
+                "U_MEMO1": str(data.get("plate", "")),
+                "U_MEMO2": vin,
+                "U_MEMO3": str(data.get("psource", "")),
+                "U_MEMO4": f"{memo_suffix} {data.get('car_name_remit', '')}".strip(),
+                "U_MEMO5": str(data.get("sales", "")),
+                "U_TXT1": "",
+                "TTL_CTT": "",
+                "PROD_CD": vin,
+                "PROD_DES": "",
+                "SIZE_DES": "",
+                "UQTY": "",
+                "QTY": "1",
+                "PRICE": price_val,
+                "USER_PRICE_VAT": "",
+                "SUPPLY_AMT": price_val,
+                "SUPPLY_AMT_F": "",
+                "VAT_AMT": "0",
+                "REMARKS": "",
+                "ITEM_CD": "",
+                "P_AMT1": "",
+                "P_AMT2": "",
+                "P_REMARKS1": "",
+                "P_REMARKS2": "",
+                "P_REMARKS3": "",
+                "CUST_AMT": "",
+                # 커스텀 필드 (필요한 경우만 추가)
+                "CustomField1": str(data.get("buyer", "")),
+                "CustomField2": str(data.get("country", "")),
+                "CustomField4": str(data.get("region", "")),
+                "CustomField5": str(data.get("year", "")),
+                "CustomField6": str(data.get("color", "")),
+                "CustomField7": str(data.get("km", "")),
+                "CustomField10": str(data.get("brand", ""))
+            }
+        }
+
     purchases_list = []
     
-    def create_bulk(price_val, memo_suffix=""):
-        bulk = {
-            "IO_DATE": io_date,
-            "CUST": cust_code,
-            "EMP_CD": username,
-            "WH_CD": "100",
-            "PROD_CD": vin,
-            "QTY": 1,
-            "PRICE": price_val,
-            "U_MEMO1": str(data.get("plate", "")),
-            "U_MEMO2": vin,
-            "U_MEMO3": str(data.get("psource", "")),
-            "U_MEMO4": f"{memo_suffix} {data.get('car_name_remit', '')}".strip(),
-            "CustomField1": str(data.get("buyer", "")),
-            "CustomField2": str(data.get("country", "")),
-            "CustomField4": str(data.get("region", "")),
-            "CustomField5": str(data.get("year", "")),
-            "CustomField6": str(data.get("color", "")),
-            "CustomField7": str(data.get("km", "")),
-            "CustomField10": str(data.get("brand", ""))
-        }
-        if custom_code1:
-            bulk["CustomCode1"] = custom_code1
-        return {"BulkDatas": bulk}
+    # 1. 차량대
+    v_price = to_float_str(data.get("price"))
+    if v_price:
+        purchases_list.append(create_bulk(v_price))
+    
+    # 2. 매도비
+    v_fee = to_float_str(data.get("fee"))
+    if v_fee and v_fee != "0":
+        purchases_list.append(create_bulk(v_fee, "[매도비]"))
+        
+    # 3. 계산서X
+    v_contract = to_float_str(data.get("contract_x"))
+    if v_contract and v_contract != "0":
+        purchases_list.append(create_bulk(v_contract, "[계산서X]"))
 
-    if v_price > 0: purchases_list.append(create_bulk(v_price))
-    if v_fee > 0: purchases_list.append(create_bulk(v_fee, "[매도비]"))
-    if v_contract > 0: purchases_list.append(create_bulk(v_contract, "[계산서X]"))
+    if not purchases_list:
+        return {"Status": "400", "Message": "전송할 금액 데이터가 없습니다."}
 
     payload = {"PurchasesList": purchases_list}
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
-        # response 자체가 비어있는지 체크
+        
+        # 원본 응답 확인을 위해 로그 출력 (Streamlit 터미널에서 확인 가능)
+        print(f"이카운트 응답: {response.text}")
+        
         if not response.text:
-            return {"Status": "500", "Message": "이카운트 서버에서 빈 응답을 보냈습니다."}
-            
+            return {"Status": "500", "Message": "응답 본문이 비어있습니다."}
+
         res_data = response.json()
         
-        # 안전한 에러 메시지 추출
         if str(res_data.get("Status")) != "200":
-            data_part = res_data.get("Data")
-            if data_part and isinstance(data_part, dict):
+            # 상세 에러 추출 로직
+            err_msg = res_data.get("Message", "에러 발생")
+            data_part = res_data.get("Data", {})
+            if isinstance(data_part, dict):
                 errors = data_part.get("Errors", [])
-                if errors and len(errors) > 0:
-                    res_data["Message"] = errors[0].get("Message", "상세 에러 메시지 없음")
+                if errors:
+                    err_msg = errors[0].get("Message", err_msg)
+            res_data["Message"] = err_msg
 
         return res_data
+        
     except Exception as e:
-        return {"Status": "500", "Message": f"구매입력 통신 오류: {str(e)}"}
+        return {"Status": "500", "Message": f"통신 오류: {str(e)}"}
