@@ -205,3 +205,49 @@ def run_next_task():
             "status": "error",
             "message": f"❌ NO.{task['no']} 실패: {str(e)}"
         }
+
+def reset_stuck_tasks():
+    """
+    '진행중' 상태로 멈춰있는 작업을 '대기중'으로 되돌림
+    Returns:
+        int - 초기화된 작업 수
+    """
+    data = _load_queue()
+    queue = data.get("queue", [])
+    
+    reset_count = 0
+    for task in queue:
+        if task.get("status") == "진행중":
+            task["status"] = "대기중"
+            task["started_at"] = ""
+            reset_count += 1
+    
+    if reset_count > 0:
+        data["queue"] = queue
+        _save_queue(data)
+    
+    return reset_count
+
+def retry_failed_tasks():
+    """
+    '실패' 상태인 작업을 다시 '대기중'으로 변경
+    Returns:
+        int - 재시도 설정된 작업 수
+    """
+    data = _load_queue()
+    queue = data.get("queue", [])
+    
+    retry_count = 0
+    for task in queue:
+        if task.get("status") == "실패":
+            task["status"] = "대기중"
+            task["started_at"] = ""
+            task["completed_at"] = ""
+            task["result"] = ""
+            retry_count += 1
+    
+    if retry_count > 0:
+        data["queue"] = queue
+        _save_queue(data)
+    
+    return retry_count

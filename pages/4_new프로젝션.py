@@ -42,9 +42,15 @@ with st.sidebar:
     st.divider()
     
     # 크롤링 시작/중지 버튼
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("🚀 시작", use_container_width=True):
+            # 시작 전 진행중 상태로 멈춘 작업 자동 초기화
+            reset_count = cqm.reset_stuck_tasks()
+            if reset_count > 0:
+                st.info(f"🔄 {reset_count}건의 멈춘 작업을 초기화했습니다.")
+                time.sleep(1)
+            
             st.session_state.crawling_active = True
             st.rerun()
     
@@ -52,6 +58,16 @@ with st.sidebar:
         if st.button("⏸️ 중지", use_container_width=True):
             st.session_state.crawling_active = False
             st.rerun()
+    
+    with col3:
+        if st.button("🔁 실패 재시도", use_container_width=True):
+            retry_count = cqm.retry_failed_tasks()
+            if retry_count > 0:
+                st.success(f"✅ {retry_count}건을 재시도 대기열에 추가했습니다.")
+                time.sleep(1)
+                st.rerun()
+            else:
+                st.info("재시도할 실패 작업이 없습니다.")
 
 # ===== 메인: 탭 UI =====
 tab1, tab2 = st.tabs(["📋 진행중/대기중", "✅ 완료"])
