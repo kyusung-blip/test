@@ -254,6 +254,7 @@ if raw_input:
             
             # 1️⃣ [P.Source 세션 저장]
             st.session_state["v_psource"] = parsed_result.get('psource', "")
+            st.session_state["v_spec_num_key"] = parsed_result.get('spec_num', "")
 
             # 2️⃣ [인스펙션 조회] (Inspectioncheck.py)
             if plate:
@@ -370,7 +371,11 @@ with col_info:
     with title_col:
         st.markdown("### 🚗 매입 정보")
     with spec_col:
-        v_spec_num = st.text_input("제원관리번호", value=parsed.get('spec_num', ""), key="v_spec_num_key")
+        v_spec_num = st.text_input(
+        "제원관리번호", 
+        value=st.session_state.get("v_spec_num_key", ""),  # 세션 상태에서 가져오기
+        key="v_spec_num_key"
+        )    
         if parsed:
             st.caption(f"🔍 디버그: parsed에서 spec_num = '{parsed.get('spec_num', 'None')}'")
             st.caption(f"🔍 데이터 컬럼 개수: {len(raw_input.split(chr(9)))}개")
