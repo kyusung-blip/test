@@ -16,6 +16,7 @@ import socket
 import ecount
 import google_sheet_manager as gsm
 from st_copy_to_clipboard import st_copy_to_clipboard
+import cyberts_crawler
 
 # --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
 ALL_WIDGET_KEYS = [
@@ -795,6 +796,29 @@ with col_list:
             if not vin_to_check:
                 st.error("VIN(차대번호) 정보가 없습니다.")
             else:
+                # --- Cyberts 차량 제원 정보 조회 (이카운트 처리 전) ---
+                spec_num = etc_data.get("spec_num")
+                if spec_num and spec_num.strip():
+                    with st.spinner("Cyberts에서 차량 제원 정보를 조회 중..."):
+                        cyberts_result = cyberts_crawler.fetch_vehicle_specs(spec_num)
+                    
+                    if cyberts_result["status"] == "success":
+                        st.success("✅ 차량 제원 정보 조회 완료")
+                        specs = cyberts_result["data"]
+                        st.info(f"""
+📏 **차량 제원 정보**
+- 차량총중량: {specs['weight']}
+- 길이: {specs['length']}
+- 너비: {specs['width']}
+- 높이: {specs['height']}
+                        """)
+                        st.session_state["cyberts_specs"] = specs
+                    else:
+                        st.warning(f"⚠️ 차량 제원 정보 조회 실패: {cyberts_result.get('message', '알 수 없는 오류')}")
+                else:
+                    st.info("ℹ️ 제원관리번호가 없어 Cyberts 조회를 건너뜁니다.")
+                
+                # --- 기존 이카운트 로직 ---
                 with st.spinner("이카운트 데이터를 조회 중입니다..."):
                     import ecount
                     importlib.reload(ecount)
