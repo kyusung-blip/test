@@ -153,17 +153,20 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True, debug_dump_on_f
                 _dump_debug(driver, prefix="cyberts_fail_no_search_button")
             return {"status": "error", "data": {}, "message": "조회 버튼을 찾을 수 없거나 클릭할 수 없습니다."}
 
-        # 결과 필드 4개 모두: 존재 + value 채움까지 대기
+       # 결과 필드 4개 모두: 존재 + value 채움까지 대기
         try:
-            specs = {k: _wait_nonempty_value_by_id(driver, v, timeout=20) for k, v in FIELD_IDS.items()}
-        except TimeoutException as e:
-            if debug_dump_on_fail:
-                _dump_debug(driver, prefix="cyberts_fail_timeout")
-            return {
-                "status": "error",
-                "data": {},
-                "message": f"조회 결과 필드 로딩/값 채움 대기 중 타임아웃: {str(e)}",
-            }
+            specs = {}
+            for key, field_id in FIELD_IDS.items():
+                try:
+                    specs[key] = _wait_nonempty_value_by_id(driver, field_id, timeout=20)
+                except TimeoutException as e:
+                    if debug_dump_on_fail:
+                        _dump_debug(driver, prefix=f"cyberts_fail_timeout_{key}_{field_id}")
+                    return {
+                        "status": "error",
+                        "data": {},
+                        "message": f"필드 로딩/값 채움 타임아웃: {key} ({field_id})",
+                    }
         except NoSuchElementException as e:
             if debug_dump_on_fail:
                 _dump_debug(driver, prefix="cyberts_fail_nosuchelement")
