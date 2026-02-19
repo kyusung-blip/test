@@ -39,38 +39,41 @@ FIELD_IDS = {
 
 
 def _dump_debug(driver: webdriver.Chrome, prefix: str = "cyberts") -> None:
-    """
-    실패 시점의 증거 확보용:
-    - 스크린샷: {prefix}_{timestamp}.png
-    - HTML     : {prefix}_{timestamp}.html
-    - URL/TITLE은 stdout에 출력
-    """
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    png_path = f"{prefix}_{ts}.png"
-    html_path = f"{prefix}_{ts}.html"
+    out_dir = os.environ.get("CYBERTS_DEBUG_DIR", "/tmp")
+    os.makedirs(out_dir, exist_ok=True)
+
+    png_path = os.path.join(out_dir, f"{prefix}_{ts}.png")
+    html_path = os.path.join(out_dir, f"{prefix}_{ts}.html")
+
+    print("DEBUG dump dir:", os.path.abspath(out_dir))
+    try:
+        print("DEBUG cwd:", os.getcwd())
+    except Exception:
+        pass
 
     try:
         driver.save_screenshot(png_path)
+        print("DEBUG screenshot saved:", png_path)
     except Exception as e:
-        print("DEBUG screenshot save failed:", e)
+        print("DEBUG screenshot save failed:", repr(e))
 
     try:
         with open(html_path, "w", encoding="utf-8") as f:
             f.write(driver.page_source)
+        print("DEBUG html saved:", html_path)
     except Exception as e:
-        print("DEBUG html save failed:", e)
+        print("DEBUG html save failed:", repr(e))
 
     try:
         print("DEBUG url:", driver.current_url)
     except Exception as e:
-        print("DEBUG url read failed:", e)
+        print("DEBUG url read failed:", repr(e))
 
     try:
         print("DEBUG title:", driver.title)
     except Exception as e:
-        print("DEBUG title read failed:", e)
-
-    print("DEBUG saved:", png_path, html_path)
+        print("DEBUG title read failed:", repr(e))
 
 
 def _build_chrome_options(headless: bool = True) -> Options:
