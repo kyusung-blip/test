@@ -1,5 +1,5 @@
 """
-Cyberts 차량 제원 정보 크롤링 모듈 (디버그 덤프 포함)
+Cyberts 차량 제원 정보 크롤링 모듈 (Streamlit/Cloud 환경 디버깅 강화 버전)
 
 정책:
 - 차량 제원 4개 필드(총중량/길이/너비/높이) 중 하나라도
@@ -8,15 +8,22 @@ Cyberts 차량 제원 정보 크롤링 모듈 (디버그 덤프 포함)
   => 실패(error)
 
 디버그:
-- 실패 시점에 스크린샷(.png) + 페이지소스(.html)를 저장해서
-  실제로 어떤 화면을 보고 있었는지 확인할 수 있게 함.
+- 실패 시점에 스크린샷(.png) + 페이지소스(.html)를 저장 시도
+- 디버그 저장 자체가 실패하더라도(권한/경로/모듈 등) 앱이 죽지 않도록 보호(try/except)
+- Streamlit Cloud에서 확인이 쉬우도록 url/title/cwd/out_dir 등을 Logs로 출력
+
+주의:
+- Streamlit Cloud에서는 /tmp에 저장된 파일을 UI에서 바로 다운로드하기 어렵습니다.
+  대신 Logs의 DEBUG url/title을 보고 원인을 먼저 좁히는 것을 권장합니다.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
 from typing import Dict, Any, Optional
+
 import os
+
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -24,8 +31,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 
-print("DEBUG cyberts_crawler __file__:", __file__)
-print("DEBUG os module:", os)
 
 CYBERTS_URL = "https://www.cyberts.kr/ts/tis/ism/readTsTisInqireSvcMainView.do"
 
@@ -41,18 +46,39 @@ FIELD_IDS = {
 
 
 def _dump_debug(driver: webdriver.Chrome, prefix: str = "cyberts") -> None:
+    """
+    실패 시점의 증거 확보용:
+    - 스크린샷: /tmp/{prefix}_{timestamp}.png (또는 CYBERTS_DEBUG_DIR)
+    - HTML     : /tmp/{prefix}_{timestamp}.html
+    - URL/TITLE/CWD/저장경로를 stdout에 출력
+
+    NOTE:
+    - Streamlit에서 모듈 로딩/리로딩이 꼬이는 경우를 대비해, 함수 내부에서도 os를 재-import하여 안정화합니다.
+    """
+    import os as _os  # 강제(안전) 로컬 import
+
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
-    out_dir = os.environ.get("CYBERTS_DEBUG_DIR", "/tmp")
-    os.makedirs(out_dir, exist_ok=True)
+    out_dir = _os.environ.get("CYBERTS_DEBUG_DIR", "/tmp")
+    _os.makedirs(out_dir, exist_ok=True)
 
-    png_path = os.path.join(out_dir, f"{prefix}_{ts}.png")
-    html_path = os.path.join(out_dir, f"{prefix}_{ts}.html")
+    png_path = _os.path.join(out_dir, f"{prefix}_{ts}.png")
+    html_path = _os.path.join(out_dir, f"{prefix}_{ts}.html")
 
-    print("DEBUG dump dir:", os.path.abspath(out_dir))
+    print("DEBUG dump dir:", _os.path.abspath(out_dir))
     try:
-        print("DEBUG cwd:", os.getcwd())
-    except Exception:
-        pass
+        print("DEBUG cwd:", _os.getcwd())
+    except Exception as e:
+        print("DEBUG cwd read failed:", repr(e))
+
+    try:
+        print("DEBUG url:", driver.current_url)
+    except Exception as e:
+        print("DEBUG url read failed:", repr(e))
+
+    try:
+        print("DEBUG title:", driver.title)
+    except Exception as e:
+        print("DEBUG title read failed:", repr(e))
 
     try:
         driver.save_screenshot(png_path)
@@ -67,15 +93,15 @@ def _dump_debug(driver: webdriver.Chrome, prefix: str = "cyberts") -> None:
     except Exception as e:
         print("DEBUG html save failed:", repr(e))
 
-    try:
-        print("DEBUG url:", driver.current_url)
-    except Exception as e:
-        print("DEBUG url read failed:", repr(e))
 
+def _safe_dump_debug(driver: Optional[webdriver.Chrome], prefix: str) -> None:
+    """덤프가 실패해도 앱이 죽지 않도록 보호."""
+    if not driver:
+        return
     try:
-        print("DEBUG title:", driver.title)
-    except Exception as e:
-        print("DEBUG title read failed:", repr(e))
+        _dump_debug(driver, prefix=prefix)
+    except Exception as dump_err:
+        print("DEBUG dump failed:", repr(dump_err))
 
 
 def _build_chrome_options(headless: bool = True) -> Options:
@@ -83,6 +109,7 @@ def _build_chrome_options(headless: bool = True) -> Options:
     if headless:
         # 환경에 따라 "--headless" 대신 "--headless=new"가 더 안정적일 수 있음
         options.add_argument("--headless")
+        # options.add_argument("--headless=new")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
@@ -90,9 +117,17 @@ def _build_chrome_options(headless: bool = True) -> Options:
     return options
 
 
+def _wait_value_by_id(driver: webdriver.Chrome, element_id: str, timeout: int = 20) -> str:
+    """요소 존재를 기다린 뒤 value를 읽음(value가 비어있을 수 있음)."""
+    el = WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((By.ID, element_id))
+    )
+    return (el.get_attribute("value") or "").strip()
+
+
 def _wait_nonempty_value_by_id(driver: webdriver.Chrome, element_id: str, timeout: int = 20) -> str:
     """
-    element_id가 나타나고, value가 비어있지 않을 때까지 기다린 뒤 value 반환.
+    요소 존재 + value가 비어있지 않게 될 때까지 기다린 뒤 value 반환.
     timeout 내에 value가 안 채워지면 TimeoutException 발생 (=> 실패 정책).
     """
     el = WebDriverWait(driver, timeout).until(
@@ -104,14 +139,22 @@ def _wait_nonempty_value_by_id(driver: webdriver.Chrome, element_id: str, timeou
     return (el.get_attribute("value") or "").strip()
 
 
-def fetch_vehicle_specs(spec_num: str, *, headless: bool = True, debug_dump_on_fail: bool = True) -> Dict[str, Any]:
+def fetch_vehicle_specs(
+    spec_num: str,
+    *,
+    headless: bool = True,
+    debug_dump_on_fail: bool = True,
+    require_nonempty_values: bool = True,
+) -> Dict[str, Any]:
     """
     Cyberts 사이트에서 차량 제원 정보를 크롤링합니다.
 
     Args:
         spec_num: 제원관리번호
         headless: True면 브라우저 창 없이 실행, False면 실제 창 띄움(디버깅에 유리)
-        debug_dump_on_fail: 실패 시 스크린샷/HTML 저장 여부
+        debug_dump_on_fail: 실패 시 스크린샷/HTML 저장 시도
+        require_nonempty_values: True면 value까지 반드시 non-empty여야 성공(엄격),
+                                 False면 요소만 있으면 읽고, 빈 값이면 실패 처리로 넘김(비교용)
 
     Returns:
         {
@@ -139,10 +182,10 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True, debug_dump_on_f
             )
             spec_input.clear()
             spec_input.send_keys(spec_num.strip())
-        except TimeoutException:
+        except TimeoutException as e:
             if debug_dump_on_fail:
-                _dump_debug(driver, prefix="cyberts_fail_no_spec_input")
-            return {"status": "error", "data": {}, "message": "제원관리번호 입력 필드를 찾을 수 없습니다."}
+                _safe_dump_debug(driver, prefix="cyberts_fail_no_spec_input")
+            return {"status": "error", "data": {}, "message": f"제원관리번호 입력 필드 타임아웃: {repr(e)}"}
 
         # 조회 버튼 클릭
         try:
@@ -150,57 +193,58 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True, debug_dump_on_f
                 EC.element_to_be_clickable((By.ID, SEARCH_BUTTON_ID))
             )
             search_button.click()
-        except TimeoutException:
+        except TimeoutException as e:
             if debug_dump_on_fail:
-                _dump_debug(driver, prefix="cyberts_fail_no_search_button")
-            return {"status": "error", "data": {}, "message": "조회 버튼을 찾을 수 없거나 클릭할 수 없습니다."}
+                _safe_dump_debug(driver, prefix="cyberts_fail_no_search_button")
+            return {"status": "error", "data": {}, "message": f"조회 버튼 클릭 타임아웃: {repr(e)}"}
 
-       # 결과 필드 4개 모두: 존재 + value 채움까지 대기
-        try:
-            specs = {}
-            for key, field_id in FIELD_IDS.items():
-                try:
+        # 결과 필드 4개 읽기 (필드별로 어디서 막히는지 메시지에 남김)
+        specs: Dict[str, str] = {}
+        for key, field_id in FIELD_IDS.items():
+            try:
+                if require_nonempty_values:
                     specs[key] = _wait_nonempty_value_by_id(driver, field_id, timeout=20)
-                except TimeoutException as e:
-                    if debug_dump_on_fail:
-                        _dump_debug(driver, prefix=f"cyberts_fail_timeout_{key}_{field_id}")
-                    return {
-                        "status": "error",
-                        "data": {},
-                        "message": f"필드 로딩/값 채움 타임아웃: {key} ({field_id})",
-                    }
-        except NoSuchElementException as e:
-            if debug_dump_on_fail:
-                _dump_debug(driver, prefix="cyberts_fail_nosuchelement")
-            return {
-                "status": "error",
-                "data": {},
-                "message": f"차량 제원 필드를 찾을 수 없습니다: {str(e)}",
-            }
+                else:
+                    specs[key] = _wait_value_by_id(driver, field_id, timeout=20)
+            except TimeoutException as e:
+                if debug_dump_on_fail:
+                    _safe_dump_debug(driver, prefix=f"cyberts_fail_timeout_{key}_{field_id}")
+                return {
+                    "status": "error",
+                    "data": {},
+                    "message": f"필드 로딩/값 채움 타임아웃: {key} ({field_id}) / {repr(e)}",
+                }
+            except NoSuchElementException as e:
+                if debug_dump_on_fail:
+                    _safe_dump_debug(driver, prefix=f"cyberts_fail_nosuchelement_{key}_{field_id}")
+                return {
+                    "status": "error",
+                    "data": {},
+                    "message": f"차량 제원 필드를 찾을 수 없습니다: {key} ({field_id}) / {repr(e)}",
+                }
 
         # 정책상: 값이 하나라도 비면 실패
         missing = [k for k, val in specs.items() if not val]
         if missing:
             if debug_dump_on_fail:
-                _dump_debug(driver, prefix="cyberts_fail_empty_values")
+                _safe_dump_debug(driver, prefix="cyberts_fail_empty_values")
             return {
                 "status": "error",
-                "data": {},
+                "data": specs,
                 "message": f"차량 제원 값이 비어있습니다: {', '.join(missing)}",
             }
 
         return {"status": "success", "data": specs, "message": "조회 성공"}
 
     except WebDriverException as e:
-        # 크롬드라이버/브라우저 자체 문제
-        if driver and debug_dump_on_fail:
-            _dump_debug(driver, prefix="cyberts_fail_webdriver")
-        return {"status": "error", "data": {}, "message": f"WebDriver 오류: {str(e)}"}
+        if debug_dump_on_fail:
+            _safe_dump_debug(driver, prefix="cyberts_fail_webdriver")
+        return {"status": "error", "data": {}, "message": f"WebDriver 오류: {repr(e)}"}
 
     except Exception as e:
-        if driver and debug_dump_on_fail:
-            _dump_debug(driver, prefix="cyberts_fail_unknown")
-        return {"status": "error", "data": {}, "message": f"알 수 없는 오류: {str(e)}"}
+        if debug_dump_on_fail:
+            _safe_dump_debug(driver, prefix="cyberts_fail_unknown")
+        return {"status": "error", "data": {}, "message": f"알 수 없는 오류: {repr(e)}"}
 
     finally:
         if driver:
@@ -213,7 +257,12 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True, debug_dump_on_f
 if __name__ == "__main__":
     sn = input("제원관리번호를 입력하세요: ").strip()
 
-    # 1) 일단 headless=False로 테스트(진단에 유리)
-    result = fetch_vehicle_specs(sn, headless=False, debug_dump_on_fail=True)
-
+    # Streamlit Cloud에서는 headless=True가 일반적이지만,
+    # 디버깅 목적이면 로컬에서 headless=False로 먼저 확인하는 것을 추천.
+    result = fetch_vehicle_specs(
+        sn,
+        headless=False,
+        debug_dump_on_fail=True,
+        require_nonempty_values=True,
+    )
     print("\n결과:", result)
