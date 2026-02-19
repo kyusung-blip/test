@@ -31,6 +31,7 @@ def parse_excel_data(raw_text):
         "declaration": parts[25] if len(parts) > 25 else "0",
         "balance": parts[21] if len(parts) > 21 else "0",
         "buyer": parts[32] if len(parts) > 32 else "",
+        "spec_num": parts[33] if len(parts) > 33 else "",
     }
 
     # 1. VIN 기반 연식 추출 (VIN의 뒤에서 8번째 자리)

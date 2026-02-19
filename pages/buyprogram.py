@@ -23,7 +23,7 @@ ALL_WIDGET_KEYS = [
     "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
     "acc_x_input", "acc_fee_input", "sender_input", 
     "v_declaration_key", "v_inspection_key", "auto_alt_car_name",
-    "v_psource"
+    "v_psource", "v_spec_num_key"
 ]
 
 # --- 1. 페이지 상태 및 리셋 로직 ---
@@ -133,9 +133,10 @@ st.markdown("""
         border: 1px solid #D1D5DB !important;
     }
 
-    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라 */
+    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라, 제원관리번호 */
     input[aria-label="사이트"], input[aria-label="세일즈팀"], 
-    input[aria-label="바이어"], input[aria-label="나라"] {
+    input[aria-label="바이어"], input[aria-label="나라"],
+    input[aria-label="제원관리번호"] {
         background-color: #F5F3FF !important;
         border: 1px solid #DDD6FE !important;
     }
@@ -365,9 +366,11 @@ col_info, col_list = st.columns([0.7, 0.3])
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
-    title_col, insp_col = st.columns([4, 1])
+    title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
     with title_col:
         st.markdown("### 🚗 매입 정보")
+    with spec_col:
+        v_spec_num = st.text_input("제원관리번호", value=parsed.get('spec_num', ""), key="v_spec_num_key")
     with insp_col:
         # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
         insp_list = ["X", "S", "C"]
@@ -623,7 +626,8 @@ with col_list:
             "deposit": v_deposit, "company": v_company, 
             "biz_name": v_biz_name, "biz_num": v_biz_num,
             "declaration": v_declaration, "ex_rate": v_ex_rate,
-            "auc_type": v_auc_type, "auc_region": v_auc_region
+            "auc_type": v_auc_type, "auc_region": v_auc_region,
+            "spec_num": v_spec_num
         }
 
         m_c1, m_c2 = st.columns(2)
@@ -682,7 +686,8 @@ with col_list:
             "total": v_total, "deposit": v_deposit, "balance": v_balance,
             "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
             "usd_price": v_usd, "won_price": v_won, "car_name_remit": v_car_name_remit,
-            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "spec_num": v_spec_num
         }
                 # etc.py용 데이터 (입고방 알림, 서류안내 문자용)
         etc_data = {
@@ -695,7 +700,8 @@ with col_list:
             "deposit": v_deposit, "company": v_company, 
             "biz_name": v_biz_name, "biz_num": v_biz_num,
             "declaration": v_declaration, "ex_rate": v_ex_rate,
-            "auc_type": v_auc_type, "auc_region": v_auc_region
+            "auc_type": v_auc_type, "auc_region": v_auc_region,
+            "spec_num": v_spec_num
         }
 
         r_c1, r_c2 = st.columns(2)
@@ -765,7 +771,8 @@ with col_list:
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
             "deposit": v_deposit, "company": v_company, 
             "biz_name": v_biz_name, "biz_num": v_biz_num,
-            "declaration": v_declaration, "ex_rate": v_ex_rate,"psource": st.session_state.get("v_psource", "")
+            "declaration": v_declaration, "ex_rate": v_ex_rate, "psource": st.session_state.get("v_psource", ""),
+            "spec_num": v_spec_num
         }
         
         e_c1, e_c2 = st.columns(2)
