@@ -133,14 +133,9 @@ st.markdown("""
         border: 1px solid #D1D5DB !important;
     }
 
-    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라 */
+    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라, 제원관리번호 */
     input[aria-label="사이트"], input[aria-label="세일즈팀"], 
-    input[aria-label="바이어"], input[aria-label="나라"] {
-        background-color: #F5F3FF !important;
-        border: 1px solid #DDD6FE !important;
-    }
-
-    /* 제원관리번호 (연한 보라색 계열) */
+    input[aria-label="바이어"], input[aria-label="나라"],
     input[aria-label="제원관리번호"] {
         background-color: #F5F3FF !important;
         border: 1px solid #DDD6FE !important;
@@ -776,7 +771,7 @@ with col_list:
             "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
             "deposit": v_deposit, "company": v_company, 
             "biz_name": v_biz_name, "biz_num": v_biz_num,
-            "declaration": v_declaration, "ex_rate": v_ex_rate,"psource": st.session_state.get("v_psource", ""),
+            "declaration": v_declaration, "ex_rate": v_ex_rate, "psource": st.session_state.get("v_psource", ""),
             "spec_num": v_spec_num
         }
         
