@@ -376,9 +376,6 @@ with col_info:
         value=st.session_state.get("v_spec_num_key", ""),  # 세션 상태에서 가져오기
         key="v_spec_num_key"
         )    
-        if parsed:
-            st.caption(f"🔍 디버그: parsed에서 spec_num = '{parsed.get('spec_num', 'None')}'")
-            st.caption(f"🔍 데이터 컬럼 개수: {len(raw_input.split(chr(9)))}개")
     with insp_col:
         # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
         insp_list = ["X", "S", "C"]
