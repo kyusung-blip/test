@@ -1,5 +1,5 @@
 """
-Cyberts 차량 제원 정보 크롤링 모듈 (Streamlit/Cloud 환경 디버깅 강화 버전)
+Cyberts 차량 제원 정보 크롤링 모듈 (Streamlit/Cloud 디버깅 강화 + iframe/문자열 체크 포함)
 
 정책:
 - 차량 제원 4개 필드(총중량/길이/너비/높이) 중 하나라도
@@ -8,13 +8,14 @@ Cyberts 차량 제원 정보 크롤링 모듈 (Streamlit/Cloud 환경 디버깅 
   => 실패(error)
 
 디버그:
-- 실패 시점에 스크린샷(.png) + 페이지소스(.html)를 저장 시도
-- 디버그 저장 자체가 실패하더라도(권한/경로/모듈 등) 앱이 죽지 않도록 보호(try/except)
-- Streamlit Cloud에서 확인이 쉬우도록 url/title/cwd/out_dir 등을 Logs로 출력
+- 실패 시점에 스크린샷(.png) + 페이지소스(.html)를 /tmp(또는 CYBERTS_DEBUG_DIR)에 저장 시도
+- Streamlit Cloud에서 파일을 직접 확인하기 어려우므로 Logs에 다음을 함께 출력:
+  - url/title
+  - iframe 개수 및 일부 iframe 속성
+  - page_source에 특정 id 문자열 포함 여부(txtCarTotWt, txtObssLt)
 
-주의:
-- Streamlit Cloud에서는 /tmp에 저장된 파일을 UI에서 바로 다운로드하기 어렵습니다.
-  대신 Logs의 DEBUG url/title을 보고 원인을 먼저 좁히는 것을 권장합니다.
+중요:
+- 디버그 덤프가 실패하더라도 앱이 죽지 않도록 _safe_dump_debug로 보호
 """
 
 from __future__ import annotations
@@ -50,12 +51,9 @@ def _dump_debug(driver: webdriver.Chrome, prefix: str = "cyberts") -> None:
     실패 시점의 증거 확보용:
     - 스크린샷: /tmp/{prefix}_{timestamp}.png (또는 CYBERTS_DEBUG_DIR)
     - HTML     : /tmp/{prefix}_{timestamp}.html
-    - URL/TITLE/CWD/저장경로를 stdout에 출력
-
-    NOTE:
-    - Streamlit에서 모듈 로딩/리로딩이 꼬이는 경우를 대비해, 함수 내부에서도 os를 재-import하여 안정화합니다.
+    - Logs 출력: url/title/cwd/out_dir + iframe 정보 + page_source 문자열 포함 여부
     """
-    import os as _os  # 강제(안전) 로컬 import
+    import os as _os  # Streamlit reload/namespace 꼬임 방지용 로컬 import
 
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_dir = _os.environ.get("CYBERTS_DEBUG_DIR", "/tmp")
@@ -70,6 +68,7 @@ def _dump_debug(driver: webdriver.Chrome, prefix: str = "cyberts") -> None:
     except Exception as e:
         print("DEBUG cwd read failed:", repr(e))
 
+    # URL / Title
     try:
         print("DEBUG url:", driver.current_url)
     except Exception as e:
@@ -80,6 +79,27 @@ def _dump_debug(driver: webdriver.Chrome, prefix: str = "cyberts") -> None:
     except Exception as e:
         print("DEBUG title read failed:", repr(e))
 
+    # iframe 여부 확인
+    try:
+        iframes = driver.find_elements(By.TAG_NAME, "iframe")
+        print("DEBUG iframe count:", len(iframes))
+        for i, fr in enumerate(iframes[:5]):
+            print(
+                f"DEBUG iframe[{i}] id={fr.get_attribute('id')} "
+                f"name={fr.get_attribute('name')} src={fr.get_attribute('src')}"
+            )
+    except Exception as e:
+        print("DEBUG iframe inspect failed:", repr(e))
+
+    # page_source에 특정 문자열이 포함되는지 (DOM 자체가 기대와 다른지 빠르게 판단)
+    try:
+        ps = driver.page_source or ""
+        print("DEBUG contains txtCarTotWt:", "txtCarTotWt" in ps)
+        print("DEBUG contains txtObssLt:", "txtObssLt" in ps)
+    except Exception as e:
+        print("DEBUG page_source check failed:", repr(e))
+
+    # 파일 저장
     try:
         driver.save_screenshot(png_path)
         print("DEBUG screenshot saved:", png_path)
@@ -146,23 +166,6 @@ def fetch_vehicle_specs(
     debug_dump_on_fail: bool = True,
     require_nonempty_values: bool = True,
 ) -> Dict[str, Any]:
-    """
-    Cyberts 사이트에서 차량 제원 정보를 크롤링합니다.
-
-    Args:
-        spec_num: 제원관리번호
-        headless: True면 브라우저 창 없이 실행, False면 실제 창 띄움(디버깅에 유리)
-        debug_dump_on_fail: 실패 시 스크린샷/HTML 저장 시도
-        require_nonempty_values: True면 value까지 반드시 non-empty여야 성공(엄격),
-                                 False면 요소만 있으면 읽고, 빈 값이면 실패 처리로 넘김(비교용)
-
-    Returns:
-        {
-            "status": "success"|"error",
-            "data": {"weight":..., "length":..., "width":..., "height":...},
-            "message": "..."
-        }
-    """
     driver: Optional[webdriver.Chrome] = None
 
     try:
@@ -256,13 +259,5 @@ def fetch_vehicle_specs(
 
 if __name__ == "__main__":
     sn = input("제원관리번호를 입력하세요: ").strip()
-
-    # Streamlit Cloud에서는 headless=True가 일반적이지만,
-    # 디버깅 목적이면 로컬에서 headless=False로 먼저 확인하는 것을 추천.
-    result = fetch_vehicle_specs(
-        sn,
-        headless=False,
-        debug_dump_on_fail=True,
-        require_nonempty_values=True,
-    )
+    result = fetch_vehicle_specs(sn, headless=False, debug_dump_on_fail=True, require_nonempty_values=True)
     print("\n결과:", result)
