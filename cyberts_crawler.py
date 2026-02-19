@@ -1,8 +1,16 @@
 """
 Cyberts 차량 제원 정보 크롤링 모듈
 
-Cyberts 사이트에서 차량 제원 정보를 자동으로 조회합니다.
+정책:
+- 결과 필드(총중량/길이/너비/높이) 중 하나라도
+  (1) 요소가 안 나타나거나
+  (2) value가 끝내 채워지지 않으면
+  => 실패(error) 처리
 """
+
+from __future__ import annotations
+
+from typing import Dict, Any, Optional
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -12,138 +20,108 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
 
 
-def fetch_vehicle_specs(spec_num):
+CYBERTS_URL = "https://www.cyberts.kr/ts/tis/ism/readTsTisInqireSvcMainView.do"
+
+SPEC_INPUT_ID = "sFomConfmNo"
+SEARCH_BUTTON_ID = "btnSearch"
+
+FIELD_IDS = {
+    "weight": "txtCarTotWt",  # 차량총중량
+    "length": "txtObssLt",    # 길이
+    "width": "txtLpirLt",     # 너비
+    "height": "txtObssHg",    # 높이
+}
+
+
+def _build_chrome_options() -> Options:
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+    return options
+
+
+def _wait_nonempty_value_by_id(driver: webdriver.Chrome, element_id: str, timeout: int) -> str:
     """
-    Cyberts 사이트에서 차량 제원 정보를 크롤링합니다.
-    
-    Args:
-        spec_num (str): 제원관리번호
-        
-    Returns:
-        dict: {
-            "status": "success" or "error",
-            "data": {
-                "weight": "차량총중량",
-                "length": "길이",
-                "width": "너비",
-                "height": "높이"
-            },
-            "message": "에러 메시지 (있을 경우)"
-        }
+    element_id가 나타나고, value가 비어있지 않게 될 때까지 기다린 뒤 value를 반환.
+    - timeout 내에 value가 채워지지 않으면 TimeoutException 발생 (=> 실패 정책에 부합)
     """
-    driver = None
-    
+    el = WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((By.ID, element_id))
+    )
+
+    WebDriverWait(driver, timeout).until(
+        lambda d: (el.get_attribute("value") or "").strip() != ""
+    )
+
+    return (el.get_attribute("value") or "").strip()
+
+
+def fetch_vehicle_specs(spec_num: str) -> Dict[str, Any]:
+    driver: Optional[webdriver.Chrome] = None
+
     try:
-        # spec_num 유효성 검사
-        if not spec_num or spec_num.strip() == "":
-            return {
-                "status": "error",
-                "data": {},
-                "message": "제원관리번호가 없습니다."
-            }
-        
-        # Chrome 옵션 설정
-        options = Options()
-        options.add_argument('--headless')  # 백그라운드 실행
-        options.add_argument('--no-sandbox')
-        options.add_argument('--disable-dev-shm-usage')
-        options.add_argument('--disable-gpu')
-        options.add_argument('--window-size=1920,1080')
-        
-        # WebDriver 초기화
+        if not spec_num or not spec_num.strip():
+            return {"status": "error", "data": {}, "message": "제원관리번호가 없습니다."}
+
+        options = _build_chrome_options()
         driver = webdriver.Chrome(options=options)
         driver.set_page_load_timeout(30)
-        
-        # Cyberts 사이트 접속
-        url = "https://www.cyberts.kr/ts/tis/ism/readTsTisInqireSvcMainView.do"
-        driver.get(url)
-        
-        # 제원관리번호 입력 필드 찾기
+
+        driver.get(CYBERTS_URL)
+
+        # 제원관리번호 입력
         try:
             spec_input = WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, '//*[@id="sFomConfmNo"]'))
+                EC.presence_of_element_located((By.ID, SPEC_INPUT_ID))
             )
             spec_input.clear()
-            spec_input.send_keys(spec_num)
+            spec_input.send_keys(spec_num.strip())
         except TimeoutException:
-            return {
-                "status": "error",
-                "data": {},
-                "message": "제원관리번호 입력 필드를 찾을 수 없습니다."
-            }
-        
+            return {"status": "error", "data": {}, "message": "제원관리번호 입력 필드를 찾을 수 없습니다."}
+
         # 조회 버튼 클릭
         try:
             search_button = WebDriverWait(driver, 10).until(
-                EC.element_to_be_clickable((By.XPATH, '//*[@id="btnSearch"]'))
+                EC.element_to_be_clickable((By.ID, SEARCH_BUTTON_ID))
             )
             search_button.click()
         except TimeoutException:
+            return {"status": "error", "data": {}, "message": "조회 버튼을 찾을 수 없거나 클릭할 수 없습니다."}
+
+        # 결과 필드 4개 모두 "존재 + value 채움"까지 대기 (하나라도 안되면 실패)
+        try:
+            specs = {
+                key: _wait_nonempty_value_by_id(driver, field_id, timeout=20)
+                for key, field_id in FIELD_IDS.items()
+            }
+        except TimeoutException as e:
             return {
                 "status": "error",
                 "data": {},
-                "message": "조회 버튼을 찾을 수 없거나 클릭할 수 없습니다."
+                "message": f"조회 결과 필드 로딩/값 채움 대기 중 타임아웃: {str(e)}",
             }
-        
-        # 결과 로딩 대기 (차량총중량 필드가 나타날 때까지)
-        try:
-            WebDriverWait(driver, 15).until(
-                EC.presence_of_element_located((By.ID, "txtCarTotWt"))
-            )
-        except TimeoutException:
-            return {
-                "status": "error",
-                "data": {},
-                "message": "조회 결과를 불러올 수 없습니다. 제원관리번호를 확인해주세요."
-            }
-        
-        # 차량 제원 정보 크롤링
-        try:
-            weight_element = driver.find_element(By.ID, "txtCarTotWt")
-            length_element = driver.find_element(By.ID, "txtObssLt")
-            width_element = driver.find_element(By.ID, "txtLpirLt")
-            height_element = driver.find_element(By.ID, "txtObssHg")
-            
-            # value 속성에서 값 가져오기
-            weight = weight_element.get_attribute("value") or ""
-            length = length_element.get_attribute("value") or ""
-            width = width_element.get_attribute("value") or ""
-            height = height_element.get_attribute("value") or ""
-            
-            return {
-                "status": "success",
-                "data": {
-                    "weight": weight,
-                    "length": length,
-                    "width": width,
-                    "height": height
-                },
-                "message": "조회 성공"
-            }
-            
         except NoSuchElementException as e:
+            return {"status": "error", "data": {}, "message": f"차량 제원 필드를 찾을 수 없습니다: {str(e)}"}
+
+        # 방어적 검증(이론상 여기 걸리진 않지만, 정책 명확화용)
+        missing = [k for k, v in specs.items() if not v]
+        if missing:
             return {
                 "status": "error",
                 "data": {},
-                "message": f"차량 제원 필드를 찾을 수 없습니다: {str(e)}"
+                "message": f"차량 제원 값이 비어있습니다: {', '.join(missing)}",
             }
-    
+
+        return {"status": "success", "data": specs, "message": "조회 성공"}
+
     except WebDriverException as e:
-        return {
-            "status": "error",
-            "data": {},
-            "message": f"WebDriver 오류: {str(e)}"
-        }
-    
+        return {"status": "error", "data": {}, "message": f"WebDriver 오류: {str(e)}"}
     except Exception as e:
-        return {
-            "status": "error",
-            "data": {},
-            "message": f"알 수 없는 오류: {str(e)}"
-        }
-    
+        return {"status": "error", "data": {}, "message": f"알 수 없는 오류: {str(e)}"}
     finally:
-        # WebDriver 종료
         if driver:
             try:
                 driver.quit()
@@ -152,7 +130,5 @@ def fetch_vehicle_specs(spec_num):
 
 
 if __name__ == "__main__":
-    # 테스트 코드
-    test_spec_num = input("제원관리번호를 입력하세요: ")
-    result = fetch_vehicle_specs(test_spec_num)
-    print(f"\n결과: {result}")
+    test_spec_num = input("제원관리번호를 입력하세요: ").strip()
+    print(fetch_vehicle_specs(test_spec_num))
