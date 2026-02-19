@@ -10,7 +10,6 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException, WebDriverException
-import time
 
 
 def fetch_vehicle_specs(spec_num):
@@ -59,9 +58,6 @@ def fetch_vehicle_specs(spec_num):
         url = "https://www.cyberts.kr/ts/tis/ism/readTsTisInqireSvcMainView.do"
         driver.get(url)
         
-        # 페이지 로딩 대기
-        time.sleep(2)
-        
         # 제원관리번호 입력 필드 찾기
         try:
             spec_input = WebDriverWait(driver, 10).until(
@@ -94,8 +90,6 @@ def fetch_vehicle_specs(spec_num):
             WebDriverWait(driver, 15).until(
                 EC.presence_of_element_located((By.ID, "txtCarTotWt"))
             )
-            # 추가 대기 시간 (데이터 완전히 로딩되도록)
-            time.sleep(2)
         except TimeoutException:
             return {
                 "status": "error",

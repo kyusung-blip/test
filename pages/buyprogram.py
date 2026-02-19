@@ -820,7 +820,6 @@ with col_list:
                 
                 # --- 기존 이카운트 로직 ---
                 with st.spinner("이카운트 데이터를 조회 중입니다..."):
-                    import ecount
                     importlib.reload(ecount)
                     session_id = ecount.get_session_id()
                     
@@ -828,7 +827,6 @@ with col_list:
                         st.error("❌ 이카운트 로그인 실패")
                     else:
                         # 1. 구글 시트 순번 확인 (기존 로직)
-                        import inventoryenter
                         existing_no = inventoryenter.get_no_by_vin(vin_to_check)
                         
                         # 2. [품목 조회]
