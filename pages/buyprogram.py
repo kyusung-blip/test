@@ -813,7 +813,7 @@ with tab3:
             item_exists, _ = ecount.check_item_exists(session_id, v_vin)
             if not item_exists:
                 st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
-                res_item = ecount.register_item(etc_data, session_id, v_spec_num_key)
+                res_item = ecount.register_item(etc_data, session_id, v_spec_num)
                 # --- 디버깅용 로그 추가 ---
                 st.write("📡 품목 등록 시도 응답:", res_item) 
     
