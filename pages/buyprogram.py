@@ -250,8 +250,8 @@ parsed = st.session_state.get("parsed_data", {})
 
 # --- 매입사원 선택 및 차량 제원 정보 통합 행 ---
 with st.container(border=True):
-    # 컬럼 비율 설정 (매입사원: 1.5, 제원들: 5, 제원관리번호: 1.5)
-    row_top_cols = st.columns([1.5, 5.5, 1.5])
+    # 컬럼 비율 조정 (중앙 제원 칸이 5개이므로 여유 있게 배분)
+    row_top_cols = st.columns([1.5, 6, 1.5])
 
     with row_top_cols[0]:
         v_username = st.selectbox(
@@ -261,14 +261,15 @@ with st.container(border=True):
         )
 
     with row_top_cols[1]:
-        # 제원 5종을 한 묶음으로 배치
-        st.caption("📏 차량 상세 제원 (길이/너비/높이/CBM/총중량)")
+        st.markdown("<p style='font-size: 0.8rem; font-weight: bold; margin-bottom: -10px;'>📏 차량 상세 제원</p>", unsafe_allow_html=True)
         s1, s2, s3, s4, s5 = st.columns(5)
-        v_length = s1.text_input("길이", value="", placeholder="0", label_visibility="collapsed")
-        v_width = s2.text_input("너비", value="", placeholder="0", label_visibility="collapsed")
-        v_height = s3.text_input("높이", value="", placeholder="0", label_visibility="collapsed")
-        v_cbm = s4.text_input("CBM", value="", placeholder="0.0", label_visibility="collapsed")
-        v_weight = s5.text_input("총중량", value="", placeholder="0", label_visibility="collapsed")
+        # text_input 대신 number_input 권장 (계산이 필요한 경우)
+        # label_visibility를 "visible"로 하되 아주 짧은 이름을 주면 높이가 맞습니다.
+        v_length = s1.text_input("길이", placeholder="L", key="v_l")
+        v_width = s2.text_input("너비", placeholder="W", key="v_w")
+        v_height = s3.text_input("높이", placeholder="H", key="v_h")
+        v_cbm = s4.text_input("CBM", placeholder="0.0", key="v_c")
+        v_weight = s5.text_input("중량", placeholder="kg", key="v_wt")
 
     with row_top_cols[2]:
         v_spec_num = st.text_input(
@@ -374,32 +375,34 @@ col_info, col_list = st.columns([0.7, 0.3])
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
-     title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
+    title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
 
     with title_col:
-
         st.markdown("### 🚗 매입 정보")
+
     with spec_col:
-        v_spec_num = st.text_input(
-        "제원관리번호", 
-        value=st.session_state.get("v_spec_num_key", ""),  # 세션 상태에서 가져오기
-        key="v_spec_num_key"
+        st.text_input(
+            "제원관리번호", 
+            value=st.session_state.get("v_spec_num_key", ""), 
+            key="v_spec_num_key"
         )    
+
     with insp_col:
-        # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
         insp_list = ["X", "S", "C"]
+        # 세션 상태에서 현재 값을 가져오되, 없으면 기본값 "X"
         current_insp = st.session_state.get("inspection_status", "X")
-        try:
-            insp_idx = insp_list.index(current_insp)
-        except:
-            insp_idx = 0
-        v_inspection = st.selectbox(
+        
+        # index 추출 로직 (ValueError 방지)
+        insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
+        
+        st.selectbox(
             "Inspection", 
-            insp_list, 
+            options=insp_list, 
             index=insp_idx, 
-            key="v_inspection_key", # 유일한 키 유지
+            key="v_inspection_key", 
             label_visibility="collapsed"
         )
+
     st.divider()
 
    
