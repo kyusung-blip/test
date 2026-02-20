@@ -828,18 +828,26 @@ with tab3:
             else:
                 st.write("✔️ 품목 확인 완료")
     
-            # 2. 거래처 체크 및 등록
-            cust_exists = ecount.check_customer_exists(session_id, v_biz_num)
-            if not cust_exists:
-                st.info(f"🔍 거래처 미등록 확인: {v_biz_num} 등록 중...")
-                res_cust = ecount.register_customer(etc_data, session_id)
-                if str(res_cust.get("Status")) != "200" or res_cust.get("Data", {}).get("SuccessCnt", 0) == 0:
-                    st.error("❌ 거래처 등록 실패")
-                    st.json(res_cust)
-                    st.stop()
-                st.success("✅ 거래처 등록 완료")
+            # 2. 거래처 등록 시도 (조회 없이 바로 진행)
+            st.info(f"🔄 거래처 확인 및 등록 시도: {v_biz_num}")
+            res_cust = ecount.register_customer(etc_data, session_id)
+            
+            # 응답 데이터 안전하게 추출
+            cust_data_part = res_cust.get("Data", {})
+            cust_details = cust_data_part.get("ResultDetails", [])
+            cust_err_msg = cust_details[0].get("TotalError", "") if cust_details else ""
+
+            # 이카운트 응답에 따른 분기 처리
+            if str(res_cust.get("Status")) == "200" and cust_data_part.get("SuccessCnt", 0) > 0:
+                st.success("✅ 신규 거래처 등록 완료")
+            elif "중복되는 코드는 등록할 수 없습니다" in cust_err_msg or "이미 등록된" in cust_err_msg:
+                # 중복 에러가 나면 이미 있는 것이므로 성공으로 간주하고 진행
+                st.write("✔️ 확인 결과, 이미 등록된 거래처입니다. (다음 단계 진행)")
             else:
-                st.write("✔️ 거래처 확인 완료")
+                # 그 외의 진짜 에러(권한, 필수값 누락 등)인 경우에만 중단
+                st.error("❌ 거래처 처리 중 오류 발생")
+                st.json(res_cust)
+                st.stop()
     
             # 3. 최종 구매입력 진행
             st.info("📝 구매전표 생성 중...")
