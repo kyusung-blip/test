@@ -276,19 +276,6 @@ with st.container(border=True):
             value=st.session_state.get("v_spec_num_key", ""), 
             key="v_spec_num_key"
         )
-
-# --- 인스펙션 상태만 따로 얇게 배치 ---
-insp_row_col1, insp_row_col2 = st.columns([6, 1])
-with insp_row_col2:
-    insp_list = ["X", "S", "C"]
-    current_insp = st.session_state.get("inspection_status", "X")
-    insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
-    v_inspection = st.selectbox(
-        "Inspection", 
-        insp_list, 
-        index=insp_idx, 
-        key="v_inspection_key"
-    )
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
@@ -387,9 +374,32 @@ col_info, col_list = st.columns([0.7, 0.3])
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
-    title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
+     title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
+
     with title_col:
+
         st.markdown("### 🚗 매입 정보")
+    with spec_col:
+        v_spec_num = st.text_input(
+        "제원관리번호", 
+        value=st.session_state.get("v_spec_num_key", ""),  # 세션 상태에서 가져오기
+        key="v_spec_num_key"
+        )    
+    with insp_col:
+        # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
+        insp_list = ["X", "S", "C"]
+        current_insp = st.session_state.get("inspection_status", "X")
+        try:
+            insp_idx = insp_list.index(current_insp)
+        except:
+            insp_idx = 0
+        v_inspection = st.selectbox(
+            "Inspection", 
+            insp_list, 
+            index=insp_idx, 
+            key="v_inspection_key", # 유일한 키 유지
+            label_visibility="collapsed"
+        )
     st.divider()
 
    
