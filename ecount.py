@@ -100,7 +100,7 @@ def register_item(data, session_id, sheet_no):
 
 def register_purchase(data, session_id, username):
     """이카운트 API 테스트 성공 데이터를 기반으로 한 구매입력"""
-    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={3638323138367c256563253964256234256561256237253963256563253834256231:AD-ETCkpHbDy_gcH}"
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
     
     # 1. 금액 처리 (숫자만 추출하여 문자열로 변환)
     def to_amt_str(val):
