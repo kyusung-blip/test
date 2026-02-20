@@ -238,3 +238,56 @@ def register_purchase_test(session_id):
         return response.json()
     except Exception as e:
         return {"Status": "500", "Message": f"통신 오류: {str(e)}"}
+
+def register_customer_test(session_id):
+    """거래처 등록 API 테스트 함수 (알려주신 샌드박스 URL 및 데이터 구조)"""
+    # 샌드박스용 sboapi URL 사용
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/AccountBasic/SaveBasicCust?SESSION_ID={session_id}"
+    
+    payload = {
+        "CustList": [
+            {
+                "BulkDatas": {
+                    "BUSINESS_NO": "00001",
+                    "CUST_NAME": "Test Cust",
+                    "BOSS_NAME": "", "UPTAE": "", "JONGMOK": "", "TEL": "", "EMAIL": "",
+                    "POST_NO": "", "ADDR": "", "G_GUBUN": "", "G_BUSINESS_TYPE": "",
+                    "G_BUSINESS_CD": "", "TAX_REG_ID": "", "FAX": "", "HP_NO": "",
+                    "DM_POST": "", "DM_ADDR": "", "REMARKS_WIN": "", "GUBUN": "",
+                    "FOREIGN_FLAG": "", "EXCHANGE_CODE": "", "CUST_GROUP1": "",
+                    "CUST_GROUP2": "", "URL_PATH": "", "REMARKS": "", "OUTORDER_YN": "",
+                    "IO_CODE_SL_BASE_YN": "", "IO_CODE_SL": "", "IO_CODE_BY_BASE_YN": "",
+                    "IO_CODE_BY": "", "EMP_CD": "", "MANAGE_BOND_NO": "",
+                    "MANAGE_DEBIT_NO": "", "CUST_LIMIT": "", "O_RATE": "", "I_RATE": "",
+                    "PRICE_GROUP": "", "PRICE_GROUP2": "", "CUST_LIMIT_TERM": "",
+                    "CONT1": "", "CONT2": "", "CONT3": "", "CONT4": "", "CONT5": "",
+                    "CONT6": "", "NO_CUST_USER1": "", "NO_CUST_USER2": "", "NO_CUST_USER3": ""
+                }
+            },
+            {
+                "BulkDatas": {
+                    "BUSINESS_NO": "00002",
+                    "CUST_NAME": "Test Cust1",
+                    "BOSS_NAME": "", "UPTAE": "", "JONGMOK": "", "TEL": "", "EMAIL": "",
+                    "POST_NO": "", "ADDR": "", "G_GUBUN": "", "G_BUSINESS_TYPE": "",
+                    "G_BUSINESS_CD": "", "TAX_REG_ID": "", "FAX": "", "HP_NO": "",
+                    "DM_POST": "", "DM_ADDR": "", "REMARKS_WIN": "", "GUBUN": "",
+                    "FOREIGN_FLAG": "", "EXCHANGE_CODE": "", "CUST_GROUP1": "",
+                    "CUST_GROUP2": "", "URL_PATH": "", "REMARKS": "", "OUTORDER_YN": "",
+                    "IO_CODE_SL_BASE_YN": "", "IO_CODE_SL": "", "IO_CODE_BY_BASE_YN": "",
+                    "IO_CODE_BY": "", "EMP_CD": "", "MANAGE_BOND_NO": "",
+                    "MANAGE_DEBIT_NO": "", "CUST_LIMIT": "", "O_RATE": "", "I_RATE": "",
+                    "PRICE_GROUP": "", "PRICE_GROUP2": "", "CUST_LIMIT_TERM": "",
+                    "CONT1": "", "CONT2": "", "CONT3": "", "CONT4": "", "CONT5": "",
+                    "CONT6": "", "NO_CUST_USER1": "", "NO_CUST_USER2": "", "NO_CUST_USER3": ""
+                }
+            }
+        ]
+    }
+    
+    try:
+        # 샌드박스 서버는 인증서가 불안정할 수 있으므로 verify=False 유지
+        response = requests.post(url, json=payload, verify=False, timeout=15)
+        return response.json()
+    except Exception as e:
+        return {"Status": "500", "Message": f"테스트 통신 오류: {str(e)}"}
