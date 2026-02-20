@@ -792,24 +792,30 @@ with tab3:
 
     st.markdown("### 🔍 차량 정보 및 제원 관리")
     e_c1, e_c2 = st.columns(2)
+    
     with e_c1:
         # --- 좌측: 원본 사이트 이동 버튼 ---
         if v_site and v_site.startswith("http"):
-        st.link_button("🌐 원본 사이트 이동", v_site, use_container_width=True)
+            st.link_button("🌐 원본 사이트 이동", v_site, use_container_width=True)
         else:
-        st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
-        
+            st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
+            
     with e_c2:
-        # --- 우측: 제원조회 버튼 (e_c2 활용) ---
+        # --- 우측: 제원조회 버튼 ---
         if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
-        # 상단에 입력된 제원관리번호(v_spec_num)가 있는지 확인
-        if v_spec_num:
-        with st.spinner("Cyberts 정보를 불러오는 중..."):
-        try:
-        # 1. 크롤러 모듈 실행
-        result = cyberts_crawler.fetch_vehicle_specs(v_spec_num)
-        
-        st.divider()
+            # 상단에 입력된 제원관리번호(v_spec_num)가 있는지 확인
+            if v_spec_num:
+                with st.spinner("Cyberts 정보를 불러오는 중..."):
+                    try:
+                        # 1. 크롤러 모듈 실행
+                        result = cyberts_crawler.fetch_vehicle_specs(v_spec_num)
+                        # 성공 시 로직 추가 필요 (예: st.success)
+                    except Exception as e:
+                        st.error(f"오류 발생: {e}")
+            else:
+                st.warning("제원관리번호를 입력해주세요.")
+    
+    st.divider()
 
     # 2. 이카운트 ERP 구매입력 섹션
     st.divider()
