@@ -769,6 +769,7 @@ with col_list:
     # --- Tab 3: 기타 ---
     # --- Tab 3: 기타 및 ERP 연동 ---
 with tab3:
+
     # 1. 외부 링크 및 기본 정보 데이터 구성
     etc_data = {
         "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
@@ -812,24 +813,17 @@ with tab3:
             item_exists, _ = ecount.check_item_exists(session_id, v_vin)
             if not item_exists:
                 st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
+                res_item = ecount.register_item(etc_data, session_id, v_sheet_no)
                 # --- 디버깅용 로그 추가 ---
-                st.write("📡 이카운트 응답 데이터:", res_item) 
-                
-                if str(res_item.get("Status")) != "200":
-                    st.error("❌ 품목 등록 API 자체 실패 (통신/권한)")
+                st.write("📡 품목 등록 시도 응답:", res_item) 
+    
+                if str(res_item.get("Status")) != "200" or res_item.get("Data", {}).get("SuccessCnt", 0) == 0:
+                    st.error("❌ 품목 등록 실패")
                     st.stop()
-                    
-                success_cnt = res_item.get("Data", {}).get("SuccessCnt", 0)
-                if success_cnt == 0:
-                    st.error("❌ 품목 등록 실패 (데이터 오류)")
-                    # 상세 에러 메시지 출력
-                    err_msg = res_item.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "알 수 없는 에러")
-                    st.warning(f"💡 이카운트 답변: {err_msg}")
-                    st.stop()
-                    
                 st.success("✅ 품목 등록 완료")
             else:
-                st.write("✔️ 품목 확인 완료")
+                # 품목이 이미 있다면 이쪽으로 오기 때문에 위쪽의 res_item은 만들어지지 않습니다.
+                st.write("✔️ 품목이 이미 등록되어 있습니다.")
     
             # 2. 거래처 체크 및 등록
             cust_exists = ecount.check_customer_exists(session_id, v_biz_num)
