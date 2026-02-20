@@ -796,32 +796,29 @@ with tab3:
     st.divider()
     st.markdown("### 📊 이카운트 ERP 관리")
     
-    # 구매입력 버튼 (주요 동작이므로 primary 색상 적용)
-    if st.button("🚀 이카운트 구매입력(전표) 실행", key="btn_ecount_purchase", type="primary", use_container_width=True):
-        # 필수값 검증 (차대번호와 사업자번호가 없으면 API가 거절됨)
+    # 테스트 버튼 생성
+    if st.button("🧪 [테스트] 이카운트 구매입력", key="test_purchase_btn", type="secondary", use_container_width=True):
         if not v_vin or not v_biz_num:
-            st.error("❌ 필수 정보 부족: VIN(차대번호) 또는 사업자번호를 확인하세요.")
+            st.warning("⚠️ 테스트를 위해 VIN과 사업자번호를 입력해주세요.")
         else:
-            with st.spinner("이카운트 세션 연결 및 전표 생성 중..."):
-                # 1. 세션 ID 가져오기
+            with st.spinner("테스트 데이터 전송 중..."):
+                # 1. 세션 획득
                 session_id = ecount.get_session_id()
                 
                 if session_id:
-                    # 2. ecount.py의 register_purchase 함수 호출
-                    res = ecount.register_purchase(etc_data, session_id, v_username)
+                    # 2. 테스트 함수 실행
+                    # etc_data는 상단에서 정의한 변수 묶음입니다.
+                    result = ecount.register_purchase_test(etc_data, session_id)
                     
-                    # 3. 결과 처리
-                    if str(res.get("Status")) == "200":
-                        st.success("✅ 이카운트 구매전표 생성이 완료되었습니다!")
-                        st.balloons()
+                    # 3. 결과 출력
+                    if str(result.get("Status")) == "200":
+                        st.success("✅ [성공] 이카운트에 테스트 전표가 생성되었습니다.")
                     else:
-                        # 에러 발생 시 상세 내용 출력
-                        err_msg = res.get("Message", "상세 에러는 하단을 확인하세요.")
-                        st.error(f"❌ 전표 생성 실패: {err_msg}")
-                        with st.expander("🔍 상세 에러 로그 확인"):
-                            st.json(res)
+                        st.error(f"❌ [실패] {result.get('Message', '알 수 없는 오류')}")
+                        with st.expander("에러 상세 내용"):
+                            st.json(result)
                 else:
-                    st.error("❌ 이카운트 로그인에 실패했습니다. API 설정(ID/CERT KEY)을 확인하세요.")
+                    st.error("❌ 이카운트 로그인 실패 (세션 획득 불가)")
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
