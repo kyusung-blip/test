@@ -796,23 +796,33 @@ with tab3:
     st.divider()
     st.markdown("### 📊 이카운트 ERP 관리")
     
-    # buyprogram.py 내 tab3 버튼 부분
+    if st.button("🚀 매뉴얼 예시 전송 (테스트)", key="btn_manual_test_final", use_container_width=True):
+        with st.spinner("이카운트 세션 연결 시도 중..."):
+            session_id, login_error = ecount.get_session_id()
+            
+            if session_id:
+                # 결과값을 세션 상태에 저장
+                res = ecount.register_purchase_test(session_id)
+                st.session_state["ecount_test_result"] = res
+            else:
+                st.session_state["ecount_test_result"] = {"Status": "500", "Message": "로그인 실패", "Details": login_error}
 
-    # buyprogram.py의 버튼 클릭 로직 내부
-    if session_id:
-        st.info(f"🔑 세션 획득 성공! 데이터 전송을 시작합니다.")
-        
-        # 매뉴얼 테스트 함수 실행
-        res = ecount.register_purchase_test(session_id)
+    # 3. 버튼 밖에서 결과 출력 (이 부분이 버튼 아래에 항상 떠있게 됨)
+    if st.session_state["ecount_test_result"]:
+        res = st.session_state["ecount_test_result"]
         
         if str(res.get("Status")) == "200":
             st.success("🎉 [성공] 매뉴얼 데이터 전송 완료!")
-            st.json(res) # 서버가 준 전표 번호 등 확인
+            st.json(res)
         else:
-            st.error(f"❌ [전송 실패] {res.get('Message')}")
-            # 실패했다면 어떤 필드 때문에 실패했는지 상세 내용을 펼쳐서 보여줌
-            with st.expander("에러 상세 분석"):
+            st.error(f"❌ [전송 실패] {res.get('Message', '에러 발생')}")
+            with st.expander("상세 에러 분석"):
                 st.json(res)
+        
+        # 결과 초기화 버튼 (선택 사항)
+        if st.button("🧹 결과 지우기"):
+            st.session_state["ecount_test_result"] = None
+            st.rerun()
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
