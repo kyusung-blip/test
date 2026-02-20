@@ -826,7 +826,7 @@ with tab3:
                 else:
                     st.success("✅ 품목 등록 완료")
             else:
-                st.write("✔️ 품목 확인 완료"
+                st.write("✔️ 품목 확인 완료")
     
             # 2. 거래처 체크 및 등록
             cust_exists = ecount.check_customer_exists(session_id, v_biz_num)
