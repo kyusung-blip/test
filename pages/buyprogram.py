@@ -255,6 +255,14 @@ if raw_input:
         with st.spinner("데이터를 분석하고 외부 정보를 조회 중입니다..."):
             # A. 기초 데이터 파싱 (logic.py)
             parsed_result = lg.parse_excel_data(raw_input)
+            # [수정] 위젯이 그려지기 전에 세션 값을 먼저 세팅합니다.
+            st.session_state["v_spec_num_key"] = parsed_result.get('spec_num', "")
+            
+            # 제원 정보 초기화 (기존 위젯 오류 방지)
+            if "v_l" not in st.session_state: st.session_state["v_l"] = ""
+            if "v_w" not in st.session_state: st.session_state["v_w"] = ""
+            if "v_h" not in st.session_state: st.session_state["v_h"] = ""
+            if "v_wt" not in st.session_state: st.session_state["v_wt"] = ""
             
             # B. 주요 변수 추출
             plate = parsed_result.get('plate', "").strip()
@@ -324,7 +332,7 @@ if raw_input:
             # 7️⃣ [기타 금액 데이터]
             st.session_state["parsed_data"] = parsed_result
             st.session_state["last_raw_input"] = raw_input
-            
+            st.session_state["last_raw_input"] = raw_input
             # 처리가 끝났으므로 페이지 재실행 (상단부터 다시 그리면서 값 채움)
             st.rerun()
 
