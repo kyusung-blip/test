@@ -375,17 +375,10 @@ col_info, col_list = st.columns([0.7, 0.3])
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
-    title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
+    title_col, insp_col = st.columns([3, 1])
 
     with title_col:
         st.markdown("### 🚗 매입 정보")
-
-    with spec_col:
-        st.text_input(
-            "제원관리번호", 
-            value=st.session_state.get("v_spec_num_key", ""), 
-            key="v_spec_num_key"
-        )    
 
     with insp_col:
         insp_list = ["X", "S", "C"]
