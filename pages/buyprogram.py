@@ -257,13 +257,7 @@ if raw_input:
             parsed_result = lg.parse_excel_data(raw_input)
             # [수정] 위젯이 그려지기 전에 세션 값을 먼저 세팅합니다.
             st.session_state["v_spec_num_key"] = parsed_result.get('spec_num', "")
-            
-            # 제원 정보 초기화 (기존 위젯 오류 방지)
-            if "v_l" not in st.session_state: st.session_state["v_l"] = ""
-            if "v_w" not in st.session_state: st.session_state["v_w"] = ""
-            if "v_h" not in st.session_state: st.session_state["v_h"] = ""
-            if "v_wt" not in st.session_state: st.session_state["v_wt"] = ""
-            
+                       
             # B. 주요 변수 추출
             plate = parsed_result.get('plate', "").strip()
             contact = parsed_result.get('dealer_phone', "").strip()
@@ -350,15 +344,19 @@ with st.container(border=True):
 
     with row_top_cols[1]:
         s1, s2, s3, s4, s5 = st.columns(5)
+        # 세션 상태 초기화 (오류 방지를 위해 상단에 추가 필요)
+        if "v_l" not in st.session_state: st.session_state["v_l"] = ""
+        if "v_w" not in st.session_state: st.session_state["v_w"] = ""
+        if "v_h" not in st.session_state: st.session_state["v_h"] = ""
+        if "v_wt" not in st.session_state: st.session_state["v_wt"] = ""
+        if "v_c" not in st.session_state: st.session_state["v_c"] = ""
         
-        # logic.py의 함수를 콜백으로 연결
-        v_length = s1.text_input("길이", placeholder="L", key="v_l", on_change=lg.calculate_cbm_logic)
-        v_width = s2.text_input("너비", placeholder="W", key="v_w", on_change=lg.calculate_cbm_logic)
-        v_height = s3.text_input("높이", placeholder="H", key="v_h", on_change=lg.calculate_cbm_logic)
+        v_length = s1.text_input("길이", value=st.session_state["v_l"], placeholder="L", key="v_l_widget", on_change=lg.calculate_cbm_logic)
+        v_width = s2.text_input("너비", value=st.session_state["v_w"], placeholder="W", key="v_w_widget", on_change=lg.calculate_cbm_logic)
+        v_height = s3.text_input("높이", value=st.session_state["v_h"], placeholder="H", key="v_h_widget", on_change=lg.calculate_cbm_logic)
         
-        # CBM 칸은 계산 결과가 표시됨
-        v_cbm = s4.text_input("CBM", placeholder="0.0", key="v_c")
-        v_weight = s5.text_input("중량", placeholder="kg", key="v_wt")
+        v_cbm = s4.text_input("CBM", value=st.session_state["v_c"], placeholder="0.0", key="v_c_widget")
+        v_weight = s5.text_input("중량", value=st.session_state["v_wt"], placeholder="kg", key="v_wt_widget")
 
     with row_top_cols[2]:
         v_spec_num = st.text_input("제원관리번호", key="v_spec_num_key")
