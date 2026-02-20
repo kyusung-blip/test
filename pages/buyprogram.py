@@ -826,8 +826,11 @@ with tab3:
                             st.session_state["v_h"] = str(data.get("height", ""))
                             st.session_state["v_wt"] = str(data.get("weight", ""))
                             
-                            st.toast("✅ 제원 수신 완료! 화면을 갱신합니다.")
-                            st.rerun() 
+                            st.success("✅ 조회가 완료되었습니다! 아래 '새로고침' 버튼을 눌러주세요.")
+                            # st.rerun()  <-- 잠시 주석 처리 (에러 확인을 위해)
+                            
+                            if st.button("🔄 화면에 반영하기 (Rerun)"):
+                                st.rerun()
                         else:
                             st.error(f"❌ 조회 실패: {res.get('message')}")
                             
