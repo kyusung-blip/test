@@ -61,30 +61,34 @@ def check_customer_exists(session_id, biz_num):
     except Exception:
         return False
 
-def register_item(data, session_id, sheet_no):
-    """신규 품목 등록"""
+def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec_no로 명확히 함
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
-    # 품목명이 비어있으면 이카운트에서 에러가 나므로 기본값 설정
+    
     prod_name = str(data.get("car_name_remit", "")).strip()
     if not prod_name:
-        prod_name = f"미지정차량({data.get('vin')})" # 이름이 없으면 차대번호라도 넣음
+        prod_name = f"미지정차량({data.get('vin')})"
+
     def to_float(val):
         try:
+            if val is None: return 0.0
             clean = re.sub(r'[^0-9.]', '', str(val))
             return float(clean) if clean else 0.0
         except: return 0.0
 
-    l, w, h = to_float(data.get("length")), to_float(data.get("width")), to_float(data.get("height"))
+    # 데이터 누락에 대비한 안전한 처리
+    l = to_float(data.get("length", 0))
+    w = to_float(data.get("width", 0))
+    h = to_float(data.get("height", 0))
     cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
 
     payload = {
         "ProductList": [{
             "BulkDatas": {
                 "PROD_CD": str(data.get("vin", "")),
-                "PROD_DES": str(data.get("car_name_remit", "")),
+                "PROD_DES": prod_name,
                 "UNIT": "EA",
                 "ADD_TXT_01_T": str(data.get("brand", "")),
-                "CONT1": str(sheet_no),
+                "CONT1": str(spec_no), # 외부에서 넘겨받은 spec_no 사용
                 "CONT2": str(data.get("plate", "")),
                 "CONT3": str(data.get("km", "")),
                 "CONT4": str(data.get("color", "")),
