@@ -15,7 +15,7 @@ ZONE = "AD"
 
 def get_session_id():
     """세션 획득"""
-    login_url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
+    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
     payload = {
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
