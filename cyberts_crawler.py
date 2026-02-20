@@ -33,8 +33,6 @@ def _build_chrome_options(headless: bool = True) -> Options:
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
-    # Streamlit Cloud Chromium 경로
-    options.binary_location = "/usr/bin/chromium"
     return options
 
 def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, Any]:
@@ -45,7 +43,6 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, An
             return {"status": "error", "message": "제원관리번호가 없습니다."}
 
         options = _build_chrome_options(headless=headless)
-        service = Service("/usr/bin/chromedriver")
         driver = webdriver.Chrome(service=service, options=options)
         
         driver.get(CYBERTS_URL)
