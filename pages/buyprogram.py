@@ -807,53 +807,50 @@ with tab3:
             
 # buyprogram.py 내의 e_c2 (제원조회 버튼) 부분 수정
     with e_c2:
-        # 버튼 클릭 시 실행될 로직
-        if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
-            st.info("DEBUG: 버튼 클릭이 감지되었습니다.") 
-            
-            # v_spec_num이 위젯 key값과 연결되어 있는지 확인
-            spec_val = st.session_state.get("v_spec_num_key", "")
-            
-            if spec_val:
-                st.write(f"DEBUG: 제원번호 '{spec_val}'로 조회를 시작합니다.")
-                with st.spinner("Cyberts 정보를 불러오는 중..."):
-                    try:
-                        # 1. 크롤러 호출
-                        res = cyberts_crawler.fetch_vehicle_specs(spec_val)
-                        st.write("DEBUG: 크롤러 응답 데이터 ->", res)
-                        
-                        if res.get("status") == "success":
-                            data = res.get("data", {})
-                            # 2. 세션 상태 업데이트 (문자열로 변환하여 저장)
-                            st.session_state["v_l"] = str(data.get("length", ""))
-                            st.session_state["v_w"] = str(data.get("width", ""))
-                            st.session_state["v_h"] = str(data.get("height", ""))
-                            st.session_state["v_wt"] = str(data.get("weight", ""))
-                            # 2. CBM 수동 계산 로직 추가 (L * W * H / 1,000,000,000)
-                            try:
-                                # 문자열을 숫자로 변환 (숫자 외 문자가 있을 수 있으니 예외처리)
-                                l_val = float(l)
-                                w_val = float(w)
-                                h_val = float(h)
-                                # CBM 공식: (mm 단위일 경우) L*W*H / 10^9
-                                cbm_calc = (l_val * w_val * h_val) / 1000000000
-                                st.session_state["v_c"] = f"{cbm_calc:.2f}" # 소수점 2자리까지
-                            except Exception as e:
-                                st.session_state["v_c"] = "0.00"
-                                st.write(f"CBM 계산 오류: {e}")
-                            st.session_state["widget_version"] += 1
-                            st.toast("✅ 제원 정보가 업데이트되었습니다.")
-                            st.rerun()
-
-                        else:
-                            st.error(f"❌ 실패: {res.get('message')}")
+            if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
+                spec_val = st.session_state.get("v_spec_num_key", "")
+                
+                if spec_val:
+                    with st.spinner("Cyberts 정보를 불러오는 중..."):
+                        try:
+                            res = cyberts_crawler.fetch_vehicle_specs(spec_val)
                             
-                    except Exception as e:
-                        # try문에 대한 except 처리가 반드시 있어야 합니다.
-                        st.error(f"⚠️ 시스템 오류 발생: {e}")
-            else:
-                # if spec_val: 에 대한 else
-                st.warning("제원관리번호를 입력해주세요.")
+                            if res.get("status") == "success":
+                                data = res.get("data", {})
+                                
+                                # 1. 원본 데이터 세션 저장
+                                l_str = data.get("length", "0")
+                                w_str = data.get("width", "0")
+                                h_str = data.get("height", "0")
+                                
+                                st.session_state["v_l"] = str(l_str)
+                                st.session_state["v_w"] = str(w_str)
+                                st.session_state["v_h"] = str(h_str)
+                                st.session_state["v_wt"] = str(data.get("weight", ""))
+                                
+                                # 2. [추가] CBM 직접 계산 로직
+                                try:
+                                    # mm 단위를 m 단위로 변환하여 곱함 (L*W*H / 1,000,000,000)
+                                    l_val = float(l_str)
+                                    w_val = float(w_str)
+                                    h_val = float(h_str)
+                                    cbm_calc = (l_val * w_val * h_val) / 1000000000
+                                    # 세션에 계산된 CBM 저장 (소수점 2자리)
+                                    st.session_state["v_c"] = f"{cbm_calc:.2f}"
+                                except:
+                                    st.session_state["v_c"] = "0.00"
+    
+                                # 3. 위젯 버전 업데이트 및 리런
+                                st.session_state["widget_version"] += 1
+                                st.toast("✅ 제원 및 CBM 업데이트 완료!")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ 실패: {res.get('message')}")
+                                
+                        except Exception as e:
+                            st.error(f"⚠️ 시스템 오류 발생: {e}")
+                else:
+                    st.warning("제원관리번호를 입력해주세요.")
     
     st.divider()
 
