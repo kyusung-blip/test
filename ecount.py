@@ -152,11 +152,11 @@ def register_purchase_test(data, session_id):
                 "WH_CD": "100",    
                 "PRICE": "100000"           
 
+                        }
+            
+                 }]
+            
             }
-
-     }]
-
-}
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
