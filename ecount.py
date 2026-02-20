@@ -134,3 +134,42 @@ def register_purchase(data, session_id, username):
         return response.json()
     except Exception as e:
         return {"Status": "500", "Message": f"통신오류: {str(e)}"}
+
+def register_purchase_test(data, session_id):
+    """이카운트 API 매뉴얼 기준 테스트 함수"""
+    # 1. URL 구성 (테스트용 sboapi 또는 일반 oapi 확인 필요)
+    # 테스트 환경이면 sboapi, 실환경이면 oapi를 사용합니다.
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
+    
+    # 2. 전송할 데이터 구조 (사용자가 제공한 JSON 형식 준수)
+    # 현재 날짜와 입력된 값을 매핑합니다.
+    io_date = datetime.now().strftime("%Y%m%d")
+    biz_num = re.sub(r'[^0-9]', '', str(data.get("biz_num", "00001")))
+    vin = str(data.get("vin", "00001"))
+
+    payload = {
+        "PurchasesList": [
+            {
+                "BulkDatas": {
+                    "IO_DATE": io_date,
+                    "CUST": biz_num,
+                    "CUST_DES": str(data.get("biz_name", "테스트업체")),
+                    "WH_CD": "100", # 실제 사용하는 창고코드로 변경 필요
+                    "PROD_CD": vin,
+                    "PROD_DES": str(data.get("car_name_remit", "테스트차량")),
+                    "QTY": "1",
+                    "PRICE": str(data.get("price", "0")),
+                    "SUPPLY_AMT": str(data.get("price", "0")),
+                    "VAT_AMT": "0",
+                    "U_MEMO1": str(data.get("plate", "")),
+                    "U_MEMO2": vin
+                }
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(url, json=payload, verify=False, timeout=15)
+        return response.json()
+    except Exception as e:
+        return {"Status": "500", "Message": f"통신 오류: {str(e)}"}
