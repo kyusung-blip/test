@@ -135,7 +135,7 @@ def register_purchase(data, session_id, username):
     except Exception as e:
         return {"Status": "500", "Message": f"통신오류: {str(e)}"}
 
-def register_purchase_test(ZONE, session_id):
+def register_purchase_test(session_id):
     """이카운트 매뉴얼 예시와 100% 동일한 페이로드 테스트"""
     url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
     
