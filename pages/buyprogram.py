@@ -798,25 +798,21 @@ with tab3:
     
     # buyprogram.py 내 tab3 버튼 부분
 
-    if st.button("🧪 [매뉴얼예시] 구매입력 테스트", key="manual_test_btn", use_container_width=True):
-        with st.spinner("이카운트 세션 획득 중..."):
-            # 세션 획득 시도
-            session_id = ecount.get_session_id()
-            
-            if session_id:
-                st.write(f"✅ 세션 획득 성공: {session_id[:10]}...") # 보안상 일부만 출력
-                result = ecount.register_purchase_test({}, session_id)
-                
-                if str(result.get("Status")) == "200":
-                    st.success("✅ 매뉴얼 예시 데이터 전송 성공!")
-                    st.json(result)
-                else:
-                    st.error(f"❌ 전송 실패: {result.get('Message')}")
-                    st.json(result) # 실패 원인 분석용
-            else:
-                # 로그인 자체가 안될 때 상세 에러를 보기 위해 직접 get_session_id 로직 내부 확인 필요
-                st.error("❌ 이카운트 로그인 실패 (세션 획득 불가)")
-                st.info("ecount.py의 COM_CODE, USER_ID, API_CERT_KEY가 테스트용 정보와 맞는지 확인하세요.")
+    # buyprogram.py의 버튼 클릭 로직 내부
+    if session_id:
+        st.info(f"🔑 세션 획득 성공! 데이터 전송을 시작합니다.")
+        
+        # 매뉴얼 테스트 함수 실행
+        res = ecount.register_purchase_test(session_id)
+        
+        if str(res.get("Status")) == "200":
+            st.success("🎉 [성공] 매뉴얼 데이터 전송 완료!")
+            st.json(res) # 서버가 준 전표 번호 등 확인
+        else:
+            st.error(f"❌ [전송 실패] {res.get('Message')}")
+            # 실패했다면 어떤 필드 때문에 실패했는지 상세 내용을 펼쳐서 보여줌
+            with st.expander("에러 상세 분석"):
+                st.json(res)
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
