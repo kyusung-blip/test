@@ -33,15 +33,27 @@ def get_session_id():
         return None , {"Status": "500", "Message": str(e)}
 
 def check_item_exists(session_id, prod_cd):
-    """품목 존재 여부 확인"""
+    """품목 존재 여부 확인 (응답 구조 정밀 판독)"""
+    # 1. URL 확인 (InventoryBasic 계열)
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/GetListBasicProduct?SESSION_ID={session_id}"
+    
+    # 2. 검색 조건 (정확한 코드로 검색)
     payload = {"PROD_CD": str(prod_cd)}
+    
     try:
         response = requests.post(url, json=payload, verify=False, timeout=10)
         res_data = response.json()
+        
         if str(res_data.get("Status")) == "200":
+            # 이카운트가 돌려준 데이터 리스트 추출
             items = res_data.get("Data", {}).get("Datas", [])
-            return len(items) > 0, items[0] if items else None
+            
+            # 리스트를 돌면서 내가 찾는 코드와 100% 일치하는게 있는지 확인
+            for item in items:
+                if str(item.get("PROD_CD")).strip() == str(prod_cd).strip():
+                    return True, item # 찾았음!
+            
+            return False, None # 리스트는 왔지만 일치하는 코드가 없음
         return False, None
     except Exception:
         return False, None
