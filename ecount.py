@@ -29,7 +29,7 @@ def get_session_id():
             return res_data["Data"]["Datas"]["SESSION_ID"], None
         else:
             return None, res_data
-    except Exception: as e:
+    except Exception as e:
         return None , {"Status": "500", "Message": str(e)}
 
 def check_item_exists(session_id, prod_cd):
