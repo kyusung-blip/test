@@ -10,12 +10,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # [설정] 발급받으신 정보
 COM_CODE = "682186"
 USER_ID = "이규성"
-API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
+API_CERT_KEY = "2dac8e71fcd314e77af2ce35eb89185442"
 ZONE = "AD" 
 
 def get_session_id():
     """세션 획득"""
-    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
+    login_url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
     payload = {
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
