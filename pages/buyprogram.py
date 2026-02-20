@@ -349,13 +349,13 @@ with st.container(border=True):
             if k not in st.session_state:
                 st.session_state[k] = ""
         
-        v_length = s1.text_input("길이", value=st.session_state["v_l"], placeholder="L", key="v_l_widget", on_change=lg.calculate_cbm_logic)
-        v_width = s2.text_input("너비", value=st.session_state["v_w"], placeholder="W", key="v_w_widget", on_change=lg.calculate_cbm_logic)
-        v_height = s3.text_input("높이", value=st.session_state["v_h"], placeholder="H", key="v_h_widget", on_change=lg.calculate_cbm_logic)
+        s1.text_input("길이", key="v_l", on_change=lg.calculate_cbm_logic)
+        s2.text_input("너비", key="v_w", on_change=lg.calculate_cbm_logic)
+        s3.text_input("높이", key="v_h", on_change=lg.calculate_cbm_logic)
+        s5.text_input("중량", key="v_wt")
         
-        v_cbm = s4.text_input("CBM", value=st.session_state["v_c"], placeholder="0.0", key="v_c_widget")
-        v_weight = s5.text_input("중량", value=st.session_state["v_wt"], placeholder="kg", key="v_wt_widget")
-
+        # CBM은 계산값이므로 그대로 유지
+        s4.text_input("CBM", value=st.session_state.get("v_c", "0.0"), key="v_c")
     with row_top_cols[2]:
         v_spec_num = st.text_input("제원관리번호", key="v_spec_num_key")
     
@@ -826,21 +826,17 @@ with tab3:
                             st.session_state["v_h"] = str(data.get("height", ""))
                             st.session_state["v_wt"] = str(data.get("weight", ""))
                             
-                            st.success("✅ 조회가 완료되었습니다! 아래 '새로고침' 버튼을 눌러주세요.")
-                            # st.rerun()  <-- 잠시 주석 처리 (에러 확인을 위해)
+                            # CBM 자동 계산 함수가 있다면 여기서 한 번 호출해주는 것이 좋습니다.
+                            if hasattr(lg, 'calculate_cbm_logic'):
+                                lg.calculate_cbm_logic()
                             
-                            if st.button("🔄 화면에 반영하기 (Rerun)"):
-                                st.rerun()
+                            # 성공 메시지를 띄우고 바로 리런!
+                            st.toast("✅ 제원 정보가 업데이트되었습니다.")
+                            st.rerun() 
                         else:
-                            st.error(f"❌ 조회 실패: {res.get('message')}")
-                            
-                    except Exception as e:
-                        st.error(f"⚠️ 시스템 내부 오류 발생: {e}")
-                        # 에러가 어디서 났는지 상세히 출력
-                        import traceback
-                        st.code(traceback.format_exc())
-            else:
-                st.warning("제원관리번호(v_spec_num_key)가 비어있습니다. 번호를 입력해주세요.")
+                            st.error(f"❌ 실패: {res.get('message')}")
+                else:
+                    st.warning("제원관리번호를 입력해주세요.")
     
     st.divider()
 
