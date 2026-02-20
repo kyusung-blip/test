@@ -248,12 +248,47 @@ with reset_col:
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 parsed = st.session_state.get("parsed_data", {})
 
-# 매입사원 선택
-v_username = st.selectbox(
-    "매입사원", 
-    ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
-    index=0
-)
+# --- 매입사원 선택 및 차량 제원 정보 통합 행 ---
+with st.container(border=True):
+    # 컬럼 비율 설정 (매입사원: 1.5, 제원들: 5, 제원관리번호: 1.5)
+    row_top_cols = st.columns([1.5, 5.5, 1.5])
+
+    with row_top_cols[0]:
+        v_username = st.selectbox(
+            "매입사원", 
+            ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
+            index=0
+        )
+
+    with row_top_cols[1]:
+        # 제원 5종을 한 묶음으로 배치
+        st.caption("📏 차량 상세 제원 (길이/너비/높이/CBM/총중량)")
+        s1, s2, s3, s4, s5 = st.columns(5)
+        v_length = s1.text_input("길이", value="", placeholder="0", label_visibility="collapsed")
+        v_width = s2.text_input("너비", value="", placeholder="0", label_visibility="collapsed")
+        v_height = s3.text_input("높이", value="", placeholder="0", label_visibility="collapsed")
+        v_cbm = s4.text_input("CBM", value="", placeholder="0.0", label_visibility="collapsed")
+        v_weight = s5.text_input("총중량", value="", placeholder="0", label_visibility="collapsed")
+
+    with row_top_cols[2]:
+        v_spec_num = st.text_input(
+            "제원관리번호", 
+            value=st.session_state.get("v_spec_num_key", ""), 
+            key="v_spec_num_key"
+        )
+
+# --- 인스펙션 상태만 따로 얇게 배치 ---
+insp_row_col1, insp_row_col2 = st.columns([6, 1])
+with insp_row_col2:
+    insp_list = ["X", "S", "C"]
+    current_insp = st.session_state.get("inspection_status", "X")
+    insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
+    v_inspection = st.selectbox(
+        "Inspection", 
+        insp_list, 
+        index=insp_idx, 
+        key="v_inspection_key"
+    )
     
 # [핵심 수정] parsed 데이터를 세션에서 관리합니다.
 if "parsed_data" not in st.session_state:
@@ -355,38 +390,6 @@ with col_info:
     title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
     with title_col:
         st.markdown("### 🚗 매입 정보")
-    # 2. [추가] 차량 상세 제원 (길이, 너비, 높이, CBM, 총중량)
-    # 한 줄에 5개의 입력칸을 균등하게 배치합니다.
-    spec_row = st.container(border=True)
-    with spec_row:
-        st.caption("📏 차량 상세 제원")
-        s1, s2, s3, s4, s5 = st.columns(5)
-        v_length = s1.text_input("길이(mm)", value="", placeholder="0")
-        v_width = s2.text_input("너비(mm)", value="", placeholder="0")
-        v_height = s3.text_input("높이(mm)", value="", placeholder="0")
-        v_cbm = s4.text_input("CBM", value="", placeholder="0.0")
-        v_weight = s5.text_input("총중량(kg)", value="", placeholder="0")
-
-    # 3. 기존 제원관리번호 및 인스펙션 영역
-    # (기존 타이틀 자리에 있던 부분을 아래로 내려서 정리)
-    sub_col1, sub_col2 = st.columns([2, 1])
-    with sub_col1:
-        v_spec_num = st.text_input(
-            "제원관리번호", 
-            value=st.session_state.get("v_spec_num_key", ""), 
-            key="v_spec_num_key"
-        )
-    with sub_col2:
-        insp_list = ["X", "S", "C"]
-        current_insp = st.session_state.get("inspection_status", "X")
-        insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
-        v_inspection = st.selectbox(
-            "Inspection", 
-            insp_list, 
-            index=insp_idx, 
-            key="v_inspection_key"
-        )
-
     st.divider()
 
    
