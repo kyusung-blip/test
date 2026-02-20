@@ -344,12 +344,10 @@ with st.container(border=True):
 
     with row_top_cols[1]:
         s1, s2, s3, s4, s5 = st.columns(5)
-        # 세션 상태 초기화 (오류 방지를 위해 상단에 추가 필요)
-        if "v_l" not in st.session_state: st.session_state["v_l"] = ""
-        if "v_w" not in st.session_state: st.session_state["v_w"] = ""
-        if "v_h" not in st.session_state: st.session_state["v_h"] = ""
-        if "v_wt" not in st.session_state: st.session_state["v_wt"] = ""
-        if "v_c" not in st.session_state: st.session_state["v_c"] = ""
+        # 1. 값이 없을 때만 빈 문자열로 초기화 (기존 값 유지 목적)
+        for k in ["v_l", "v_w", "v_h", "v_wt", "v_c"]:
+            if k not in st.session_state:
+                st.session_state[k] = ""
         
         v_length = s1.text_input("길이", value=st.session_state["v_l"], placeholder="L", key="v_l_widget", on_change=lg.calculate_cbm_logic)
         v_width = s2.text_input("너비", value=st.session_state["v_w"], placeholder="W", key="v_w_widget", on_change=lg.calculate_cbm_logic)
@@ -813,20 +811,18 @@ with tab3:
                         
                         if res["status"] == "success":
                             data = res["data"]
-                            # 1. 세션 상태에 크롤링 결과 저장
-                            st.session_state["v_l"] = data.get("length", "")
-                            st.session_state["v_w"] = data.get("width", "")
-                            st.session_state["v_h"] = data.get("height", "")
-                            st.session_state["v_wt"] = data.get("weight", "")
+                            # 세션에 직접 대입 (위젯의 key와 동일한 이름)
+                            # data.get()의 키 이름이 crawler.py에서 반환하는 이름과 정확히 일치하는지 확인!
+                            st.session_state["v_l"] = str(data.get("length", ""))
+                            st.session_state["v_w"] = str(data.get("width", ""))
+                            st.session_state["v_h"] = str(data.get("height", ""))
+                            st.session_state["v_wt"] = str(data.get("weight", ""))
                             
-                            # 2. CBM 자동 계산 트리거 (함수가 있다면 호출)
-                            # lg.calculate_cbm_logic() # 필요시 직접 실행
-                            
-                            st.success("✅ 제원 정보를 성공적으로 가져왔습니다!")
-                            st.rerun() # 화면을 다시 그려서 입력창에 반영
+                            # 성공 로그
+                            st.success("✅ 데이터를 가져왔습니다. 화면을 갱신합니다.")
+                            st.rerun() # 여기서 리런하면 상단 위젯에 값이 박힘
                         else:
                             st.error(f"❌ 조회 실패: {res['message']}")
-                            
                     except Exception as e:
                         st.error(f"⚠️ 시스템 오류 발생: {e}")
             else:
