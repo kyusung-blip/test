@@ -830,12 +830,14 @@ with tab3:
                             st.session_state["v_h"] = str(data.get("height", ""))
                             st.session_state["v_wt"] = str(data.get("weight", ""))
                             
-                            # CBM 자동 계산 함수가 있다면 여기서 호출
-                            if hasattr(lg, 'calculate_cbm_logic'):
-                                lg.calculate_cbm_logic()
+
                             st.session_state["widget_version"] += 1
                             st.toast("✅ 제원 정보가 업데이트되었습니다.")
-                            st.rerun() 
+                            st.rerun()
+                                                        # CBM 자동 계산 함수가 있다면 여기서 호출
+                            if hasattr(lg, 'calculate_cbm_logic'):
+                                lg.calculate_cbm_logic()
+                            st.rerun()
                         else:
                             st.error(f"❌ 실패: {res.get('message')}")
                             
