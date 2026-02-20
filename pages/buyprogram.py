@@ -796,29 +796,27 @@ with tab3:
     st.divider()
     st.markdown("### 📊 이카운트 ERP 관리")
     
-    # 테스트 버튼 생성
-    if st.button("🧪 [테스트] 이카운트 구매입력", key="test_purchase_btn", type="secondary", use_container_width=True):
-        if not v_vin or not v_biz_num:
-            st.warning("⚠️ 테스트를 위해 VIN과 사업자번호를 입력해주세요.")
-        else:
-            with st.spinner("테스트 데이터 전송 중..."):
-                # 1. 세션 획득
-                session_id = ecount.get_session_id()
+    # buyprogram.py 내 tab3 버튼 부분
+
+    if st.button("🧪 [매뉴얼예시] 구매입력 테스트", key="manual_test_btn", use_container_width=True):
+        with st.spinner("이카운트 세션 획득 중..."):
+            # 세션 획득 시도
+            session_id = ecount.get_session_id()
+            
+            if session_id:
+                st.write(f"✅ 세션 획득 성공: {session_id[:10]}...") # 보안상 일부만 출력
+                result = ecount.register_purchase_test({}, session_id)
                 
-                if session_id:
-                    # 2. 테스트 함수 실행
-                    # etc_data는 상단에서 정의한 변수 묶음입니다.
-                    result = ecount.register_purchase_test(etc_data, session_id)
-                    
-                    # 3. 결과 출력
-                    if str(result.get("Status")) == "200":
-                        st.success("✅ [성공] 이카운트에 테스트 전표가 생성되었습니다.")
-                    else:
-                        st.error(f"❌ [실패] {result.get('Message', '알 수 없는 오류')}")
-                        with st.expander("에러 상세 내용"):
-                            st.json(result)
+                if str(result.get("Status")) == "200":
+                    st.success("✅ 매뉴얼 예시 데이터 전송 성공!")
+                    st.json(result)
                 else:
-                    st.error("❌ 이카운트 로그인 실패 (세션 획득 불가)")
+                    st.error(f"❌ 전송 실패: {result.get('Message')}")
+                    st.json(result) # 실패 원인 분석용
+            else:
+                # 로그인 자체가 안될 때 상세 에러를 보기 위해 직접 get_session_id 로직 내부 확인 필요
+                st.error("❌ 이카운트 로그인 실패 (세션 획득 불가)")
+                st.info("ecount.py의 COM_CODE, USER_ID, API_CERT_KEY가 테스트용 정보와 맞는지 확인하세요.")
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
