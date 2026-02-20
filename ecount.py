@@ -99,37 +99,68 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": str(e)}
 
 def register_purchase(data, session_id, username):
-    """이카운트 API 테스트 성공 데이터를 기반으로 한 구매입력"""
-    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
+    """정리해주신 필드 매핑이 모두 적용된 구매입력 함수"""
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
-    # 1. 금액 처리 (숫자만 추출하여 문자열로 변환)
+    # 1. 금액 처리 함수
     def to_amt_str(val):
         if not val: return "0"
         clean = re.sub(r'[^0-9.]', '', str(val))
         try:
             num = float(clean)
-            if "만원" in str(val):
-                return str(int(num * 10000))
+            if "만원" in str(val): return str(int(num * 10000))
             return str(int(num))
         except: return "0"
 
-    # 2. 테스트 성공했던 구조 그대로 BulkDatas 구성
-    # API 테스트에서 성공한 key값들과 형식을 그대로 유지합니다.
+    # 2. 추가코드형식1 (ADD_CODE_01_T) 로직 변환
+    h_id = data.get("h_id", "")
+    h_code = ""
+    if h_id == "seobuk": h_code = "001"
+    elif h_id == "inter77": h_code = "002"
+    elif h_id == "leeks21": h_code = "003"
+
+    # 3. 페이로드 구성
     purchase_data = {
         "PurchasesList": [{
             "BulkDatas": {
-                "IO_DATE": datetime.now().strftime("%Y%m%d"), # 오늘 날짜
-                "CUST": re.sub(r'[^0-9]', '', str(data.get("biz_num", ""))), # 사업자번호
-                "PROD_CD": str(data.get("vin", "")), # 차대번호
-                "QTY": "1",
+                # [기본 정보]
+                "IO_DATE": datetime.now().strftime("%Y%m%d"),
+                "CUST": re.sub(r'[^0-9]', '', str(data.get("biz_num", ""))),
+                "EMP_CD": str(username), # 담당자
                 "WH_CD": "100",
-                "PRICE": to_amt_str(data.get("price")) # 금액
-                }
-            }]
-        }
+                
+                # [품목 및 금액]
+                "PROD_CD": str(data.get("vin", "")),
+                "QTY": "1",
+                "PRICE": to_amt_str(data.get("price")),
+                "SUPPLY_AMT": to_amt_str(data.get("price")),
+                "VAT_AMT": "0",
+
+                # [구매입력 하단 메모 - U_MEMO]
+                "U_MEMO1": str(data.get("plate", "")),         # plate
+                "U_MEMO2": str(data.get("vin", "")),           # vin
+                "U_MEMO3": str(data.get("psource", "")),       # psource
+                "U_MEMO4": str(data.get("car_name_remit", "")), # car_name_remit
+                "U_MEMO5": str(data.get("sales", "")),         # sales
+
+                # [구매 상단 추가항목 - ADD_TXT]
+                "ADD_TXT_01_T": str(data.get("buyer", "")),    # buyer
+                "ADD_TXT_02_T": str(data.get("country", "")),  # country
+                "ADD_TXT_03_T": "",                            # 빈칸
+                "ADD_TXT_04_T": str(data.get("region", "")),   # region
+                "ADD_TXT_05_T": str(data.get("year", "")),     # year
+                "ADD_TXT_06_T": str(data.get("color", "")),    # color
+                "ADD_TXT_07_T": str(data.get("km", "")),       # km
+                "ADD_TXT_09_T": "",                            # 빈칸
+                "ADD_TXT_10_T": str(data.get("brand", "")),    # brand
+                
+                # [구매 상단 추가코드]
+                "ADD_CODE_01_T": h_code                        # h_id에 따른 코드
+            }
+        }]
+    }
 
     try:
-        # verify=False는 유지, json 파라미터로 데이터 전송
         response = requests.post(url, json=purchase_data, verify=False, timeout=15)
         return response.json()
     except Exception as e:
