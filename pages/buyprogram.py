@@ -860,6 +860,27 @@ with tab3:
                 # 시스템/통신 에러
                 st.error(f"❌ API 통신 실패: {res_pur.get('Message')}")
                 st.json(res_pur)
+    st.divider()
+    st.markdown("### 🧪 API 권한 테스트")
+    if st.button("🛠️ 거래처 등록 TEST 실행", key="btn_test_cust_reg", use_container_width=True):
+        with st.spinner("샌드박스 서버로 테스트 데이터 전송 중..."):
+            # 1. 세션 획득
+            session_id, login_error = ecount.get_session_id()
+            
+            if session_id:
+                # 2. 테스트 함수 호출
+                test_res = ecount.register_customer_test(session_id)
+                
+                # 3. 결과 출력
+                if str(test_res.get("Status")) == "200":
+                    st.success("✅ 테스트 통신 성공!")
+                    st.json(test_res) # 서버 응답 구조 확인용
+                else:
+                    st.error("❌ 테스트 실패")
+                    st.json(test_res) # 에러 원인 분석용
+            else:
+                st.error("❌ 세션 획득 실패")
+                st.json(login_error)
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
