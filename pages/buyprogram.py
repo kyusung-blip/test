@@ -344,18 +344,21 @@ with st.container(border=True):
 
     with row_top_cols[1]:
         s1, s2, s3, s4, s5 = st.columns(5)
-        # 1. 값이 없을 때만 빈 문자열로 초기화 (기존 값 유지 목적)
-        for k in ["v_l", "v_w", "v_h", "v_wt", "v_c"]:
+        
+        # 1. 크롤링 데이터를 저장할 변수 초기화 (위젯 키와 이름이 달라야 함)
+        for k in ["v_l", "v_w", "v_h", "v_wt"]:
             if k not in st.session_state:
                 st.session_state[k] = ""
+    
+        # 2. 위젯의 key를 "v_l_widget" 등으로 변경하여 충돌 방지
+        # value를 st.session_state["v_l"]로 설정하면 크롤링 데이터가 여기로 들어옵니다.
+        s1.text_input("길이", value=st.session_state["v_l"], key="v_l_widget")
+        s2.text_input("너비", value=st.session_state["v_w"], key="v_w_widget")
+        s3.text_input("높이", value=st.session_state["v_h"], key="v_h_widget")
+        s5.text_input("중량", value=st.session_state["v_wt"], key="v_wt_widget")
         
-        s1.text_input("길이", key="v_l", on_change=lg.calculate_cbm_logic)
-        s2.text_input("너비", key="v_w", on_change=lg.calculate_cbm_logic)
-        s3.text_input("높이", key="v_h", on_change=lg.calculate_cbm_logic)
-        s5.text_input("중량", key="v_wt")
-        
-        # CBM은 계산값이므로 그대로 유지
-        s4.text_input("CBM", value=st.session_state.get("v_c", "0.0"), key="v_c")
+        # CBM (기존 로직 유지)
+        s4.text_input("CBM", value=st.session_state.get("v_c", "0.0"), key="v_c_widget")
     with row_top_cols[2]:
         v_spec_num = st.text_input("제원관리번호", key="v_spec_num_key")
     
