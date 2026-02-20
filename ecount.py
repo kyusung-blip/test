@@ -28,7 +28,7 @@ def get_session_id():
         if str(res_data.get("Status")) == "200":
             return res_data["Data"]["Datas"]["SESSION_ID"], None
         else:
-        return None, res_data
+            return None, res_data
     except Exception: as e:
         return None , {"Status": "500", "Message": str(e)}
 
