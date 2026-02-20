@@ -216,13 +216,34 @@ label_col, delete_col = st.columns([7, 1])
 with label_col:
     st.subheader("📥 데이터 붙여넣기")
 
-with delete_col:
-    # 입력칸만 비우는 전용 버튼
-    if st.button("🗑️ 입력 삭제"):
-        if "raw_input_main" in st.session_state:
-            st.session_state["raw_input_main"] = ""  # 값을 직접 빈 문자열로 강제 주입
-        st.session_state["last_raw_input"] = ""      # 비교용 데이터도 초기화
-        st.session_state["parsed_data"] = {}         # 파싱된 바구니도 비움
+with reset_col:
+    # 기존 "입력 삭제"와 "전체 리셋" 기능을 통합한 버튼
+    if st.button("♻️ 전체 리셋", type="secondary", use_container_width=True):
+        # 1. 모든 세션 상태 변수 삭제
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        
+        # 2. 필수 기본값 재설정 (오류 방지)
+        st.session_state["current_page"] = "buyprogram"
+        st.session_state["inspection_status"] = "X"
+        st.session_state["v_inspection_key"] = "X"
+        st.session_state["parsed_data"] = {}
+        st.session_state["dealer_data"] = {}
+        st.session_state["country_data"] = ""
+        st.session_state["detected_region"] = ""
+        
+        # 3. 입력창 및 결과값 초기화
+        st.session_state["raw_input_main"] = ""
+        st.session_state["last_raw_input"] = ""
+        st.session_state["out_tab1_final"] = ""
+        st.session_state["out_tab2_final"] = ""
+        st.session_state["out_tab3"] = ""
+        
+        # 4. 모든 위젯 키 강제 초기화
+        for k in ALL_WIDGET_KEYS:
+            st.session_state[k] = ""
+            
+        # 5. 페이지 새로고침
         st.rerun()
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 parsed = st.session_state.get("parsed_data", {})
@@ -321,43 +342,6 @@ if raw_input:
 # 현재 화면에서 사용할 parsed 데이터 로드
 parsed = st.session_state.get("parsed_data", {})
     
-# 리셋 버튼을 위해 컬럼 나눔
-top_col1, top_col2 = st.columns([8, 1])
-
-top_col1, top_col2 = st.columns([8, 1])
-with top_col2:
-    if st.button("♻️ 전체 리셋"):
-        # 1. 모든 세션 상태 변수를 완전히 삭제 (초기화)
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        
-        # 2. 필수 기본값 재설정 (페이지 이탈 방지)
-        st.session_state["current_page"] = "buyprogram"
-        st.session_state["inspection_status"] = "X"
-        st.session_state["v_inspection_key"] = "X"
-        st.session_state["parsed_data"] = {}
-        st.session_state["dealer_data"] = {}
-        st.session_state["country_data"] = ""
-        st.session_state["detected_region"] = ""
-        
-        # 3. Tab 결과값 초기화
-        st.session_state["out_tab1_final"] = ""
-        st.session_state["out_tab2_final"] = ""
-        st.session_state["out_tab3"] = ""
-        
-        # 4. 모든 위젯 키 초기화 (명시적으로)
-        for widget_key in ALL_WIDGET_KEYS:
-            st.session_state[widget_key] = ""
-        
-        # 5. 추가 위젯 키들 초기화
-        st.session_state["last_raw_input"] = ""
-        st.session_state["output_text"] = ""
-        st.session_state["remit_name_widget"] = ""  # 차명(송금용) 위젯 초기화 추가
-        st.session_state["psource_widget"] = ""     # P.Source 위젯 초기화 추가
-        
-        # 6. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
-        st.rerun()
-
 if "inspection_status" not in st.session_state:
     st.session_state["inspection_status"] = "X"
 st.divider()
