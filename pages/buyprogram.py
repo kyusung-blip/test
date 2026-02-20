@@ -795,6 +795,8 @@ with tab3:
     # 2. 이카운트 ERP 구매입력 섹션
     st.divider()
     st.markdown("### 📊 이카운트 ERP 관리")
+    if "ecount_test_result" not in st.session_state:
+        st.session_state["ecount_test_result"] = None
     
     if st.button("🚀 매뉴얼 예시 전송 (테스트)", key="btn_manual_test_final", use_container_width=True):
         with st.spinner("이카운트 세션 연결 시도 중..."):
