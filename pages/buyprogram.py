@@ -28,6 +28,9 @@ ALL_WIDGET_KEYS = [
 ]
 
 # --- 1. 페이지 상태 및 리셋 로직 ---
+if "widget_version" not in st.session_state:
+    st.session_state["widget_version"] = 0
+    
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
     st.session_state["out_tab1_final"] = "" # Tab1 결과값 초기화
@@ -342,20 +345,18 @@ with st.container(border=True):
             index=0
         )
 
+# --- 상단 제원 입력칸 섹션 ---
     with row_top_cols[1]:
         s1, s2, s3, s4, s5 = st.columns(5)
         
-        # 1. 크롤링 데이터를 저장할 변수 초기화 (위젯 키와 이름이 달라야 함)
-        for k in ["v_l", "v_w", "v_h", "v_wt"]:
-            if k not in st.session_state:
-                st.session_state[k] = ""
+        # 버전 번호를 키에 포함 (예: "v_l_0", "v_l_1" ...)
+        ver = st.session_state["widget_version"]
     
-        # 2. 위젯의 key를 "v_l_widget" 등으로 변경하여 충돌 방지
-        # value를 st.session_state["v_l"]로 설정하면 크롤링 데이터가 여기로 들어옵니다.
-        s1.text_input("길이", value=st.session_state["v_l"], key="v_l_widget")
-        s2.text_input("너비", value=st.session_state["v_w"], key="v_w_widget")
-        s3.text_input("높이", value=st.session_state["v_h"], key="v_h_widget")
-        s5.text_input("중량", value=st.session_state["v_wt"], key="v_wt_widget")
+        # value는 세션 변수에서 가져오고, key는 버전을 포함시킴
+        s1.text_input("길이", value=st.session_state.get("v_l", ""), key=f"v_l_{ver}")
+        s2.text_input("너비", value=st.session_state.get("v_w", ""), key=f"v_w_{ver}")
+        s3.text_input("높이", value=st.session_state.get("v_h", ""), key=f"v_h_{ver}")
+        s5.text_input("중량", value=st.session_state.get("v_wt", ""), key=f"v_wt_{ver}")
         
         # CBM (기존 로직 유지)
         s4.text_input("CBM", value=st.session_state.get("v_c", "0.0"), key="v_c_widget")
@@ -832,7 +833,7 @@ with tab3:
                             # CBM 자동 계산 함수가 있다면 여기서 호출
                             if hasattr(lg, 'calculate_cbm_logic'):
                                 lg.calculate_cbm_logic()
-                            
+                            st.session_state["widget_version"] += 1
                             st.toast("✅ 제원 정보가 업데이트되었습니다.")
                             st.rerun() 
                         else:
