@@ -20,7 +20,6 @@ def get_session_id():
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
         "API_CERT_KEY": API_CERT_KEY,
-        "LAN_TYPE": "ko-KR",
         "ZONE": ZONE 
     }
     try:
@@ -137,7 +136,7 @@ def register_purchase(data, session_id, username):
 
 def register_purchase_test(ZONE, session_id):
     """이카운트 매뉴얼 예시와 100% 동일한 페이로드 테스트"""
-    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
     
     # 요청하신 예시와 완전히 동일한 구조 (값은 비어있거나 예시값 그대로)
     payload = {
