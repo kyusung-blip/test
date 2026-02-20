@@ -58,24 +58,6 @@ def check_item_exists(session_id, prod_cd):
     except Exception:
         return False, None
 
-def check_customer_exists(session_id, biz_num):
-    """거래처 존재 여부 확인 (정식 URL 적용)"""
-    cust_code = re.sub(r'[^0-9]', '', str(biz_num))
-    # 조회 URL도 AccountBasic 경로의 GetListBasicCust를 사용합니다.
-    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/AccountBasic/GetListBasicCust?SESSION_ID={session_id}"
-    
-    payload = {"CUST": cust_code}
-    try:
-        response = requests.post(url, json=payload, verify=False, timeout=10)
-        res_data = response.json()
-        if str(res_data.get("Status")) == "200":
-            # Datas가 리스트로 오며, 검색 결과가 있으면 존재함으로 판단
-            customers = res_data.get("Data", {}).get("Datas", [])
-            return len(customers) > 0
-        return False
-    except Exception:
-        return False
-
 def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec_no로 명확히 함
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
     
@@ -121,25 +103,21 @@ def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec
         return {"Status": "500", "Message": str(e)}
 
 def register_customer(data, session_id):
-    """신규 거래처 등록 (SaveBasicCust & CustList 규격)"""
-    # 알려주신 정식 URL
+    """신규 거래처 등록 (중복 여부는 buyprogram.py에서 에러 메시지로 판단)"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/AccountBasic/SaveBasicCust?SESSION_ID={session_id}"
     
-    # 사업자번호 하이픈 제거 (482-29-01124 -> 4822901124)
     biz_num = re.sub(r'[^0-9]', '', str(data.get("biz_num", "")))
     
-    # 알려주신 'CustList' 구조 적용
     payload = {
         "CustList": [{
             "BulkDatas": {
-                "CUST": biz_num,               # 거래처코드
-                "CUST_DES": str(data.get("biz_name", biz_num)), # 거래처명
-                "BUSINESS_NO": biz_num,        # 사업자번호
-                "USE_GUBUN": "Y"               # 사용구분 (Y:사용)
+                "CUST": biz_num,
+                "CUST_DES": str(data.get("biz_name", biz_num)),
+                "BUSINESS_NO": biz_num,
+                "USE_GUBUN": "Y"
             }
         }]
     }
-    
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
         return response.json()
