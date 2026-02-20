@@ -64,7 +64,10 @@ def check_customer_exists(session_id, biz_num):
 def register_item(data, session_id, sheet_no):
     """신규 품목 등록"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
-    
+    # 품목명이 비어있으면 이카운트에서 에러가 나므로 기본값 설정
+    prod_name = str(data.get("car_name_remit", "")).strip()
+    if not prod_name:
+        prod_name = f"미지정차량({data.get('vin')})" # 이름이 없으면 차대번호라도 넣음
     def to_float(val):
         try:
             clean = re.sub(r'[^0-9.]', '', str(val))
