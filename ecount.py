@@ -137,7 +137,7 @@ def register_purchase(data, session_id, username):
 
 def register_purchase_test(session_id):
     """이카운트 매뉴얼 예시와 100% 동일한 페이로드 테스트"""
-    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
     # 요청하신 예시와 완전히 동일한 구조 (값은 비어있거나 예시값 그대로)
     # 이카운트 매뉴얼 제공 예시 구조와 100% 동일
