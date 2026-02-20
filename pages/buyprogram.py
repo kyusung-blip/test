@@ -371,28 +371,39 @@ with col_info:
     title_col, spec_col, insp_col = st.columns([3, 1.5, 1])
     with title_col:
         st.markdown("### 🚗 매입 정보")
-    with spec_col:
+    # 2. [추가] 차량 상세 제원 (길이, 너비, 높이, CBM, 총중량)
+    # 한 줄에 5개의 입력칸을 균등하게 배치합니다.
+    spec_row = st.container(border=True)
+    with spec_row:
+        st.caption("📏 차량 상세 제원")
+        s1, s2, s3, s4, s5 = st.columns(5)
+        v_length = s1.text_input("길이(mm)", value="", placeholder="0")
+        v_width = s2.text_input("너비(mm)", value="", placeholder="0")
+        v_height = s3.text_input("높이(mm)", value="", placeholder="0")
+        v_cbm = s4.text_input("CBM", value="", placeholder="0.0")
+        v_weight = s5.text_input("총중량(kg)", value="", placeholder="0")
+
+    # 3. 기존 제원관리번호 및 인스펙션 영역
+    # (기존 타이틀 자리에 있던 부분을 아래로 내려서 정리)
+    sub_col1, sub_col2 = st.columns([2, 1])
+    with sub_col1:
         v_spec_num = st.text_input(
-        "제원관리번호", 
-        value=st.session_state.get("v_spec_num_key", ""),  # 세션 상태에서 가져오기
-        key="v_spec_num_key"
-        )    
-    with insp_col:
-        # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
+            "제원관리번호", 
+            value=st.session_state.get("v_spec_num_key", ""), 
+            key="v_spec_num_key"
+        )
+    with sub_col2:
         insp_list = ["X", "S", "C"]
         current_insp = st.session_state.get("inspection_status", "X")
-        try:
-            insp_idx = insp_list.index(current_insp)
-        except:
-            insp_idx = 0
-
+        insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
         v_inspection = st.selectbox(
             "Inspection", 
             insp_list, 
             index=insp_idx, 
-            key="v_inspection_key", # 유일한 키 유지
-            label_visibility="collapsed"
+            key="v_inspection_key"
         )
+
+    st.divider()
 
    
     # R1: 차번호, 연식, 차명, 차명(송금용)
