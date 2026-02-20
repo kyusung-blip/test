@@ -801,11 +801,11 @@ with tab3:
         else:
             st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
             
-    # buyprogram.py 내의 e_c2 (제원조회 버튼) 부분 수정
+# buyprogram.py 내의 e_c2 (제원조회 버튼) 부분 수정
     with e_c2:
         # 버튼 클릭 시 실행될 로직
         if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
-            st.info("DEBUG: 버튼 클릭이 감지되었습니다.") # 클릭 즉시 화면에 표시
+            st.info("DEBUG: 버튼 클릭이 감지되었습니다.") 
             
             # v_spec_num이 위젯 key값과 연결되어 있는지 확인
             spec_val = st.session_state.get("v_spec_num_key", "")
@@ -826,17 +826,21 @@ with tab3:
                             st.session_state["v_h"] = str(data.get("height", ""))
                             st.session_state["v_wt"] = str(data.get("weight", ""))
                             
-                            # CBM 자동 계산 함수가 있다면 여기서 한 번 호출해주는 것이 좋습니다.
+                            # CBM 자동 계산 함수가 있다면 여기서 호출
                             if hasattr(lg, 'calculate_cbm_logic'):
                                 lg.calculate_cbm_logic()
                             
-                            # 성공 메시지를 띄우고 바로 리런!
                             st.toast("✅ 제원 정보가 업데이트되었습니다.")
                             st.rerun() 
                         else:
                             st.error(f"❌ 실패: {res.get('message')}")
-                else:
-                    st.warning("제원관리번호를 입력해주세요.")
+                            
+                    except Exception as e:
+                        # try문에 대한 except 처리가 반드시 있어야 합니다.
+                        st.error(f"⚠️ 시스템 오류 발생: {e}")
+            else:
+                # if spec_val: 에 대한 else
+                st.warning("제원관리번호를 입력해주세요.")
     
     st.divider()
 
