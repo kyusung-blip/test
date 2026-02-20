@@ -98,6 +98,28 @@ def register_item(data, session_id, sheet_no):
     except Exception as e:
         return {"Status": "500", "Message": str(e)}
 
+def register_customer(data, session_id):
+    """신규 거래처 등록 (사업자번호 기준)"""
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/CustomerCenter/SaveCustomer?SESSION_ID={session_id}"
+    
+    biz_num = re.sub(r'[^0-9]', '', str(data.get("biz_num", "")))
+    
+    payload = {
+        "CustomerList": [{
+            "BulkDatas": {
+                "CUST": biz_num,               # 거래처코드
+                "CUST_DES": str(data.get("biz_name", biz_num)), # 거래처명 (없으면 번호로)
+                "BUSINESS_NO": biz_num,        # 사업자번호
+                "USE_GUBUN": "Y"               # 사용여부
+            }
+        }]
+    }
+    try:
+        response = requests.post(url, json=payload, verify=False, timeout=15)
+        return response.json()
+    except Exception as e:
+        return {"Status": "500", "Message": f"거래처 등록 통신 오류: {str(e)}"}
+
 def register_purchase(data, session_id, username):
     """정리해주신 필드 매핑이 모두 적용된 구매입력 함수"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
