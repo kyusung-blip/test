@@ -211,7 +211,7 @@ st.markdown("""
 if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
-label_col, reset_col = st.columns([7, 1]))
+label_col, reset_col = st.columns([7, 1])
 
 with label_col:
     st.subheader("📥 데이터 붙여넣기")
