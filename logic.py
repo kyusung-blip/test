@@ -87,3 +87,20 @@ def get_alt_car_name(raw_car_name, car_name_map):
             return car_name_map[map_key]
             
     return raw_car_name  # 매칭되는 게 없으면 원본 반환
+
+# --- 0. 상단에 CBM 계산 함수 정의 ---
+def calculate_cbm_logic():
+    # 세션에서 값을 가져오되, 빈 문자열이면 0으로 처리
+    try:
+        l = float(st.session_state.get("v_l", 0) or 0)
+        w = float(st.session_state.get("v_w", 0) or 0)
+        h = float(st.session_state.get("v_h", 0) or 0)
+        
+        # mm 단위를 m 단위로 변환하여 계산 (L/1000 * W/1000 * H/1000)
+        cbm_val = (l / 1000) * (w / 1000) * (h / 1000)
+        
+        # 소수점 두 자리까지 반올림하여 세션에 저장
+        st.session_state["v_c"] = f"{cbm_val:.2f}"
+    except ValueError:
+        # 숫자가 아닌 값이 입력되었을 경우 처리
+        st.session_state["v_c"] = "0.00"
