@@ -795,36 +795,47 @@ with tab3:
     # 2. 이카운트 ERP 구매입력 섹션
     st.divider()
     st.markdown("### 📊 이카운트 ERP 관리")
-    if "ecount_test_result" not in st.session_state:
-        st.session_state["ecount_test_result"] = None
-    
-    if st.button("🚀 매뉴얼 예시 전송 (테스트)", key="btn_manual_test_final", use_container_width=True):
-        with st.spinner("이카운트 세션 연결 시도 중..."):
-            session_id, login_error = ecount.get_session_id()
-            
-            if session_id:
-                # 결과값을 세션 상태에 저장
-                res = ecount.register_purchase_test(session_id)
-                st.session_state["ecount_test_result"] = res
-            else:
-                st.session_state["ecount_test_result"] = {"Status": "500", "Message": "로그인 실패", "Details": login_error}
-
-    # 3. 버튼 밖에서 결과 출력 (이 부분이 버튼 아래에 항상 떠있게 됨)
-    if st.session_state["ecount_test_result"]:
-        res = st.session_state["ecount_test_result"]
+    # 1. 전송 버튼 생성
+    if st.button("🚀 이카운트 정식 구매입력 실행", key="real_purchase_btn", type="primary", use_container_width=True):
         
-        if str(res.get("Status")) == "200":
-            st.success("🎉 [성공] 매뉴얼 데이터 전송 완료!")
-            st.json(res)
+        # 필수값 체크 (차대번호와 사업자번호가 없으면 중단)
+        if not v_vin or not v_biz_num:
+            st.error("⚠️ 차대번호(VIN)와 사업자번호는 필수 입력 항목입니다.")
         else:
-            st.error(f"❌ [전송 실패] {res.get('Message', '에러 발생')}")
-            with st.expander("상세 에러 분석"):
-                st.json(res)
-        
-        # 결과 초기화 버튼 (선택 사항)
-        if st.button("🧹 결과 지우기"):
-            st.session_state["ecount_test_result"] = None
-            st.rerun()
+            with st.spinner("이카운트 서버와 통신 중..."):
+                # 2. 세션 아이디 가져오기
+                session_id, login_error = ecount.get_session_id()
+                
+                if session_id:
+                    # 3. 실제 데이터 전송 (username은 현재 로그인된 사용자명 전달)
+                    # etc_data 안에는 vin, biz_num, price, h_id 등이 포함되어 있어야 합니다.
+                    res = ecount.register_purchase(etc_data, session_id, v_username)
+                    
+                    # 4. 결과 처리
+                    if str(res.get("Status")) == "200":
+                        data_part = res.get("Data", {})
+                        success_cnt = data_part.get("SuccessCnt", 0)
+                        
+                        if success_cnt > 0:
+                            st.success(f"✅ 구매전표 생성 성공! (성공: {success_cnt}건)")
+                            # 생성된 전표 번호가 있다면 출력
+                            slip_nos = data_part.get("SlipNos", [])
+                            if slip_nos:
+                                st.balloons() # 축하 효과
+                                st.info(f"📄 생성된 전표번호: {slip_nos[0]}")
+                        else:
+                            # 통신은 성공했으나 데이터 오류로 실패한 경우 (FailCnt > 0)
+                            st.error("❌ 전표 생성 실패 (데이터 오류)")
+                            details = data_part.get("ResultDetails", [])
+                            for detail in details:
+                                st.warning(f"💡 원인: {detail.get('TotalError')}")
+                    else:
+                        st.error(f"❌ API 서버 에러: {res.get('Message')}")
+                        with st.expander("상세 에러 내용"):
+                            st.json(res)
+                else:
+                    st.error("❌ 이카운트 로그인 실패")
+                    st.warning(f"사유: {login_error.get('Error', {}).get('Message', '인증 정보 확인 필요')}")
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
