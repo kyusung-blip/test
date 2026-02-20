@@ -814,16 +814,19 @@ with tab3:
             if not item_exists:
                 st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
                 res_item = ecount.register_item(etc_data, session_id, v_spec_num)
+                err_msg = res_item.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "")
                 # --- 디버깅용 로그 추가 ---
                 st.write("📡 품목 등록 시도 응답:", res_item) 
-    
-                if str(res_item.get("Status")) != "200" or res_item.get("Data", {}).get("SuccessCnt", 0) == 0:
+                if "이미 품목등록에 존재하는 코드" in err_msg:
+                    st.write("✔️ 확인 결과, 이미 등록된 품목입니다. (중복 등록 방지)")
+                elif str(res_item.get("Status")) != "200" or res_item.get("Data", {}).get("SuccessCnt", 0) == 0:
                     st.error("❌ 품목 등록 실패")
+                    st.json(res_item)
                     st.stop()
-                st.success("✅ 품목 등록 완료")
+                else:
+                    st.success("✅ 품목 등록 완료")
             else:
-                # 품목이 이미 있다면 이쪽으로 오기 때문에 위쪽의 res_item은 만들어지지 않습니다.
-                st.write("✔️ 품목이 이미 등록되어 있습니다.")
+                st.write("✔️ 품목 확인 완료"
     
             # 2. 거래처 체크 및 등록
             cust_exists = ecount.check_customer_exists(session_id, v_biz_num)
