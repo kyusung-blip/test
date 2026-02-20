@@ -804,13 +804,17 @@ with tab3:
     # buyprogram.py 내의 e_c2 (제원조회 버튼) 부분 수정
     with e_c2:
         if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
+            st.write("DEBUG: 버튼 클릭됨")
             if v_spec_num:
+                st.write(f"DEBUG: 제원번호 확인 = {v_spec_num}")
                 with st.spinner("Cyberts 정보를 불러오는 중..."):
                     try:
+                        st.write("DEBUG: 크롤러 호출 중...")
                         res = cyberts_crawler.fetch_vehicle_specs(v_spec_num)
+                        st.write("DEBUG: 크롤러 결과값 ->", res)
                         
                         if res["status"] == "success":
-                            data = res["data"]
+                            data = res.get("data", {})
                             # 세션에 직접 대입 (위젯의 key와 동일한 이름)
                             # data.get()의 키 이름이 crawler.py에서 반환하는 이름과 정확히 일치하는지 확인!
                             st.session_state["v_l"] = str(data.get("length", ""))
@@ -819,14 +823,17 @@ with tab3:
                             st.session_state["v_wt"] = str(data.get("weight", ""))
                             
                             # 성공 로그
-                            st.success("✅ 데이터를 가져왔습니다. 화면을 갱신합니다.")
+                            st.toast("✅ 데이터 수신 성공! 화면을 갱신합니다.")
                             st.rerun() # 여기서 리런하면 상단 위젯에 값이 박힘
                         else:
                             st.error(f"❌ 조회 실패: {res['message']}")
                     except Exception as e:
-                        st.error(f"⚠️ 시스템 오류 발생: {e}")
-            else:
-                st.warning("제원관리번호를 입력해주세요.")
+                    # 모든 에러를 화면에 강제로 뿌림
+                    st.error(f"⚠️ 버튼 내부 시스템 오류: {str(e)}")
+                    import traceback
+                    st.code(traceback.format_exc()) # 상세 에러 스택 확인
+        else:
+            st.warning("제원관리번호가 입력되지 않았습니다.")
     
     st.divider()
 
