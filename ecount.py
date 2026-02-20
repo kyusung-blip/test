@@ -10,7 +10,7 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # [설정] 발급받으신 정보
 COM_CODE = "682186"
 USER_ID = "이규성"
-API_CERT_KEY = "2dac8e71fcd314e77af2ce35eb89185442"
+API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
 ZONE = "AD" 
 
 def get_session_id():
@@ -100,7 +100,7 @@ def register_item(data, session_id, sheet_no):
 
 def register_purchase(data, session_id, username):
     """이카운트 API 테스트 성공 데이터를 기반으로 한 구매입력"""
-    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
     
     # 1. 금액 처리 (숫자만 추출하여 문자열로 변환)
     def to_amt_str(val):
