@@ -136,33 +136,95 @@ def register_purchase(data, session_id, username):
         return {"Status": "500", "Message": f"통신오류: {str(e)}"}
 
 def register_purchase_test(data, session_id):
-    """이카운트 API 매뉴얼 기준 테스트 함수"""
-    # 1. URL 구성 (테스트용 sboapi 또는 일반 oapi 확인 필요)
-    # 테스트 환경이면 sboapi, 실환경이면 oapi를 사용합니다.
+    """이카운트 매뉴얼 예시와 100% 동일한 페이로드 테스트"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
-    # 2. 전송할 데이터 구조 (사용자가 제공한 JSON 형식 준수)
-    # 현재 날짜와 입력된 값을 매핑합니다.
-    io_date = datetime.now().strftime("%Y%m%d")
-    biz_num = re.sub(r'[^0-9]', '', str(data.get("biz_num", "00001")))
-    vin = str(data.get("vin", "00001"))
-
+    # 요청하신 예시와 완전히 동일한 구조 (값은 비어있거나 예시값 그대로)
     payload = {
         "PurchasesList": [
             {
                 "BulkDatas": {
-                    "IO_DATE": io_date,
-                    "CUST": biz_num,
-                    "CUST_DES": str(data.get("biz_name", "테스트업체")),
-                    "WH_CD": "100", # 실제 사용하는 창고코드로 변경 필요
-                    "PROD_CD": vin,
-                    "PROD_DES": str(data.get("car_name_remit", "테스트차량")),
+                    "ORD_DATE": "",
+                    "ORD_NO": "",
+                    "IO_DATE": "20191012",
+                    "UPLOAD_SER_NO": "",
+                    "CUST": "00001",
+                    "CUST_DES": "(주)OO산업",
+                    "EMP_CD": "",
+                    "WH_CD": "00001",
+                    "IO_TYPE": "",
+                    "EXCHANGE_TYPE": "",
+                    "EXCHANGE_RATE": "",
+                    "SITE": "",
+                    "PJT_CD": "",
+                    "DOC_NO": "",
+                    "U_MEMO1": "",
+                    "U_MEMO2": "",
+                    "U_MEMO3": "",
+                    "U_MEMO4": "",
+                    "U_MEMO5": "",
+                    "U_TXT1": "",
+                    "TTL_CTT": "",
+                    "PROD_CD": "00001",
+                    "PROD_DES": "test",
+                    "SIZE_DES": "",
+                    "UQTY": "",
                     "QTY": "1",
-                    "PRICE": str(data.get("price", "0")),
-                    "SUPPLY_AMT": str(data.get("price", "0")),
-                    "VAT_AMT": "0",
-                    "U_MEMO1": str(data.get("plate", "")),
-                    "U_MEMO2": vin
+                    "PRICE": "",
+                    "USER_PRICE_VAT": "",
+                    "SUPPLY_AMT": "",
+                    "SUPPLY_AMT_F": "",
+                    "VAT_AMT": "",
+                    "REMARKS": "",
+                    "ITEM_CD": "",
+                    "P_AMT1": "",
+                    "P_AMT2": "",
+                    "P_REMARKS1": "",
+                    "P_REMARKS2": "",
+                    "P_REMARKS3": "",
+                    "CUST_AMT": ""
+                }
+            },
+            {
+                "BulkDatas": {
+                    "ORD_DATE": "",
+                    "ORD_NO": "",
+                    "IO_DATE": "20191012",
+                    "UPLOAD_SER_NO": "",
+                    "CUST": "00001",
+                    "CUST_DES": "(주)OO산업",
+                    "EMP_CD": "",
+                    "WH_CD": "00001",
+                    "IO_TYPE": "",
+                    "EXCHANGE_TYPE": "",
+                    "EXCHANGE_RATE": "",
+                    "PJT_CD": "",
+                    "DOC_NO": "",
+                    "U_MEMO1": "",
+                    "U_MEMO2": "",
+                    "U_MEMO3": "",
+                    "U_MEMO4": "",
+                    "U_MEMO5": "",
+                    "U_TXT1": "",
+                    "TTL_CTT": "",
+                    "PROD_CD": "00001",
+                    "PROD_DES": "test",
+                    "SIZE_DES": "",
+                    "UQTY": "",
+                    "QTY": "1",
+                    "PRICE": "",
+                    "USER_PRICE_VAT": "",
+                    "SUPPLY_AMT": "",
+                    "SUPPLY_AMT_F": "",
+                    "VAT_AMT": "",
+                    "REMARKS": "",
+                    "ITEM_CD": "",
+                    "P_AMT1": "",
+                    "P_AMT2": "",
+                    "P_REMARKS1": "",
+                    "P_REMARKS2": "",
+                    "P_REMARKS3": "",
+                    "CUST_AMT": ""
                 }
             }
         ]
