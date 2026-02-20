@@ -812,11 +812,21 @@ with tab3:
             item_exists, _ = ecount.check_item_exists(session_id, v_vin)
             if not item_exists:
                 st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
-                res_item = ecount.register_item(etc_data, session_id, v_sheet_no)
-                if str(res_item.get("Status")) != "200" or res_item.get("Data", {}).get("SuccessCnt", 0) == 0:
-                    st.error("❌ 품목 등록 실패")
-                    st.json(res_item)
+                # --- 디버깅용 로그 추가 ---
+                st.write("📡 이카운트 응답 데이터:", res_item) 
+                
+                if str(res_item.get("Status")) != "200":
+                    st.error("❌ 품목 등록 API 자체 실패 (통신/권한)")
                     st.stop()
+                    
+                success_cnt = res_item.get("Data", {}).get("SuccessCnt", 0)
+                if success_cnt == 0:
+                    st.error("❌ 품목 등록 실패 (데이터 오류)")
+                    # 상세 에러 메시지 출력
+                    err_msg = res_item.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "알 수 없는 에러")
+                    st.warning(f"💡 이카운트 답변: {err_msg}")
+                    st.stop()
+                    
                 st.success("✅ 품목 등록 완료")
             else:
                 st.write("✔️ 품목 확인 완료")
