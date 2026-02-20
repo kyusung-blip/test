@@ -261,7 +261,6 @@ with st.container(border=True):
         )
 
     with row_top_cols[1]:
-        st.markdown("<p style='font-size: 0.8rem; font-weight: bold; margin-bottom: -10px;'>📏 차량 상세 제원</p>", unsafe_allow_html=True)
         s1, s2, s3, s4, s5 = st.columns(5)
         
         # logic.py의 함수를 콜백으로 연결
