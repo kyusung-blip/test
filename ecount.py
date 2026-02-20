@@ -139,18 +139,37 @@ def register_purchase_test(ZONE, session_id):
     url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
     
     # 요청하신 예시와 완전히 동일한 구조 (값은 비어있거나 예시값 그대로)
+    # 이카운트 매뉴얼 제공 예시 구조와 100% 동일
     payload = {
-     "PurchasesList": [{
-      "BulkDatas": {
-                "IO_DATE": "20260220",     
-                "CUST": "1244617538",   
-                "PROD_CD":"WVGZZZ5NZLM176975" ,   
-                "QTY": "1",         
-                "WH_CD": "100",    
-                "PRICE": "100000"           
-                        }
-                 }]
-            }
+        "PurchasesList": [
+            {
+                "BulkDatas": {
+                    "ORD_DATE": "", "ORD_NO": "", "IO_DATE": "20191012", "UPLOAD_SER_NO": "",
+                    "CUST": "00001", "CUST_DES": "(주)OO산업", "EMP_CD": "", "WH_CD": "00001",
+                    "IO_TYPE": "", "EXCHANGE_TYPE": "", "EXCHANGE_RATE": "", "SITE": "",
+                    "PJT_CD": "", "DOC_NO":"", "U_MEMO1": "", "U_MEMO2": "", "U_MEMO3": "",
+                    "U_MEMO4": "", "U_MEMO5": "", "U_TXT1": "", "TTL_CTT": "", "PROD_CD": "00001",
+                    "PROD_DES": "test", "SIZE_DES": "", "UQTY": "", "QTY": "1", "PRICE": "",
+                    "USER_PRICE_VAT": "", "SUPPLY_AMT": "", "SUPPLY_AMT_F": "", "VAT_AMT": "",
+                    "REMARKS": "", "ITEM_CD": "", "P_AMT1": "", "P_AMT2": "", "P_REMARKS1": "",
+                    "P_REMARKS2": "", "P_REMARKS3": "", "CUST_AMT": ""
+                }
+            },
+            {
+                "BulkDatas": {
+                    "ORD_DATE": "", "ORD_NO": "", "IO_DATE": "20191012", "UPLOAD_SER_NO": "",
+                    "CUST": "00001", "CUST_DES": "(주)OO산업", "EMP_CD": "", "WH_CD": "00001",
+                    "IO_TYPE": "", "EXCHANGE_TYPE": "", "EXCHANGE_RATE": "", "PJT_CD": "",
+                    "DOC_NO":"", "U_MEMO1": "", "U_MEMO2": "", "U_MEMO3": "", "U_MEMO4": "",
+                    "U_MEMO5": "", "U_TXT1": "", "TTL_CTT": "", "PROD_CD": "00001",
+                    "PROD_DES": "test", "SIZE_DES": "", "UQTY": "", "QTY": "1", "PRICE": "",
+                    "USER_PRICE_VAT": "", "SUPPLY_AMT": "", "SUPPLY_AMT_F": "", "VAT_AMT": "",
+                    "REMARKS": "", "ITEM_CD": "", "P_AMT1": "", "P_AMT2": "", "P_REMARKS1": "",
+                    "P_REMARKS2": "", "P_REMARKS3": "", "CUST_AMT": ""
+                    }
+                }
+            ]
+        }
 
     try:
         response = requests.post(url, json=payload, verify=False, timeout=15)
