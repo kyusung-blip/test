@@ -799,7 +799,7 @@ with tab3:
         else:
         st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
         
-        with e_c2:
+    with e_c2:
         # --- 우측: 제원조회 버튼 (e_c2 활용) ---
         if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
         # 상단에 입력된 제원관리번호(v_spec_num)가 있는지 확인
