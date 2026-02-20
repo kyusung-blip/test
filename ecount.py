@@ -10,12 +10,12 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # [설정] 발급받으신 정보
 COM_CODE = "682186"
 USER_ID = "이규성"
-API_CERT_KEY = "2dac8e71fcd314e77af2ce35eb89185442"
+API_CERT_KEY = "016d41c0a7f4b4982b3032b8fddf5f2a86"
 ZONE = "AD" 
 
 def get_session_id():
     """세션 획득"""
-    login_url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
+    login_url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/OAPILogin"
     payload = {
         "COM_CODE": COM_CODE,
         "USER_ID": USER_ID,
@@ -247,7 +247,7 @@ def register_customer_test(session_id):
     payload = {
             "CustList": [{
         	    "BulkDatas": {
-        		    "BUSINESS_NO": "00001",
+        		    "BUSINESS_NO": "111111",
         		    "CUST_NAME": "Test Cust",
         		    "BOSS_NAME": "",
         		    "UPTAE": "",
@@ -296,57 +296,6 @@ def register_customer_test(session_id):
         		    "NO_CUST_USER2": "",
         		    "NO_CUST_USER3": ""
         	    }
-            },{
-        	    "BulkDatas": {
-        		    "BUSINESS_NO": "00002",
-        		    "CUST_NAME": "Test Cust1",
-        		    "BOSS_NAME": "",
-        		    "UPTAE": "",
-        		    "JONGMOK": "",
-        		    "TEL": "",
-        		    "EMAIL": "",
-        		    "POST_NO": "",
-        		    "ADDR": "",
-        		    "G_GUBUN": "",
-        		    "G_BUSINESS_TYPE": "",
-        		    "G_BUSINESS_CD": "",
-        		    "TAX_REG_ID": "",
-        		    "FAX": "",
-        		    "HP_NO": "",
-        		    "DM_POST": "",
-        		    "DM_ADDR": "",
-        		    "REMARKS_WIN": "",
-        		    "GUBUN": "",
-        		    "FOREIGN_FLAG": "",
-        		    "EXCHANGE_CODE": "",
-        		    "CUST_GROUP1": "",
-        		    "CUST_GROUP2": "",
-        		    "URL_PATH": "",
-        		    "REMARKS": "",
-        		    "OUTORDER_YN": "",
-        		    "IO_CODE_SL_BASE_YN": "",
-        		    "IO_CODE_SL": "",
-        		    "IO_CODE_BY_BASE_YN": "",
-        		    "IO_CODE_BY": "",
-        		    "EMP_CD": "",
-        		    "MANAGE_BOND_NO": "",
-        		    "MANAGE_DEBIT_NO": "",
-        		    "CUST_LIMIT": "",
-        		    "O_RATE": "",
-        		    "I_RATE": "",
-        		    "PRICE_GROUP": "",
-        		    "PRICE_GROUP2": "",
-        		    "CUST_LIMIT_TERM": "",
-        		    "CONT1": "",
-        		    "CONT2": "",
-        		    "CONT3": "",
-        		    "CONT4": "",
-        		    "CONT5": "",
-        		    "CONT6": "",
-        		    "NO_CUST_USER1": "",
-        		    "NO_CUST_USER2": "",
-        		    "NO_CUST_USER3": ""
-        		}
         	}]
         }
     
