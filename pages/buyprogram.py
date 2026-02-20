@@ -359,7 +359,7 @@ with st.container(border=True):
         s5.text_input("중량", value=st.session_state.get("v_wt", ""), key=f"v_wt_{ver}")
         
         # CBM (기존 로직 유지)
-        s4.text_input("CBM", value=st.session_state.get("v_c", "0.0"), key="v_c_widget")
+        s4.text_input("CBM", value=st.session_state.get("v_c", "0.00"), key=f"v_c_{ver}")
     with row_top_cols[2]:
         v_spec_num = st.text_input("제원관리번호", key="v_spec_num_key")
     
@@ -829,15 +829,22 @@ with tab3:
                             st.session_state["v_w"] = str(data.get("width", ""))
                             st.session_state["v_h"] = str(data.get("height", ""))
                             st.session_state["v_wt"] = str(data.get("weight", ""))
-                            
-
+                            # 2. CBM 수동 계산 로직 추가 (L * W * H / 1,000,000,000)
+                            try:
+                                # 문자열을 숫자로 변환 (숫자 외 문자가 있을 수 있으니 예외처리)
+                                l_val = float(l)
+                                w_val = float(w)
+                                h_val = float(h)
+                                # CBM 공식: (mm 단위일 경우) L*W*H / 10^9
+                                cbm_calc = (l_val * w_val * h_val) / 1000000000
+                                st.session_state["v_c"] = f"{cbm_calc:.2f}" # 소수점 2자리까지
+                            except Exception as e:
+                                st.session_state["v_c"] = "0.00"
+                                st.write(f"CBM 계산 오류: {e}")
                             st.session_state["widget_version"] += 1
                             st.toast("✅ 제원 정보가 업데이트되었습니다.")
                             st.rerun()
-                                                        # CBM 자동 계산 함수가 있다면 여기서 호출
-                            if hasattr(lg, 'calculate_cbm_logic'):
-                                lg.calculate_cbm_logic()
-                            st.rerun()
+
                         else:
                             st.error(f"❌ 실패: {res.get('message')}")
                             
