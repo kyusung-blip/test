@@ -99,74 +99,38 @@ def register_item(data, session_id, sheet_no):
         return {"Status": "500", "Message": str(e)}
 
 def register_purchase(data, session_id, username):
-    """구매 입력 (이카운트 API 필수 항목 준수 버전)"""
+    """이카운트 API 테스트 성공 데이터를 기반으로 한 구매입력"""
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
     
-    # [필수 1] CUST_CODE (구매처 코드): 사업자번호에서 숫자만 추출
-    # 주의: 이 코드는 반드시 이카운트 거래처 등록에 미리 존재해야 합니다.
-    biz_num = str(data.get("biz_num", ""))
-    cust_code = re.sub(r'[^0-9]', '', biz_num)
-    
-    # [필수 2] IO_DATE (입고일자): YYYYMMDD 형식
-    io_date = datetime.now().strftime("%Y%m%d")
-
-    # [필수 3] PROD_CD (품목코드): 차대번호(vin) 사용
-    # 주의: 이 코드는 반드시 이카운트 품목 등록에 미리 존재해야 합니다.
-    vin = str(data.get("vin", ""))
-    
-    # 금액 변환 함수
-    def to_amt_int(val):
-        if not val: return 0
+    # 1. 금액 처리 (숫자만 추출하여 문자열로 변환)
+    def to_amt_str(val):
+        if not val: return "0"
         clean = re.sub(r'[^0-9.]', '', str(val))
         try:
             num = float(clean)
-            if "만원" in str(val): return int(num * 10000)
-            return int(num)
-        except: return 0
+            if "만원" in str(val):
+                return str(int(num * 10000))
+            return str(int(num))
+        except: return "0"
 
-    # BulkDatas 생성 함수 (필수 항목 포함)
-    def create_bulk(price_val, memo_suffix=""):
-        return {
+    # 2. 테스트 성공했던 구조 그대로 BulkDatas 구성
+    # API 테스트에서 성공한 key값들과 형식을 그대로 유지합니다.
+    purchase_data = {
+        "PurchasesList": [{
             "BulkDatas": {
-                "IO_DATE": io_date,      # [필수] 입고일자 (YYYYMMDD)
-                "CUST": cust_code,       # [필수] 거래처코드
-                "PROD_CD": vin,          # [필수] 품목코드
-                "QTY": "1",               # [필수] 수량 (양수)
-                "WH_CD": "100",          # [선택이나 권장] 창고코드
-                "PRICE": str(price_val), # 단가
-                "SUPPLY_AMT": str(price_val), # 공급가액
-                "VAT_AMT": "0",          # 부가세
-                "U_MEMO2": vin,          # 메모 등 (차대번호)
-                "U_MEMO4": f"{memo_suffix} {data.get('car_name_remit', '')}".strip()
+                "IO_DATE": datetime.now().strftime("%Y%m%d"), # 오늘 날짜
+                "CUST": re.sub(r'[^0-9]', '', str(data.get("biz_num", ""))), # 사업자번호
+                "PROD_CD": str(data.get("vin", "")), # 차대번호
+                "QTY": "1",
+                "WH_CD": "100",
+                "PRICE": to_amt_str(data.get("price")) # 금액
             }
-        }
-
-    # [필수 4] PURCHASE_LIST 내부 BulkDatas는 하나 이상이어야 함
-    purchases_list = []
-    
-    # 각 금액 항목별로 데이터 생성
-    p_val = to_amt_int(data.get("price"))
-    if p_val > 0: purchases_list.append(create_bulk(p_val))
-    
-    f_val = to_amt_int(data.get("fee"))
-    if f_val > 0: purchases_list.append(create_bulk(f_val, "[매도비]"))
-    
-    c_val = to_amt_int(data.get("contract_x"))
-    if c_val > 0: purchases_list.append(create_bulk(c_val, "[계산서X]"))
-
-    # 최종 유효성 검사
-    if not purchases_list:
-        return {"Status": "400", "Message": "등록할 품목/금액 데이터가 없습니다. (QTY가 0인 상태)"}
-    
-    if not cust_code:
-        return {"Status": "400", "Message": "거래처 코드(사업자번호)가 없습니다."}
-        
-    if not vin:
-        return {"Status": "400", "Message": "품목 코드(차대번호)가 없습니다."}
+        }]
+    }
 
     try:
-        # API 요청 데이터 전송
-        response = requests.post(url, json={"PurchasesList": purchases_list}, verify=False, timeout=15)
+        # verify=False는 유지, json 파라미터로 데이터 전송
+        response = requests.post(url, json=purchase_data, verify=False, timeout=15)
         return response.json()
     except Exception as e:
         return {"Status": "500", "Message": f"통신오류: {str(e)}"}
