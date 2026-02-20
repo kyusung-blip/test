@@ -141,8 +141,6 @@ def register_purchase_test(data, session_id):
     
     # 요청하신 예시와 완전히 동일한 구조 (값은 비어있거나 예시값 그대로)
     payload = {
-        {
-
      "PurchasesList": [{
       "BulkDatas": {
                 "IO_DATE": "20260220",     
@@ -151,11 +149,8 @@ def register_purchase_test(data, session_id):
                 "QTY": "1",         
                 "WH_CD": "100",    
                 "PRICE": "100000"           
-
                         }
-            
                  }]
-            
             }
 
     try:
