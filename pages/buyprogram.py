@@ -797,18 +797,32 @@ with tab3:
         else:
             st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
             
+    # buyprogram.py 내의 e_c2 (제원조회 버튼) 부분 수정
     with e_c2:
-        # --- 우측: 제원조회 버튼 ---
         if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
-            # 상단에 입력된 제원관리번호(v_spec_num)가 있는지 확인
             if v_spec_num:
                 with st.spinner("Cyberts 정보를 불러오는 중..."):
                     try:
-                        # 1. 크롤러 모듈 실행
-                        result = cyberts_crawler.fetch_vehicle_specs(v_spec_num)
-                        # 성공 시 로직 추가 필요 (예: st.success)
+                        res = cyberts_crawler.fetch_vehicle_specs(v_spec_num)
+                        
+                        if res["status"] == "success":
+                            data = res["data"]
+                            # 1. 세션 상태에 크롤링 결과 저장
+                            st.session_state["v_l"] = data.get("length", "")
+                            st.session_state["v_w"] = data.get("width", "")
+                            st.session_state["v_h"] = data.get("height", "")
+                            st.session_state["v_wt"] = data.get("weight", "")
+                            
+                            # 2. CBM 자동 계산 트리거 (함수가 있다면 호출)
+                            # lg.calculate_cbm_logic() # 필요시 직접 실행
+                            
+                            st.success("✅ 제원 정보를 성공적으로 가져왔습니다!")
+                            st.rerun() # 화면을 다시 그려서 입력창에 반영
+                        else:
+                            st.error(f"❌ 조회 실패: {res['message']}")
+                            
                     except Exception as e:
-                        st.error(f"오류 발생: {e}")
+                        st.error(f"⚠️ 시스템 오류 발생: {e}")
             else:
                 st.warning("제원관리번호를 입력해주세요.")
     
