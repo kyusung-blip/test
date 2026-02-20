@@ -100,7 +100,7 @@ def register_item(data, session_id, sheet_no):
 
 def register_purchase(data, session_id, username):
     """이카운트 API 테스트 성공 데이터를 기반으로 한 구매입력"""
-    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
+    url = f"https://sboapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={3638323138367c256563253964256234256561256237253963256563253834256231:AD-ETCkpHbDy_gcH}"
     
     # 1. 금액 처리 (숫자만 추출하여 문자열로 변환)
     def to_amt_str(val):
@@ -135,9 +135,9 @@ def register_purchase(data, session_id, username):
     except Exception as e:
         return {"Status": "500", "Message": f"통신오류: {str(e)}"}
 
-def register_purchase_test(data, session_id):
+def register_purchase_test(ZONE, session_id):
     """이카운트 매뉴얼 예시와 100% 동일한 페이로드 테스트"""
-    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={session_id}"
+    url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/Purchases/SavePurchases?SESSION_ID={SESSION_ID}"
     
     # 요청하신 예시와 완전히 동일한 구조 (값은 비어있거나 예시값 그대로)
     payload = {
