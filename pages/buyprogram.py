@@ -767,143 +767,70 @@ with col_list:
             st.info("송금 유형 버튼을 클릭하세요.")
 
     # --- Tab 3: 기타 ---
-    with tab3:
-        etc_data = {
-            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
-            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
-            "region": v_region, "sales": v_sales, "buyer": v_buyer, "dealer_phone": v_dealer_phone,
-            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
-            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
-            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
-            "deposit": v_deposit, "company": v_company, 
-            "biz_name": v_biz_name, "biz_num": v_biz_num,
-            "declaration": v_declaration, "ex_rate": v_ex_rate, "psource": st.session_state.get("v_psource", ""),
-            "spec_num": v_spec_num
-        }
-        
-        e_c1, e_c2 = st.columns(2)
+    # --- Tab 3: 기타 및 ERP 연동 ---
+with tab3:
+    # 1. 외부 링크 및 기본 정보 데이터 구성
+    etc_data = {
+        "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+        "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+        "region": v_region, "sales": v_sales, "buyer": v_buyer, "dealer_phone": v_dealer_phone,
+        "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+        "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+        "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+        "deposit": v_deposit, "company": v_company, 
+        "biz_name": v_biz_name, "biz_num": v_biz_num,
+        "declaration": v_declaration, "ex_rate": v_ex_rate, 
+        "psource": st.session_state.get("v_psource", ""),
+        "spec_num": v_spec_num
+    }
+    
+    e_c1, e_c2 = st.columns(2)
+    
+    with e_c1:
         if v_site and v_site.startswith("http"):
-            e_c1.link_button("🌐 사이트 이동", v_site)
+            st.link_button("🌐 원본 사이트 이동", v_site, use_container_width=True)
         else:
-                e_c1.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
-           
-        # buyprogram.py 내 버튼 로직 예시
-        # --- Tab 3 내부: 이카운트 통합 로직 ---
-        if st.button("📊 이카운트 상태 체크 및 등록", key="btn_ecount_integrated", type="primary"):
-            vin_to_check = etc_data.get("vin")
-            biz_num = etc_data.get("biz_num")
-            
-            if not vin_to_check:
-                st.error("VIN(차대번호) 정보가 없습니다.")
-            else:
-                # --- Cyberts 차량 제원 정보 조회 (이카운트 처리 전) ---
-                spec_num = etc_data.get("spec_num")
-                if spec_num and spec_num.strip():
-                    with st.spinner("Cyberts에서 차량 제원 정보를 조회 중..."):
-                        cyberts_result = cyberts_crawler.fetch_vehicle_specs(spec_num)
+            st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
+
+    # 2. 이카운트 ERP 구매입력 섹션
+    st.divider()
+    st.markdown("### 📊 이카운트 ERP 관리")
+    
+    # 구매입력 버튼 (주요 동작이므로 primary 색상 적용)
+    if st.button("🚀 이카운트 구매입력(전표) 실행", key="btn_ecount_purchase", type="primary", use_container_width=True):
+        # 필수값 검증 (차대번호와 사업자번호가 없으면 API가 거절됨)
+        if not v_vin or not v_biz_num:
+            st.error("❌ 필수 정보 부족: VIN(차대번호) 또는 사업자번호를 확인하세요.")
+        else:
+            with st.spinner("이카운트 세션 연결 및 전표 생성 중..."):
+                # 1. 세션 ID 가져오기
+                session_id = ecount.get_session_id()
+                
+                if session_id:
+                    # 2. ecount.py의 register_purchase 함수 호출
+                    res = ecount.register_purchase(etc_data, session_id, v_username)
                     
-                    if cyberts_result["status"] == "success":
-                        st.success("✅ 차량 제원 정보 조회 완료")
-                        specs = cyberts_result["data"]
-                        st.info(f"""
-📏 **차량 제원 정보**
-- 차량총중량: {specs['weight']}
-- 길이: {specs['length']}
-- 너비: {specs['width']}
-- 높이: {specs['height']}
-                        """)
-                        st.session_state["cyberts_specs"] = specs
+                    # 3. 결과 처리
+                    if str(res.get("Status")) == "200":
+                        st.success("✅ 이카운트 구매전표 생성이 완료되었습니다!")
+                        st.balloons()
                     else:
-                        st.warning(f"⚠️ 차량 제원 정보 조회 실패: {cyberts_result.get('message', '알 수 없는 오류')}")
+                        # 에러 발생 시 상세 내용 출력
+                        err_msg = res.get("Message", "상세 에러는 하단을 확인하세요.")
+                        st.error(f"❌ 전표 생성 실패: {err_msg}")
+                        with st.expander("🔍 상세 에러 로그 확인"):
+                            st.json(res)
                 else:
-                    st.info("ℹ️ 제원관리번호가 없어 Cyberts 조회를 건너뜁니다.")
-                
-                # --- 기존 이카운트 로직 ---
-                with st.spinner("이카운트 데이터를 조회 중입니다..."):
-                    importlib.reload(ecount)
-                    session_id = ecount.get_session_id()
-                    
-                    if not session_id:
-                        st.error("❌ 이카운트 로그인 실패")
-                    else:
-                        # 1. 구글 시트 순번 확인 (기존 로직)
-                        existing_no = inventoryenter.get_no_by_vin(vin_to_check)
-                        
-                        # 2. [품목 조회]
-                        item_exists, item_info = ecount.check_item_exists(session_id, vin_to_check)
-                        
-                        # 3. [거래처 조회]
-                        cust_exists = ecount.check_customer_exists(session_id, biz_num)
-                        
-                        # --- 상태 알림 및 자동 등록 ---
-                        if not item_exists:
-                            st.info(f"🔍 품목({vin_to_check})이 없습니다. 신규 등록을 시도합니다.")
-                            if existing_no:
-                                item_res = ecount.register_item(etc_data, session_id, existing_no)
-                                if str(item_res.get("Status")) == "200":
-                                    st.success("✅ 품목 신규 등록 성공")
-                                else:
-                                    st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
-                            else:
-                                st.warning("⚠️ 구글 시트에 데이터가 없어 품목 등록을 건너뜁니다.")
-                        else:
-                            st.success(f"✅ 이미 등록된 품목입니다. (코드: {vin_to_check})")
+                    st.error("❌ 이카운트 로그인에 실패했습니다. API 설정(ID/CERT KEY)을 확인하세요.")
 
-                        if not cust_exists:
-                            st.warning(f"🔍 거래처({biz_num})가 조회되지 않습니다. [정보 추가&수정] 버튼으로 거래처를 먼저 확인하거나 이카운트에서 확인해주세요.")
-                        else:
-                            st.success(f"✅ 거래처 확인 완료: {biz_num}")
-
-                        # 4. 구매입력 준비 상태 세션 저장
-                        st.session_state["ecount_ready"] = {
-                            "etc_data": etc_data,
-                            "session_id": session_id,
-                            "username": v_username,
-                            "item_ok": True # 품목이 있거나 방금 등록됨
-                        }
-                        st.rerun()
-
-        # --- 구매입력 실행 컨테이너 (세션에 정보가 있을 때만 노출) ---
-        if "ecount_ready" in st.session_state:
-            with st.container(border=True):
-                st.markdown("#### 📝 구매입력(전표) 생성")
-                ready = st.session_state["ecount_ready"]
-                
-                col1, col2 = st.columns(2)
-                if col1.button("🚀 구매입력 최종 전송", key="btn_purchase_final", type="primary"):
-                    with st.spinner("전표 생성 중..."):
-                        pur_res = ecount.register_purchase(
-                            ready["etc_data"], 
-                            ready["session_id"], 
-                            ready["username"]
-                        )
-                        
-                        if str(pur_res.get("Status")) == "200":
-                            st.success("✅ 이카운트 구매전표 생성 완료!")
-                            st.balloons()
-                            del st.session_state["ecount_ready"]
-                            # 입력 완료 후 필요시 rerun
-                        else:
-                            st.error(f"❌ 전표 생성 실패: {pur_res.get('Message')}")
-                            if "_DEBUG_INFO" in pur_res:
-                                with st.expander("상세 에러 확인"):
-                                    st.json(pur_res["_DEBUG_INFO"])
-
-                if col2.button("🚫 취소", key="btn_purchase_cancel"):
-                    del st.session_state["ecount_ready"]
-                    st.rerun()
-
-        st.divider()
-        
-# 결과 출력 섹션
-        current_content3 = st.session_state.get("out_tab3", "")
-        if current_content3:
-            st.markdown("##### ➕ 기타 알림 내용")
-            st.caption("👇 우측 상단 복사 아이콘 클릭")
-            st.code(current_content3, language=None)
-
-            if st.button("♻️ 내용 리셋", key="reset_tab3"):
-                st.session_state["out_tab3"] = ""
-                st.rerun()
-        else:
-            st.info("알림 생성 버튼을 클릭하세요.")
+    # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
+    st.divider()
+    current_content3 = st.session_state.get("out_tab3", "")
+    if current_content3:
+        st.markdown("##### ➕ 생성된 알림 내용")
+        st.code(current_content3, language=None)
+        if st.button("♻️ 내용 리셋", key="reset_tab3"):
+            st.session_state["out_tab3"] = ""
+            st.rerun()
+    else:
+        st.info("알림이나 전표 생성 버튼을 클릭하세요.")
