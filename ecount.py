@@ -26,10 +26,11 @@ def get_session_id():
         response = requests.post(login_url, json=payload, verify=False, timeout=10)
         res_data = response.json()
         if str(res_data.get("Status")) == "200":
-            return res_data["Data"]["Datas"]["SESSION_ID"]
-        return None
-    except Exception:
-        return None
+            return res_data["Data"]["Datas"]["SESSION_ID"], None
+        else:
+        return None, res_data
+    except Exception: as e:
+        return None , {"Status": "500", "Message": str(e)}
 
 def check_item_exists(session_id, prod_cd):
     """품목 존재 여부 확인"""
