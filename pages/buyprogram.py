@@ -248,41 +248,6 @@ with reset_col:
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 parsed = st.session_state.get("parsed_data", {})
 
-# --- 매입사원 선택 및 차량 제원 정보 통합 행 ---
-with st.container(border=True):
-    # 컬럼 비율 조정 (중앙 제원 칸이 5개이므로 여유 있게 배분)
-    row_top_cols = st.columns([1.5, 6, 1.5])
-
-    with row_top_cols[0]:
-        v_username = st.selectbox(
-            "매입사원", 
-            ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
-            index=0
-        )
-
-    with row_top_cols[1]:
-        s1, s2, s3, s4, s5 = st.columns(5)
-        
-        # logic.py의 함수를 콜백으로 연결
-        v_length = s1.text_input("길이", placeholder="L", key="v_l", on_change=lg.calculate_cbm_logic)
-        v_width = s2.text_input("너비", placeholder="W", key="v_w", on_change=lg.calculate_cbm_logic)
-        v_height = s3.text_input("높이", placeholder="H", key="v_h", on_change=lg.calculate_cbm_logic)
-        
-        # CBM 칸은 계산 결과가 표시됨
-        v_cbm = s4.text_input("CBM", placeholder="0.0", key="v_c")
-        v_weight = s5.text_input("중량", placeholder="kg", key="v_wt")
-
-    with row_top_cols[2]:
-        v_spec_num = st.text_input(
-            "제원관리번호", 
-            value=st.session_state.get("v_spec_num_key", ""), 
-            key="v_spec_num_key"
-        )
-    
-# [핵심 수정] parsed 데이터를 세션에서 관리합니다.
-if "parsed_data" not in st.session_state:
-    st.session_state["parsed_data"] = {}
-
 # --- 1. 파싱 및 외부 데이터 조회 로직 (위젯 선언보다 상단에 위치) ---
 if raw_input:
     # 중복 실행 방지: 이전 입력값과 다를 때만 실행
@@ -362,6 +327,39 @@ if raw_input:
             
             # 처리가 끝났으므로 페이지 재실행 (상단부터 다시 그리면서 값 채움)
             st.rerun()
+
+# --- 매입사원 선택 및 차량 제원 정보 통합 행 ---
+with st.container(border=True):
+    # 컬럼 비율 조정 (중앙 제원 칸이 5개이므로 여유 있게 배분)
+    row_top_cols = st.columns([1.5, 6, 1.5])
+
+    with row_top_cols[0]:
+        v_username = st.selectbox(
+            "매입사원", 
+            ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
+            index=0
+        )
+
+    with row_top_cols[1]:
+        s1, s2, s3, s4, s5 = st.columns(5)
+        
+        # logic.py의 함수를 콜백으로 연결
+        v_length = s1.text_input("길이", placeholder="L", key="v_l", on_change=lg.calculate_cbm_logic)
+        v_width = s2.text_input("너비", placeholder="W", key="v_w", on_change=lg.calculate_cbm_logic)
+        v_height = s3.text_input("높이", placeholder="H", key="v_h", on_change=lg.calculate_cbm_logic)
+        
+        # CBM 칸은 계산 결과가 표시됨
+        v_cbm = s4.text_input("CBM", placeholder="0.0", key="v_c")
+        v_weight = s5.text_input("중량", placeholder="kg", key="v_wt")
+
+    with row_top_cols[2]:
+        v_spec_num = st.text_input("제원관리번호", key="v_spec_num_key")
+    
+# [핵심 수정] parsed 데이터를 세션에서 관리합니다.
+if "parsed_data" not in st.session_state:
+    st.session_state["parsed_data"] = {}
+
+
 
 # 현재 화면에서 사용할 parsed 데이터 로드
 parsed = st.session_state.get("parsed_data", {})
@@ -517,9 +515,8 @@ with col_info:
     sender_input = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
     v_sender = sender_input.upper() if sender_input else ""
     v_psource = r5_4.text_input(
-        "P.Source", 
-        value=st.session_state.get("v_psource", ""), 
-        key="psource_widget"  # 위젯 key를 변경하여 session_state와 충돌 방지
+    "P.Source", 
+    key="v_psource" # 위젯 key를 세션 키와 일치시킴
     )
     
     
