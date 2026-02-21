@@ -58,7 +58,7 @@ def check_item_exists(session_id, prod_cd):
     except Exception:
         return False, None
 
-def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec_no로 명확히 함
+def register_item(data, session_id, final_spec_no): # 세 번째 인자 이름을 spec_no로 명확히 함
     url = f"https://oapi{ZONE}.ecount.com/OAPI/V2/InventoryBasic/SaveBasicProduct?SESSION_ID={session_id}"
     
     prod_name = str(data.get("car_name_remit", "")).strip()
@@ -81,7 +81,7 @@ def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec
                 "PROD_DES": prod_name,
                 "UNIT": "EA",
                 "ADD_TXT_01_T": str(data.get("brand", "")),
-                "CONT1": str(spec_no), # 외부에서 넘겨받은 spec_no 사용
+                "CONT1": str(final_spec_no),
                 "CONT2": str(data.get("plate", "")),
                 "CONT3": str(data.get("km", "")),
                 "CONT4": str(data.get("color", "")),
