@@ -796,6 +796,7 @@ with tab3:
         "length": st.session_state.get("v_l", "0"),
         "width": st.session_state.get("v_w", "0"),
         "height": st.session_state.get("v_h", "0"),
+        "weight": st.session_state.get("v_wt", "0"),
         "spec_num": v_spec_num
     }
 
