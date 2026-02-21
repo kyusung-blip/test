@@ -73,3 +73,29 @@ def get_car_name_map():
     except Exception as e:
         st.error(f"차명 매핑 로드 실패: {e}")
         return {}
+
+# google_sheet_manager.py 에 추가
+
+def get_no_by_plate(plate_number):
+    """
+    'Inventory SEOBUK' 시트의 '2026' 워크시트에서
+    D열(차량번호)을 검색하여 일치하는 행의 B열(NO.) 값을 반환
+    """
+    try:
+        sheet = get_main_2026_sheet()
+        # D열(차량번호) 데이터 전체를 가져옵니다.
+        # col_values(4)는 D열입니다.
+        d_col = sheet.col_values(4)
+        
+        # 정확히 일치하는 값의 인덱스 찾기 (1부터 시작하는 인덱스)
+        try:
+            row_idx = d_col.index(plate_number.strip()) + 1
+            # 해당 행의 B열(2번째 열) 값을 가져옵니다.
+            no_value = sheet.cell(row_idx, 2).value
+            return no_value
+        except ValueError:
+            # 일치하는 차량번호가 없는 경우
+            return None
+    except Exception as e:
+        st.error(f"구글 시트 NO. 조회 실패: {e}")
+        return None
