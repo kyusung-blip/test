@@ -792,6 +792,10 @@ with tab3:
         "biz_name": v_biz_name, "biz_num": v_biz_num,
         "declaration": v_declaration, "ex_rate": v_ex_rate, 
         "psource": st.session_state.get("v_psource", ""),
+        "v_c": st.session_state.get("v_c", "0.00"),
+        "length": st.session_state.get("v_l", "0"),
+        "width": st.session_state.get("v_w", "0"),
+        "height": st.session_state.get("v_h", "0"),
         "spec_num": v_spec_num
     }
 
