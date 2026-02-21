@@ -877,12 +877,7 @@ with tab3:
             else:
                 final_spec_no = found_no
                 st.info(f"✅ 구글 시트 NO. 확인: {final_spec_no}")
-    
-            # etc_data에 CBM(v_c)과 구글시트에서 찾은 NO.(final_spec_no)를 업데이트
             etc_data["v_c"] = st.session_state.get("v_c", "0.00")
-        # CONT1에 들어갈 값을 구글시트에서 찾은 NO.로 설정
-        # (ecount.py의 register_item은 세 번째 인자로 이 값을 받습니다)
-    
         with st.spinner("이카운트 작업 진행 중..."):
             # 0. 세션 획득
             session_id, login_error = ecount.get_session_id()
