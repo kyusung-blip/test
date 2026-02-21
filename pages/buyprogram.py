@@ -868,7 +868,7 @@ with tab3:
             st.stop()
         with st.spinner("구글 시트에서 NO. 정보를 조회 중..."):
         # 1. 구글 시트에서 NO. 값 가져오기
-        found_no = gsm.get_no_by_plate(v_plate)
+            found_no = gsm.get_no_by_plate(v_plate)
         
             if not found_no:
                 st.warning("⚠️ 구글 시트 '2026'에서 해당 차량번호를 찾을 수 없어 제원관리번호로 대체합니다.")
@@ -878,6 +878,7 @@ with tab3:
                 final_spec_no = found_no
                 st.info(f"✅ 구글 시트 NO. 확인: {final_spec_no}")
             etc_data["v_c"] = st.session_state.get("v_c", "0.00")
+            
         with st.spinner("이카운트 작업 진행 중..."):
             # 0. 세션 획득
             session_id, login_error = ecount.get_session_id()
