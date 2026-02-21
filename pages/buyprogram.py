@@ -866,6 +866,22 @@ with tab3:
         if not v_vin or not v_biz_num:
             st.error("⚠️ 차대번호와 사업자번호는 필수 입력 항목입니다.")
             st.stop()
+        with st.spinner("구글 시트에서 NO. 정보를 조회 중..."):
+        # 1. 구글 시트에서 NO. 값 가져오기
+        found_no = gsm.get_no_by_plate(v_plate)
+        
+        if not found_no:
+            st.warning("⚠️ 구글 시트 '2026'에서 해당 차량번호를 찾을 수 없어 제원관리번호로 대체합니다.")
+            # 찾지 못했을 경우 기존처럼 v_spec_num을 사용하거나 빈값 처리
+            final_spec_no = v_spec_num 
+        else:
+            final_spec_no = found_no
+            st.info(f"✅ 구글 시트 NO. 확인: {final_spec_no}")
+
+        # etc_data에 CBM(v_c)과 구글시트에서 찾은 NO.(final_spec_no)를 업데이트
+        etc_data["v_c"] = st.session_state.get("v_c", "0.00")
+        # CONT1에 들어갈 값을 구글시트에서 찾은 NO.로 설정
+        # (ecount.py의 register_item은 세 번째 인자로 이 값을 받습니다)
     
         with st.spinner("이카운트 작업 진행 중..."):
             # 0. 세션 획득
@@ -879,7 +895,7 @@ with tab3:
             item_exists, _ = ecount.check_item_exists(session_id, v_vin)
             if not item_exists:
                 st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
-                res_item = ecount.register_item(etc_data, session_id, v_spec_num)
+                res_item = ecount.register_item(etc_data, session_id, final_spec_no)
                 err_msg = res_item.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "")
                 # --- 디버깅용 로그 추가 ---
                 st.write("📡 품목 등록 시도 응답:", res_item) 
