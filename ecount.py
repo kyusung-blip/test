@@ -90,6 +90,7 @@ def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec
                 "NO_USER2": to_float(data.get("length", 0)), 
                 "NO_USER3": to_float(data.get("width", 0)), 
                 "NO_USER4": to_float(data.get("height", 0)),
+                "NO_USER5": to_float(data.get("weight", 0)),
                 "NO_USER6": cbm_val
             }
         }]
