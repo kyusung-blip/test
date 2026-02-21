@@ -72,11 +72,7 @@ def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec
             return float(clean) if clean else 0.0
         except: return 0.0
 
-    # 데이터 누락에 대비한 안전한 처리
-    l = to_float(data.get("length", 0))
-    w = to_float(data.get("width", 0))
-    h = to_float(data.get("height", 0))
-    cmb_val = (l / 1000) * (w / 1000) * (h / 1000)
+    cbm_val = to_float(data.get("v_c", 0))
 
     payload = {
         "ProductList": [{
@@ -91,8 +87,10 @@ def register_item(data, session_id, spec_no): # 세 번째 인자 이름을 spec
                 "CONT4": str(data.get("color", "")),
                 "CONT5": str(data.get("year", "")),
                 "ADD_DATE_01_T": datetime.now().strftime("%Y%m%d"),
-                "NO_USER2": l, "NO_USER3": w, "NO_USER4": h,
-                "NO_USER6": round(cmb_val, 4)
+                "NO_USER2": to_float(data.get("length", 0)), 
+                "NO_USER3": to_float(data.get("width", 0)), 
+                "NO_USER4": to_float(data.get("height", 0)),
+                "NO_USER6": cbm_val
             }
         }]
     }
@@ -112,7 +110,7 @@ def register_customer(data, session_id):
         "CustList": [{
             "BulkDatas": {
                 "CUST": biz_num,
-                "CUST_DES": str(data.get("biz_name", biz_num)),
+                "CUST_NAME": str(data.get("biz_name", biz_num)),
                 "BUSINESS_NO": biz_num,
                 "USE_GUBUN": "Y"
             }
