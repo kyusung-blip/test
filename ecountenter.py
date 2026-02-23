@@ -60,6 +60,8 @@ def run_ecount_web_automation(data, status_placeholder):
             status_placeholder.image("login_check_error.png", caption="로그인 판정 실패 시점")
             return {"status": "error", "message": "로그인 후 로고를 찾을 수 없습니다."}
 
+        time.sleep(3)
+
         # 3. 구매입력 URL로 직접 이동
         status_placeholder.write("🚀 구매입력 페이지 이동 중...")
         direct_url = "https://loginad.ecount.com/ec5/view/erp?w_flag=1&ec_req_sid=AD-ETDLqM7TZHHlO#menuType=MENUTREE_000004&menuSeq=MENUTREE_000510&groupSeq=MENUTREE_000031&prgId=E040303&depth=4"
