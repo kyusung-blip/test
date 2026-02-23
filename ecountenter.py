@@ -82,81 +82,91 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.save_screenshot("menu_click_error.png")
             return {"status": "error", "message": f"메뉴 이동 중 오류 발생: {str(e)[:50]}"}
 
-         # 4. 데이터 입력 시작 (사용자 지정 XPath 및 값 적용)
+         # 4. 데이터 입력 시작 (마스터 정보 + 그리드 정보)
         try:
-            # 페이지 이동 후 그리드 렌더링을 위해 충분히 대기
-            status_placeholder.write("📝 그리드 로딩 대기 중...")
-            time.sleep(4) 
+            status_placeholder.write("📝 전체 데이터 입력 프로세스 시작...")
+            time.sleep(3) # 페이지 로딩 안정화 대기
 
-            # --- (1) 품목코드 입력 (WBAJF3100LCE05510) ---
-            status_placeholder.write("🔹 품목코드 입력 시도 중...")
-            prod_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[3]/span'
-            prod_value = "WBAJF3100LCE05510"
+            # --- [Part 1] 상단 마스터 정보 입력 영역 ---
+            # 입력 편의를 위한 매핑 설정
+            master_fields = [
+                ("구매담당", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[2]/div[2]/div/div/input[1]', data.get('username')),
+                ("세일즈팀", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[3]/div[2]/div/div/input', data.get('sales')),
+                ("Buyer", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[4]/div[2]/div/div/input', data.get('buyer')),
+                ("국가코드", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[5]/div[2]/div/div/input', data.get('country')),
+                ("YEAR", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[7]/div[2]/div/div/input', data.get('year')),
+                ("BRAND", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[8]/div[2]/div/div/input', data.get('brand')),
+                ("MODEL", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[9]/div[2]/div/div/input', data.get('car_name_remit')),
+                ("PLATE", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[10]/div[2]/div/div/input', data.get('plate')),
+                ("VIN", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[11]/div[2]/div/div/input', data.get('vin')),
+                ("COLOR", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[12]/div[2]/div/div/input', data.get('color')),
+                ("km", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[13]/div[2]/div/div/input', data.get('km')),
+                ("위치", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[14]/div[2]/div/div/input', data.get('region')),
+                ("거래처", '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[19]/div[2]/div/div/input[1]', data.get('biz_num'))
+            ]
+
+            for label, xpath, value in master_fields:
+                if value:
+                    status_placeholder.write(f"🔹 {label} 입력 중...")
+                    field = wait.until(EC.element_to_be_clickable((By.XPATH, xpath)))
+                    field.clear()
+                    field.send_keys(str(value))
+                    field.send_keys(Keys.ENTER)
+                    time.sleep(0.7) # 필드 간 입력 간격
+
+            # --- [Part 2] 하단 그리드 정보 입력 영역 ---
+            status_placeholder.write("📊 그리드 품목 정보 입력 중...")
             
-            for attempt in range(3):
-                try:
-                    # 요소를 매번 새로 탐색하여 Stale 방지
-                    prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, prod_xpath)))
-                    driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", prod_cell)
-                    time.sleep(1)
-                    driver.execute_script("arguments[0].click();", prod_cell)
-                    
-                    # 클릭 후 입력창(input) 활성화 대기
-                    time.sleep(1.5)
-                    active_el = driver.switch_to.active_element
-                    active_el.send_keys(prod_value)
-                    time.sleep(1)
-                    active_el.send_keys(Keys.ENTER)
-                    
-                    # 품목 선택 팝업 등이 뜰 경우를 대비해 2초 대기 후 ESC (안전장치)
-                    time.sleep(2)
-                    driver.switch_to.active_element.send_keys(Keys.ESCAPE)
-                    status_placeholder.write(f"✅ 품목코드 입력 완료: {prod_value}")
-                    break
-                except Exception as e:
-                    if attempt == 2: raise e
-                    time.sleep(2)
+            # 1. 품목코드 (이미 검증된 로직)
+            prod_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[3]/span'
+            prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, prod_xpath)))
+            driver.execute_script("arguments[0].click();", prod_cell)
+            time.sleep(1.5)
+            driver.switch_to.active_element.send_keys(data.get('vin', '')) # 품목코드로 vin 사용
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(2)
+            driver.switch_to.active_element.send_keys(Keys.ESCAPE) # 팝업 방지
 
-            # --- (2) 수량 입력 (1) ---
-            status_placeholder.write("🔹 수량 입력 시도 중...")
+            # 2. 수량 (1 고정)
             qty_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[7]/span'
-            qty_value = "1"
+            qty_cell = wait.until(EC.presence_of_element_located((By.XPATH, qty_xpath)))
+            driver.execute_script("arguments[0].click();", qty_cell)
+            time.sleep(1)
+            active_el = driver.switch_to.active_element
+            active_el.send_keys(Keys.CONTROL + "a")
+            active_el.send_keys(Keys.BACKSPACE)
+            active_el.send_keys("1")
+            active_el.send_keys(Keys.ENTER)
+            time.sleep(1)
 
-            for attempt in range(3):
-                try:
-                    qty_cell = wait.until(EC.presence_of_element_located((By.XPATH, qty_xpath)))
-                    driver.execute_script("arguments[0].click();", qty_cell)
-                    
-                    time.sleep(1)
-                    active_el = driver.switch_to.active_element
-                    # 기존 값이 있을 수 있으므로 백스페이스로 지우고 입력
-                    active_el.send_keys(Keys.CONTROL + "a")
-                    active_el.send_keys(Keys.BACKSPACE)
-                    active_el.send_keys(qty_value)
-                    active_el.send_keys(Keys.ENTER)
-                    
-                    status_placeholder.write(f"✅ 수량 입력 완료: {qty_value}")
-                    break
-                except Exception as e:
-                    if attempt == 2: raise e
-                    time.sleep(2)
+            # 3. 단가 (price)
+            status_placeholder.write("🔹 단가 입력 중...")
+            price_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span[2]'
+            price_cell = wait.until(EC.presence_of_element_located((By.XPATH, price_xpath)))
+            driver.execute_script("arguments[0].click();", price_cell)
+            time.sleep(1)
+            
+            # 단가에서 숫자만 추출하여 입력
+            price_val = re.sub(r'[^0-9]', '', str(data.get('price', '0')))
+            driver.switch_to.active_element.send_keys(price_val)
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
 
-            # --- (3) 저장 단계 ---
-            status_placeholder.write("💾 전표 저장 중...")
-            save_btn_xpath = '//*[@id="group3slipSave"]'
-            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, save_btn_xpath)))
+            # --- [Part 3] 최종 저장 ---
+            status_placeholder.write("💾 전표 저장 시도 중...")
+            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="group3slipSave"]')))
             driver.execute_script("arguments[0].click();", save_btn)
             
-            # 저장 처리 완료 대기
+            # 저장 후 완료 팝업이나 화면 전환 대기
             time.sleep(5)
-            driver.save_screenshot("test_result.png")
-            status_placeholder.image("test_result.png", caption="테스트 완료 화면")
-            
-            return {"status": "success", "message": "품목 및 수량 입력 테스트 성공!"}
+            driver.save_screenshot("final_record.png")
+            status_placeholder.image("final_record.png", caption="최종 입력 완료 상태")
+
+            return {"status": "success", "message": "모든 필드 입력 및 전표 저장 완료!"}
 
         except Exception as e:
-            driver.save_screenshot("test_error.png")
-            return {"status": "error", "message": f"테스트 실패: {type(e).__name__}"}
+            driver.save_screenshot("error_detail.png")
+            return {"status": "error", "message": f"입력 도중 오류 발생: {type(e).__name__}"}
 
     except Exception as e:
         return {"status": "error", "message": f"시스템 오류: {str(e)[:50]}"}
