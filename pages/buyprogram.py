@@ -576,6 +576,7 @@ with col_info:
                 st.error(save_res["message"])
                 
     v_bizcl_num = v_biz_num.replace("-", "") if v_biz_num else ""
+    "price2": v_price2, "fee2": v_fee2, "contract2_x": v_contract_x2,
 
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
@@ -777,7 +778,15 @@ with col_list:
                 st.rerun()
         else:
             st.info("송금 유형 버튼을 클릭하세요.")
-
+def convert_to_won(val):
+    if not val:
+        return 0
+    try:
+        # 콤마(,)와 문자를 제거하고 숫자만 남김
+        num_only = re.sub(r'[^0-9.]', '', str(val))
+        return int(float(num_only) * 10000)
+    except:
+        return 0
     # --- Tab 3: 기타 ---
     # --- Tab 3: 기타 및 ERP 연동 ---
 with tab3:
@@ -790,7 +799,9 @@ with tab3:
         "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
         "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
         "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
-        "price2": price, "fee2": fee, "contract2_x": contract_x,
+        "price2": convert_to_won(v_price),
+        "fee2": convert_to_won(v_fee),         
+        "contract2_x": convert_to_won(v_contract_x),
         "deposit": v_deposit, "company": v_company, 
         "biz_name": v_biz_name, "biz_num": v_biz_num,
         "bizcl_num": v_bizcl_num,
