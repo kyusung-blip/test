@@ -967,6 +967,28 @@ with tab3:
             else:
                 st.error("❌ 세션 획득 실패")
                 st.json(login_error)
+                
+    st.markdown("---")
+    st.subheader("🛠️ 웹 자동화 테스트")
+    if st.button("🚀 웹 방식 구매입력 (TEST)", key="btn_web_test_run", type="primary", use_container_width=True):
+        # 필수 값 체크
+        if not v_vin or not v_price:
+            st.error("차대번호(VIN)와 차량대(Price) 정보가 필요합니다.")
+        else:
+            with st.spinner("브라우저를 실행하여 이카운트에 로그인 중입니다..."):
+                import ecountenter # 파일 임포트
+                
+                # 데이터 전송 (vin과 price 포함)
+                test_data = {
+                    "vin": v_vin,
+                    "price": v_price
+                }
+                res = ecountenter.run_ecount_web_automation(test_data)
+                
+                if res["status"] == "success":
+                    st.success(res["message"])
+                else:
+                    st.error(res["message"])
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
