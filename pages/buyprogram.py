@@ -990,6 +990,22 @@ with tab3:
                     status_box.update(label="❌ 자동화 작업 실패", state="error")
                     st.error(f"실패 원인: {result['message']}")
 
+    st.markdown("### ⚡ 데이터 통합 처리")
+        
+        # 통합입력 버튼 생성
+    if st.button("🚀 통합입력 (시트 등록 + 알림)", key="btn_integrated_all", type="primary", use_container_width=True):
+        with st.spinner("구글 시트 등록 및 데이터 처리를 진행 중입니다..."):
+             # inventoryenter.py에 정의된 통합 등록 함수 호출
+            res = inventoryenter.run_integrated_registration(etc_data)
+                
+             if res["status"] in ["success", "partial"]:
+                   st.success(f"✅ 처리 완료: {res['message']}")
+                   # 결과 내용을 화면 하단 출력칸에 저장하고 싶을 경우
+                   st.session_state["out_tab3"] = res.get("message", "등록 성공")
+                   st.balloons()
+              else:
+                   st.error(f"❌ 처리 실패: {res['message']}")
+
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
     current_content3 = st.session_state.get("out_tab3", "")
