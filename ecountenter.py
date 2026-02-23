@@ -36,7 +36,7 @@ def run_ecount_web_automation(data, status_placeholder):
         time.sleep(3)
         status_placeholder.write("✅ 1. 로그인 완료")
 
-        try:
+    try:
         # --- 로그인 직후 팝업 닫기 (이카운트는 팝업이 메뉴 클릭을 방해할 수 있음) ---
         status_placeholder.write("📌 공지사항 팝업 체크 중...")
         try:
