@@ -143,8 +143,13 @@ def run_ecount_web_automation(data, status_placeholder):
         # 5. 저장 (F8)
         status_placeholder.write("💾 전표 저장 중...")
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.F8)
-        time.sleep(3)
-        status_placeholder.write("✅ 5. 저장 완료!")
+        time.sleep(5)  # 서버 처리 시간을 충분히 줍니다.
+    
+        # 성공 여부를 스크린샷으로 기록 (디버깅용)
+        driver.save_screenshot("after_save_check.png")
+        status_placeholder.image("after_save_check.png", caption="저장 직후 화면 상태")
+        
+        status_placeholder.write("✅ 5. 저장 프로세스 완료!")
         
         return {"status": "success", "message": "이카운트 입력이 완료되었습니다."}
 
