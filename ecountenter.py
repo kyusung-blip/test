@@ -234,9 +234,9 @@ def run_ecount_web_automation(data, status_placeholder):
             # --- [하단 그리드: 품목/수량/단가] ---
             status_placeholder.write("📊 그리드 입력 단계 진입...")
             
-            # 품목코드 입력
+            # 1. 첫 번째 행: 차량 단가 (Price2)
             prod_val = data.get('vin') # 품목코드에 vin 사용
-            status_placeholder.write(f"📍 [그리드 품목] 입력 시도: {prod_val}")
+            status_placeholder.write(f"📍 [그리드 Row 1] 차량 품목 입력: {prod_val}")
             prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[3]/span')))
             driver.execute_script("arguments[0].click();", prod_cell)
             time.sleep(1.5)
@@ -245,8 +245,7 @@ def run_ecount_web_automation(data, status_placeholder):
             time.sleep(2)
             driver.switch_to.active_element.send_keys(Keys.ESCAPE)
 
-            # 수량 입력
-            status_placeholder.write("📍 [그리드 수량] 입력 시도: 1")
+            # 수량 (1)
             qty_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[7]/span')))
             driver.execute_script("arguments[0].click();", qty_cell)
             time.sleep(1)
@@ -257,15 +256,87 @@ def run_ecount_web_automation(data, status_placeholder):
             active_el.send_keys(Keys.ENTER)
             time.sleep(1)
 
-            # 단가 입력
+            # 단가 (Price2)
             price_val = re.sub(r'[^0-9]', '', str(data.get('price2', '0')))
-            status_placeholder.write(f"📍 [그리드 단가] 입력 시도: {price_val}")
             price_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span[2]')))
             driver.execute_script("arguments[0].click();", price_cell)
             time.sleep(1)
             driver.switch_to.active_element.send_keys(price_val)
             driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(1)
+
+            # ---------------------------------------------------------
+            # 2. 두 번째 행: 매도비 (fee2) 처리
+            # ---------------------------------------------------------
+            fee2_val = int(data.get('fee2', 0))
+            if fee2_val > 0:
+                status_placeholder.write(f"📍 [그리드 Row 2] 매도비 입력 중: {fee2_val}")
+                
+                # 품목코드 입력 (Row 2)
+                fee_prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[2]/td[3]/span')))
+                driver.execute_script("arguments[0].click();", fee_prod_cell)
+                time.sleep(1)
+                driver.switch_to.active_element.send_keys(str(prod_val)) # 차량과 동일한 품목코드 사용
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+                time.sleep(1.5)
+                driver.switch_to.active_element.send_keys(Keys.ESCAPE)
+
+                # 수량 입력 (Row 2) - 1 세팅
+                fee_qty_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[2]/td[7]/span')))
+                driver.execute_script("arguments[0].click();", fee_qty_cell)
+                time.sleep(0.5)
+                driver.switch_to.active_element.send_keys("1")
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+
+                # 공급가액 입력 (Row 2) - fee2 값
+                fee_amt_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[2]/td[9]/span')))
+                driver.execute_script("arguments[0].click();", fee_amt_cell)
+                time.sleep(0.5)
+                driver.switch_to.active_element.send_keys(str(fee2_val))
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+
+                # 부가세 입력 (Row 2) - 0 세팅
+                fee_vat_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[2]/td[10]/span')))
+                driver.execute_script("arguments[0].click();", fee_vat_cell)
+                time.sleep(0.5)
+                driver.switch_to.active_element.send_keys("0")
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+                time.sleep(1)
+            else:
+                status_placeholder.write("⏭️ [매도비] 값이 0이거나 없어 건너뜁니다.")
+
+            # ---------------------------------------------------------
+            # 3. 세 번째 행: 계산서X (contract2_x) 처리
+            # ---------------------------------------------------------
+            contract2_val = int(data.get('contract2_x', 0))
+            if contract2_val > 0:
+                status_placeholder.write(f"📍 [그리드 Row 3] 계산서X 입력 중: {contract2_val}")
+                
+                # 품목코드 입력 (Row 3)
+                con_prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[3]/td[3]/span')))
+                driver.execute_script("arguments[0].click();", con_prod_cell)
+                time.sleep(1)
+                driver.switch_to.active_element.send_keys(str(prod_val))
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+                time.sleep(1.5)
+                driver.switch_to.active_element.send_keys(Keys.ESCAPE)
+
+                # 수량 입력 (Row 3) - 1 세팅
+                con_qty_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[3]/td[7]/span')))
+                driver.execute_script("arguments[0].click();", con_qty_cell)
+                time.sleep(0.5)
+                driver.switch_to.active_element.send_keys("1")
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+
+                # 공급가액 입력 (Row 3) - contract2_x 값
+                con_amt_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[3]/td[9]/span')))
+                driver.execute_script("arguments[0].click();", con_amt_cell)
+                time.sleep(0.5)
+                driver.switch_to.active_element.send_keys(str(contract2_val))
+                driver.switch_to.active_element.send_keys(Keys.ENTER)
+                time.sleep(1)
+            else:
+                status_placeholder.write("⏭️ [계산서X] 값이 0이거나 없어 건너뜁니다.")
 
             # --- [최종 저장] ---
             status_placeholder.write("💾 저장 버튼 클릭 중...")
