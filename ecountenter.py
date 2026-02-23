@@ -36,17 +36,6 @@ def run_ecount_web_automation(data, status_placeholder):
         time.sleep(3)
         status_placeholder.write("✅ 1. 로그인 완료")
 
-    try:
-        # --- 로그인 직후 팝업 닫기 (이카운트는 팝업이 메뉴 클릭을 방해할 수 있음) ---
-        status_placeholder.write("📌 공지사항 팝업 체크 중...")
-        try:
-            # 모든 팝업 닫기 버튼(보통 클래스명이나 특정 ID) 시도
-            close_btns = driver.find_elements(By.XPATH, "//button[contains(text(), '닫기')]")
-            for btn in close_btns:
-                btn.click()
-        except:
-            pass
-
         # 2. 메뉴 순차 클릭 로직
         status_placeholder.write("📂 메뉴 경로 이동 중...")
         
