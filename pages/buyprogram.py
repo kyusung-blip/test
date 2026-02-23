@@ -861,21 +861,74 @@ with tab3:
                     st.warning("제원관리번호를 입력해주세요.")
     
     st.divider()
-    st.markdown("### ⚡ 데이터 통합 처리")
-        
-        # 통합입력 버튼 생성
-    if st.button("🚀 통합입력 (시트 등록 + 알림)", key="btn_integrated_all", type="primary", use_container_width=True):
-        with st.spinner("구글 시트 등록 및 데이터 처리를 진행 중입니다..."):
-                # inventoryenter.py에 정의된 통합 등록 함수 호출
-              res = inventoryenter.run_integrated_registration(etc_data)
+    st.markdown("### ⚡ 이카운트 통합 마스터")
+    
+    if st.button("🚀 통합 구매입력 실행 (제원+등록+전표)", key="btn_all_in_one_ecount", type="primary", use_container_width=True):
+        # 0. 기초 필수값 검증
+        if not v_vin or not v_biz_num or not v_plate:
+            st.error("⚠️ 차대번호, 사업자번호, 차량번호는 필수 입력 항목입니다.")
+            st.stop()
+
+        with st.status("🔄 통합 프로세스 시작...", expanded=True) as status:
+            try:
+                # --- STEP 1. 제원조회 (Cyberts) ---
+                status.write("🔍 1. Cyberts 제원 정보 조회 중...")
+                spec_val = st.session_state.get("v_spec_num_key", "")
+                if spec_val:
+                    res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val)
+                    if res_spec.get("status") == "success":
+                        data = res_spec.get("data", {})
+                        # 세션 업데이트 (CBM 계산 포함)
+                        l_val, w_val, h_val = float(data.get("length", 0)), float(data.get("width", 0)), float(data.get("height", 0))
+                        st.session_state["v_l"], st.session_state["v_w"], st.session_state["v_h"] = str(l_val), str(w_val), str(h_val)
+                        st.session_state["v_wt"] = str(data.get("weight", ""))
+                        st.session_state["v_c"] = f"{(l_val * w_val * h_val) / 1000000000:.2f}"
+                        etc_data["v_c"] = st.session_state["v_c"] # etc_data 갱신
+                        status.write("✅ 제원 조회 및 CBM 계산 완료")
+                    else:
+                        status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')} (계속 진행)")
+                else:
+                    status.write("⏭️ 제원번호 없음 (제원 조회를 건너뜁니다)")
+
+                # --- STEP 2. 구글 시트 NO. 조회 및 이카운트 세션 획득 ---
+                status.write("📋 2. 구글 시트 NO. 확인 및 이카운트 접속...")
+                found_no = gsm.get_no_by_plate(v_plate)
+                final_spec_no = found_no if found_no else v_spec_num
                 
-              if res["status"] in ["success", "partial"]:
-                  st.success(f"✅ 처리 완료: {res['message']}")
-                    # 결과 내용을 화면 하단 출력칸에 저장하고 싶을 경우
-                  st.session_state["out_tab3"] = res.get("message", "등록 성공")
-                  st.balloons()
-              else:
-                  st.error(f"❌ 처리 실패: {res['message']}")
+                session_id, login_error = ecount.get_session_id()
+                if not session_id:
+                    st.error("❌ 이카운트 로그인 실패")
+                    st.stop()
+
+                # --- STEP 3. 품목 및 거래처 등록 (API) ---
+                status.write("⚙️ 3. API를 통한 품목/거래처 등록 여부 확인...")
+                # 품목 체크 및 등록
+                item_exists, _ = ecount.check_item_exists(session_id, v_vin)
+                if not item_exists:
+                    ecount.register_item(etc_data, session_id, final_spec_no)
+                    status.write(f"✅ 신규 품목 등록 완료 ({v_vin})")
+                
+                # 거래처 등록 (중복 에러 처리는 ecount 모듈 내 로직 활용)
+                ecount.register_customer(etc_data, session_id)
+                status.write(f"✅ 거래처 확인 및 등록 완료 ({v_biz_num})")
+
+                # --- STEP 4. 웹 자동화 구매입력 (Selenium) ---
+                status.write("🤖 4. 셀레니움 웹 자동화 구매입력 시작...")
+                import ecountenter
+                # 여기서 status 객체를 전달하여 ecountenter 내부에서도 로그를 찍게 할 수 있습니다.
+                res_web = ecountenter.run_ecount_web_automation(etc_data, status)
+                
+                if res_web["status"] == "success":
+                    status.update(label="🎉 모든 통합 공정 완료! 구매전표가 저장되었습니다.", state="complete", expanded=False)
+                    st.balloons()
+                    st.success(f"최종 처리 완료: {v_plate} ({v_vin})")
+                else:
+                    status.update(label="❌ 웹 자동화 단계 실패", state="error")
+                    st.error(f"실패 원인: {res_web['message']}")
+
+            except Exception as e:
+                status.update(label="⚠️ 통합 처리 중 시스템 에러 발생", state="error")
+                st.error(f"상세 에러: {str(e)}")
 
     # 2. 이카운트 ERP 구매입력 섹션
     st.divider()
