@@ -790,6 +790,7 @@ with tab3:
         "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
         "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
         "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+        "price2": price, "fee2": fee, "contract2_x": contract_x,
         "deposit": v_deposit, "company": v_company, 
         "biz_name": v_biz_name, "biz_num": v_biz_num,
         "bizcl_num": v_bizcl_num,
