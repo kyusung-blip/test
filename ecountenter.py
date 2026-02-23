@@ -65,29 +65,36 @@ def run_ecount_web_automation(data, status_placeholder):
         direct_url = "https://loginad.ecount.com/ec5/view/erp?w_flag=1&ec_req_sid=AD-ETDLqM7TZHHlO#menuType=MENUTREE_000004&menuSeq=MENUTREE_000510&groupSeq=MENUTREE_000031&prgId=E040303&depth=4"
         driver.get(direct_url)
         
-        # 4. 데이터 입력 (SPA 구조 대응)
-        status_placeholder.write("📝 입력 구역 로딩 대기 중...")
+        # 4. 데이터 입력 (Active Tab-Pane 대응)
+        status_placeholder.write("📝 페이지 렌더링 대기 중...")
         
-        # [수정 포인트] 10초 대기 대신, 특정 요소가 나타날 때까지 스마트하게 대기
-        vin_xpath = "//*[@data-column-id='prod_cd']"
         try:
-            # 품목코드(prod_cd) 셀이 나타나고 클릭 가능할 때까지 최대 20초 대기
-            vin_cell = wait.until(EC.element_to_be_clickable((By.XPATH, vin_xpath)))
-            status_placeholder.write("✅ 입력 테이블 로드 완료")
-        except Exception as e:
-            status_placeholder.write("❌ 페이지 로딩 시간이 초과되었습니다.")
-            driver.save_screenshot("loading_timeout.png")
-            return {"status": "error", "message": "입력 화면 로딩 실패"}
+            # [수정] 현재 활성화된(display: block) 탭 안에 있는 품목코드 셀을 찾습니다.
+            # CSS Selector의 ':not([style*="display: none"])'를 활용하면 현재 보이는 요소만 골라낼 수 있습니다.
+            active_vin_xpath = "//div[contains(@class, 'tab-pane') and not(contains(@style, 'display: none'))]//*[@data-column-id='prod_cd']"
+            
+            # 요소가 나타날 때까지 대기
+            vin_cell = wait.until(EC.visibility_of_element_located((By.XPATH, active_vin_xpath)))
+            vin_cell = wait.until(EC.element_to_be_clickable((By.XPATH, active_vin_xpath)))
+            
+            status_placeholder.write("✅ 입력 활성화 확인")
 
-        # 셀 클릭 및 입력 시작
-        driver.execute_script("arguments[0].click();", vin_cell)
-        
-        # 클릭 후 입력 모드로 전환되는 찰나의 시간 (0.5~1초)은 유지하는 것이 안전합니다.
-        time.sleep(1)
-        
-        driver.switch_to.active_element.send_keys(data.get('vin', ''))
-        driver.switch_to.active_element.send_keys(Keys.ENTER)
-        status_placeholder.write(f"✅ 2. 품목코드 입력 완료: {data.get('vin')}")
+            # 클릭 및 입력 로직
+            driver.execute_script("arguments[0].click();", vin_cell)
+            
+            # 클릭 후 입력 모드(input 태그 생성)를 위한 아주 짧은 찰나의 대기
+            time.sleep(0.8) 
+            
+            # 데이터 입력
+            active_el = driver.switch_to.active_element
+            active_el.send_keys(data.get('vin', ''))
+            active_el.send_keys(Keys.ENTER)
+            status_placeholder.write(f"✅ 2. 품목코드 입력 완료: {data.get('vin')}")
+
+        except Exception as e:
+            # 실패 시 로그 및 스크린샷 저장
+            driver.save_screenshot("tab_error.png")
+            return {"status": "error", "message": f"입력창을 찾을 수 없습니다. (탭 활성화 문제 가능성)"}
 
         # 수량 입력 (qty)
         qty_xpath = "//*[@data-column-id='qty']"
