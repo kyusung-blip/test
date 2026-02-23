@@ -169,15 +169,15 @@ def register_purchase(data, session_id, username):
                 "U_MEMO5": str(data.get("sales", "")),         # sales
 
                 # [구매 상단 추가항목 - ADD_TXT]
-                "U_MEMO6": str(data.get("buyer", "")),    # buyer
-                "U_MEMO7": str(data.get("country", "")),  # country
-                "ADD_TXT_3": "",                            # 빈칸
-                "ADD_TXT_4": str(data.get("region", "")),   # region
-                "ADD_TXT_5": str(data.get("year", "")),     # year
-                "ADD_TXT_6": str(data.get("color", "")),    # color
-                "ADD_TXT_7": str(data.get("km", "")),       # km
-                "ADD_TXT_8": "",                            # 빈칸
-                "ADD_TXT_9": str(data.get("brand", "")),    # brand
+                "ADD_TXT_01_T": str(data.get("buyer", "")),    # buyer
+                "ADD_TXT_02_T": str(data.get("country", "")),  # country
+                "ADD_TXT_03_T": "",                            # 빈칸
+                "ADD_TXT_04_T": str(data.get("region", "")),   # region
+                "ADD_TXT_05_T": str(data.get("year", "")),     # year
+                "ADD_TXT_06_T": str(data.get("color", "")),    # color
+                "ADD_TXT_07_T": str(data.get("km", "")),       # km
+                "ADD_TXT_08_T": "",                            # 빈칸
+                "ADD_TXT_09_T": str(data.get("brand", "")),    # brand
                 
                 # [구매 상단 추가코드]
                 "ADD_CODE_01_T": h_code                        # h_id에 따른 코드
