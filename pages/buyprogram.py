@@ -978,14 +978,7 @@ with tab3:
             # 진행 상태창 생성
             with st.status("이카운트 자동 입력을 수행하고 있습니다...", expanded=True) as status_box:
                 import ecountenter
-                # 자동화에 필요한 데이터 구성
-                automation_data = {
-                    "vin": v_vin,
-                    "price": v_price
-                }
-                
-                # 로직 실행
-                result = ecountenter.run_ecount_web_automation(automation_data, status_box)
+                result = ecountenter.run_ecount_web_automation(etc_data, status_box)
                 
                 if result["status"] == "success":
                     status_box.update(label="🎉 구매입력 및 저장 성공!", state="complete", expanded=False)
