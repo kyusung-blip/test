@@ -258,7 +258,7 @@ def run_ecount_web_automation(data, status_placeholder):
             time.sleep(1)
 
             # 단가 입력
-            price_val = re.sub(r'[^0-9]', '', str(data.get('price', '0')))
+            price_val = re.sub(r'[^0-9]', '', str(data.get('price2', '0')))
             status_placeholder.write(f"📍 [그리드 단가] 입력 시도: {price_val}")
             price_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span[2]')))
             driver.execute_script("arguments[0].click();", price_cell)
