@@ -48,27 +48,42 @@ def run_ecount_web_automation(data, status_placeholder):
         login_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="save"]')))
         login_btn.click()
         
-        # 2. 로고 이미지를 통한 로그인 완료 판정
-        status_placeholder.write("⏳ 로그인 완료 확인 중 (로고 탐색)...")
+        # 2. 로그인 완료 판정 및 메뉴 이동 시작
+        status_placeholder.write("⏳ 로그인 완료 대기 중...")
         try:
-            # 말씀하신 <img class="company-logo"> 요소가 나타날 때까지 대기
+            # 메인 페이지 로고가 나타날 때까지 대기하여 세션 확정
             wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, "img.company-logo")))
-            status_placeholder.write("✅ 1. 로그인 성공 (로고 확인 완료)")
+            time.sleep(2)  # 로그인 후 첫 화면 안착 대기
+            status_placeholder.write("✅ 로그인 성공")
         except:
-            # 로고가 안 나오면 현재 화면 캡처 후 종료
-            driver.save_screenshot("login_check_error.png")
-            status_placeholder.image("login_check_error.png", caption="로그인 판정 실패 시점")
-            return {"status": "error", "message": "로그인 후 로고를 찾을 수 없습니다."}
+            return {"status": "error", "message": "로그인 후 메인 화면 진입에 실패했습니다."}
 
-        time.sleep(3)
+        # 3. 메뉴 클릭 단계별 이동
+        try:
+            # (1) 재고I 클릭 (나올 때까지 대기 후 클릭)
+            status_placeholder.write("📂 '재고I' 메뉴 클릭 중...")
+            inventory_1 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth1_MENUTREE_000004"]')))
+            inventory_1.click()
+            
+            # (2) 구매관리 클릭
+            status_placeholder.write("📁 '구매관리' 클릭 중...")
+            purchase_mgmt = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth2_MENUTREE_000031"]')))
+            purchase_mgmt.click()
+            
+            # (3) 1초 대기 후 구매입력 클릭
+            status_placeholder.write("📄 '구매입력' 이동 중 (1초 대기)...")
+            time.sleep(1)
+            purchase_input = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth4_MENUTREE_000510"]')))
+            purchase_input.click()
+            
+            status_placeholder.write("✅ 구매입력 페이지 도달 성공")
+            
+        except Exception as e:
+            driver.save_screenshot("menu_click_error.png")
+            return {"status": "error", "message": f"메뉴 이동 중 오류 발생: {str(e)[:50]}"}
 
-        # 3. 구매입력 URL로 직접 이동
-        status_placeholder.write("🚀 구매입력 페이지 이동 중...")
-        direct_url = "https://loginad.ecount.com/ec5/view/erp?w_flag=1&ec_req_sid=AD-ETDLqM7TZHHlO#menuType=MENUTREE_000004&menuSeq=MENUTREE_000510&groupSeq=MENUTREE_000031&prgId=E040303&depth=4"
-        driver.get(direct_url)
-        
-        # 4. 데이터 입력 (현재 활성화된 탭 정밀 탐색)
-        status_placeholder.write("📝 활성 입력창 탐색 중...")
+        # 4. 데이터 입력 (기존 로직 사용)
+        status_placeholder.write("📝 입력 구역 로딩 대기 중...")
         
         try:
             # [수정] 현재 'display: block' 상태인 tab-pane 내부에 있는 prod_cd를 찾습니다.
