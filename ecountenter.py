@@ -36,12 +36,37 @@ def run_ecount_web_automation(data, status_placeholder):
         time.sleep(3)
         status_placeholder.write("✅ 1. 로그인 완료")
 
-        # 2. 구매입력 메뉴 이동
-        status_placeholder.write("📂 구매입력 메뉴 찾는 중...")
-        driver.get("https://login.ecount.com/Inventory/Purchase/Purchase")
-        time.sleep(3)
-        wait.until(EC.frame_to_be_available_and_switch_to_it((By.ID, "EC_FRAME")))
+        try:
+        # --- 로그인 직후 팝업 닫기 (이카운트는 팝업이 메뉴 클릭을 방해할 수 있음) ---
+        status_placeholder.write("📌 공지사항 팝업 체크 중...")
+        try:
+            # 모든 팝업 닫기 버튼(보통 클래스명이나 특정 ID) 시도
+            close_btns = driver.find_elements(By.XPATH, "//button[contains(text(), '닫기')]")
+            for btn in close_btns:
+                btn.click()
+        except:
+            pass
+
+        # 2. 메뉴 순차 클릭 로직
+        status_placeholder.write("📂 메뉴 경로 이동 중...")
+        
+        # 재고 I 클릭
+        menu1 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth1_MENUTREE_000004"]')))
+        menu1.click()
+        time.sleep(1)
+
+        # 구매관리 클릭
+        menu2 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth2_MENUTREE_000031"]')))
+        menu2.click()
+        time.sleep(1)
+
+        # 구매입력 클릭
+        menu3 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth4_MENUTREE_000510"]')))
+        menu3.click()
         status_placeholder.write("✅ 2. 구매입력 메뉴 진입 성공")
+        
+        # --- 중요: 메뉴 클릭 후 새로운 프레임이 뜰 때까지 대기 ---
+        time.sleep(3)
 
         # 3. 품목코드(VIN) 입력
         status_placeholder.write("📝 품목코드(VIN) 입력 중...")
