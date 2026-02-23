@@ -146,7 +146,7 @@ st.markdown("""
     }
 
     /* 5. 연락처 및 주소 정보 (연한 녹색) - 연락처, 지역, 주소 */
-    input[aria-label="딜러연락처"], input[aria-label="지역"], input[aria-label="주소"] {
+    input[aria-label="딜러연락처(phone)"], input[aria-label="지역"], input[aria-label="주소(address)"] {
         background-color: #F0FDF4 !important;
         border: 1px solid #BBF7D0 !important;
     }
