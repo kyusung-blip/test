@@ -169,8 +169,8 @@ def register_purchase(data, session_id, username):
                 "U_MEMO5": str(data.get("sales", "")),         # sales
 
                 # [구매 상단 추가항목 - ADD_TXT]
-                "ADD_TXT_1": str(data.get("buyer", "")),    # buyer
-                "ADD_TXT_2": str(data.get("country", "")),  # country
+                "U_MEMO6": str(data.get("buyer", "")),    # buyer
+                "U_MEMO7": str(data.get("country", "")),  # country
                 "ADD_TXT_3": "",                            # 빈칸
                 "ADD_TXT_4": str(data.get("region", "")),   # region
                 "ADD_TXT_5": str(data.get("year", "")),     # year
