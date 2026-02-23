@@ -82,95 +82,68 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.save_screenshot("menu_click_error.png")
             return {"status": "error", "message": f"메뉴 이동 중 오류 발생: {str(e)[:50]}"}
 
-        # 4. 데이터 입력 (기존 로직 사용)
-        status_placeholder.write("📝 입력 구역 로딩 대기 중...")
-        
+        # 4. 데이터 입력 (그리드 직접 타격)
+        status_placeholder.write("📝 그리드 입력 시작...")
+
         try:
-            # [수정] 현재 'display: block' 상태인 tab-pane 내부에 있는 prod_cd를 찾습니다.
-            # 이 XPath는 숨겨진 다른 탭들을 무시하고 현재 눈에 보이는 탭만 타겟팅합니다.
-            active_vin_xpath = "//div[contains(@class, 'tab-pane') and not(contains(@style, 'display: none'))]//*[@data-column-id='prod_cd']"
+            # --- (1) 품목코드 입력 ---
+            status_placeholder.write("🔹 품목코드 입력 중...")
+            prod_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[3]/span'
+            prod_cell = wait.until(EC.element_to_be_clickable((By.XPATH, prod_xpath)))
+            driver.execute_script("arguments[0].click();", prod_cell)
+            time.sleep(1.5) # 알려주신 1.5초 대기
             
-            # 1. 요소가 나타날 때까지 대기 (최대 15초)
-            vin_cell = wait.until(EC.visibility_of_element_located((By.XPATH, active_vin_xpath)))
+            # 활성화된 입력창에 값 전송
+            driver.switch_to.active_element.send_keys(data.get('vin', ''))
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1) # 엔터 후 그리드 안정화
+
+            # --- (2) 수량 입력 ---
+            status_placeholder.write("🔹 수량 입력 중...")
+            qty_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[7]/span'
+            qty_cell = wait.until(EC.element_to_be_clickable((By.XPATH, qty_xpath)))
+            driver.execute_script("arguments[0].click();", qty_cell)
+            time.sleep(0.8)
             
-            # 2. 화면 스크롤 및 클릭 가능 확인
-            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", vin_cell)
+            driver.switch_to.active_element.send_keys("1")
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(0.5)
+
+            # --- (3) 단가 입력 ---
+            status_placeholder.write("🔹 단가 입력 중...")
+            price_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span'
+            price_cell = wait.until(EC.element_to_be_clickable((By.XPATH, price_xpath)))
+            driver.execute_script("arguments[0].click();", price_cell)
+            time.sleep(0.8)
             
-            # 3. JS를 사용하여 강제로 클릭 이벤트를 발생시킵니다 (가장 확실함)
-            driver.execute_script("arguments[0].click();", vin_cell)
-            status_placeholder.write("✅ 입력창 포커스 성공")
+            # 단가 계산 (기존 로직 유지)
+            price_val = re.sub(r'[^0-9]', '', str(data.get('price', '0')))
+            driver.switch_to.active_element.send_keys(price_val)
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
             
-            # 4. 클릭 후 입력 모드 전환을 위한 찰나의 대기
-            time.sleep(1.2)
-            
-            # 5. 현재 포커스된(active) 요소에 값 입력
-            active_el = driver.switch_to.active_element
-            active_el.send_keys(data.get('vin', ''))
-            active_el.send_keys(Keys.ENTER)
-            
-            status_placeholder.write(f"✅ 2. 품목코드 입력 완료: {data.get('vin')}")
+            status_placeholder.write("✅ 그리드 데이터 입력 완료")
 
         except Exception as e:
-            # 실패 시 현재 상태를 캡처해서 streamlit에 보여줍니다.
-            driver.save_screenshot("debug_view.png")
-            status_placeholder.image("debug_view.png", caption="요소 탐색 실패 시점의 화면")
-            return {"status": "error", "message": f"요소를 찾을 수 없습니다: {str(e)[:50]}"}
+            driver.save_screenshot("input_error.png")
+            return {"status": "error", "message": f"입력 단계 오류: {str(e)[:50]}"}
 
-        # 수량 입력 (qty)
-        qty_xpath = "//*[@data-column-id='qty']"
-        qty_cell = driver.find_element(By.XPATH, qty_xpath)
-        driver.execute_script("arguments[0].click();", qty_cell)
-        time.sleep(0.5)
-        driver.switch_to.active_element.send_keys("1")
-        driver.switch_to.active_element.send_keys(Keys.ENTER)
-        status_placeholder.write("✅ 3. 수량 입력 완료")
-
-        # 단가 입력 (price)
-        price_str = str(data.get('price', '0'))
-        price_val = re.sub(r'[^0-9]', '', price_str)
-        if price_val and int(price_val) < 100000:
-            price_val = str(int(price_val) * 10000)
-
-        price_xpath = "//*[@data-column-id='price']"
-        price_cell = driver.find_element(By.XPATH, price_xpath)
-        driver.execute_script("arguments[0].click();", price_cell)
-        time.sleep(0.5)
-        driver.switch_to.active_element.send_keys(price_val)
-        driver.switch_to.active_element.send_keys(Keys.ENTER)
-        status_placeholder.write(f"✅ 4. 단가 입력 완료: {price_val}")
-
-        # 5. 저장 (알려주신 XPath 직접 클릭)
-        status_placeholder.write("💾 전표 저장 중 (버튼 클릭)...")
-        
+        # 5. 저장 (알려주신 전용 ID 클릭)
+        status_placeholder.write("💾 전표 저장 중...")
         try:
-            # 1. 알려주신 저장 버튼 XPath가 나타날 때까지 대기
             save_btn_xpath = '//*[@id="group3slipSave"]'
             save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, save_btn_xpath)))
             
-            # 2. 확실하게 하기 위해 버튼으로 스크롤 후 클릭
-            driver.execute_script("arguments[0].scrollIntoView(true);", save_btn)
-            time.sleep(0.5)
-            
-            # 3. 자바스크립트로 강제 클릭 (가장 확실한 방법)
+            # 다른 팝업이 가리고 있을 수 있으므로 JS로 강제 클릭
             driver.execute_script("arguments[0].click();", save_btn)
-            status_placeholder.write("⏳ 저장 버튼 클릭 완료, 서버 응답 대기 중...")
             
-            # 4. 저장 후 서버에서 처리가 완료되도록 충분히 대기 (매우 중요)
-            # 이카운트는 저장 후 화면이 리로드되거나 '저장되었습니다' 팝업이 뜹니다.
+            # 저장 후 서버 응답을 위해 충분히 대기
             time.sleep(5) 
+            driver.save_screenshot("final_result.png")
+            status_placeholder.image("final_result.png", caption="최종 저장 결과")
             
-            # 5. 저장 후 상태 확인을 위해 스크린샷 저장
-            driver.save_screenshot("after_save_check.png")
-            status_placeholder.image("after_save_check.png", caption="저장 처리 후 화면")
-            
-            status_placeholder.write("✅ 5. 저장 프로세스 완료!")
-            return {"status": "success", "message": "이카운트 입력 및 저장이 완료되었습니다."}
-
+            return {"status": "success", "message": "성공적으로 저장되었습니다."}
         except Exception as e:
-            driver.save_screenshot("save_error.png")
-            status_placeholder.write(f"❌ 저장 실패: {str(e)[:50]}")
-            return {"status": "error", "message": f"저장 단계 오류: {str(e)[:50]}"}
+            return {"status": "error", "message": f"저장 실패: {str(e)[:50]}"}
     finally:
         if 'driver' in locals():
             driver.quit()
