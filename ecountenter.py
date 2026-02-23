@@ -210,6 +210,26 @@ def run_ecount_web_automation(data, status_placeholder):
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(2) # 거래처 검색 팝업 처리 대기
+                
+            # --- [psource] 추가 ---
+            val = data.get('psource')
+            if val:
+                status_placeholder.write(f"📍 [psource] 입력 시도: {val}")
+                # 지정하신 XPath 사용
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[23]/div[2]/div/div/input')))
+                
+                # 안정적인 입력을 위해 클릭 후 기존 내용 삭제
+                driver.execute_script("arguments[0].click();", el)
+                el.send_keys(Keys.CONTROL + "a")
+                el.send_keys(Keys.BACKSPACE)
+                
+                el.send_keys(str(val))
+                el.send_keys(Keys.ENTER)
+                time.sleep(0.5)
+                # 혹시 모를 검색 팝업 방지
+                driver.switch_to.active_element.send_keys(Keys.ESCAPE)
+            else:
+                status_placeholder.write("⚠️ [psource] 데이터가 없어 건너뜁니다.")
 
             # --- [하단 그리드: 품목/수량/단가] ---
             status_placeholder.write("📊 그리드 입력 단계 진입...")
