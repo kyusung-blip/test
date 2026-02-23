@@ -65,36 +65,40 @@ def run_ecount_web_automation(data, status_placeholder):
         direct_url = "https://loginad.ecount.com/ec5/view/erp?w_flag=1&ec_req_sid=AD-ETDLqM7TZHHlO#menuType=MENUTREE_000004&menuSeq=MENUTREE_000510&groupSeq=MENUTREE_000031&prgId=E040303&depth=4"
         driver.get(direct_url)
         
-        # 4. 데이터 입력 (Active Tab-Pane 대응)
-        status_placeholder.write("📝 페이지 렌더링 대기 중...")
+        # 4. 데이터 입력 (현재 활성화된 탭 정밀 탐색)
+        status_placeholder.write("📝 활성 입력창 탐색 중...")
         
         try:
-            # [수정] 현재 활성화된(display: block) 탭 안에 있는 품목코드 셀을 찾습니다.
-            # CSS Selector의 ':not([style*="display: none"])'를 활용하면 현재 보이는 요소만 골라낼 수 있습니다.
+            # [수정] 현재 'display: block' 상태인 tab-pane 내부에 있는 prod_cd를 찾습니다.
+            # 이 XPath는 숨겨진 다른 탭들을 무시하고 현재 눈에 보이는 탭만 타겟팅합니다.
             active_vin_xpath = "//div[contains(@class, 'tab-pane') and not(contains(@style, 'display: none'))]//*[@data-column-id='prod_cd']"
             
-            # 요소가 나타날 때까지 대기
+            # 1. 요소가 나타날 때까지 대기 (최대 15초)
             vin_cell = wait.until(EC.visibility_of_element_located((By.XPATH, active_vin_xpath)))
-            vin_cell = wait.until(EC.element_to_be_clickable((By.XPATH, active_vin_xpath)))
             
-            status_placeholder.write("✅ 입력 활성화 확인")
-
-            # 클릭 및 입력 로직
+            # 2. 화면 스크롤 및 클릭 가능 확인
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", vin_cell)
+            time.sleep(0.5)
+            
+            # 3. JS를 사용하여 강제로 클릭 이벤트를 발생시킵니다 (가장 확실함)
             driver.execute_script("arguments[0].click();", vin_cell)
+            status_placeholder.write("✅ 입력창 포커스 성공")
             
-            # 클릭 후 입력 모드(input 태그 생성)를 위한 아주 짧은 찰나의 대기
-            time.sleep(0.8) 
+            # 4. 클릭 후 입력 모드 전환을 위한 찰나의 대기
+            time.sleep(1.2)
             
-            # 데이터 입력
+            # 5. 현재 포커스된(active) 요소에 값 입력
             active_el = driver.switch_to.active_element
             active_el.send_keys(data.get('vin', ''))
             active_el.send_keys(Keys.ENTER)
+            
             status_placeholder.write(f"✅ 2. 품목코드 입력 완료: {data.get('vin')}")
 
         except Exception as e:
-            # 실패 시 로그 및 스크린샷 저장
-            driver.save_screenshot("tab_error.png")
-            return {"status": "error", "message": f"입력창을 찾을 수 없습니다. (탭 활성화 문제 가능성)"}
+            # 실패 시 현재 상태를 캡처해서 streamlit에 보여줍니다.
+            driver.save_screenshot("debug_view.png")
+            status_placeholder.image("debug_view.png", caption="요소 탐색 실패 시점의 화면")
+            return {"status": "error", "message": f"요소를 찾을 수 없습니다: {str(e)[:50]}"}
 
         # 수량 입력 (qty)
         qty_xpath = "//*[@data-column-id='qty']"
