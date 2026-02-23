@@ -30,11 +30,23 @@ def run_ecount_web_automation(data, status_placeholder):
         status_placeholder.write("🔐 이카운트 로그인 시도 중...")
         driver.get("https://login.ecount.com/Login/")
         
-        wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="com_code"]'))).send_keys("682186")
-        driver.find_element(By.XPATH, '//*[@id="id"]').send_keys("이규성")
-        pw_field = driver.find_element(By.XPATH, '//*[@id="passwd"]')
-        pw_field.send_keys("dlrbtjd1367!")
-        pw_field.send_keys(Keys.ENTER)
+        com_code_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="com_code"]')))
+        com_code_el.clear()
+        com_code_el.send_keys("682186")
+        
+        # ID 입력 (XPath)
+        id_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="id"]')))
+        id_el.clear()
+        id_el.send_keys("이규성")
+        
+        # PW 입력 (XPath)
+        pw_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="passwd"]')))
+        pw_el.clear()
+        pw_el.send_keys("dlrbtjd1367!")
+        
+        # 로그인 버튼 클릭 (XPath)
+        login_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="save"]')))
+        login_btn.click()
         
         # 2. 로고 이미지를 통한 로그인 완료 판정
         status_placeholder.write("⏳ 로그인 완료 확인 중 (로고 탐색)...")
