@@ -576,8 +576,7 @@ with col_info:
                 st.error(save_res["message"])
                 
     v_bizcl_num = v_biz_num.replace("-", "") if v_biz_num else ""
-    "price2": v_price2, "fee2": v_fee2, "contract2_x": v_contract_x2,
-
+    
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
     with row_bottom[0]:
