@@ -15,7 +15,6 @@ def run_ecount_web_automation(data, status_placeholder):
     options.add_argument("--headless")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
 
     try:
@@ -26,81 +25,81 @@ def run_ecount_web_automation(data, status_placeholder):
         )
         wait = WebDriverWait(driver, 20)
 
-        # 1. 로그인
+        # 1. 로그인 (세션 확보)
         status_placeholder.write("🔐 로그인 시도 중...")
         driver.get("https://login.ecount.com/Login/")
         wait.until(EC.presence_of_element_located((By.ID, "com_code"))).send_keys("682186")
         driver.find_element(By.ID, "id").send_keys("이규성")
         driver.find_element(By.ID, "passwd").send_keys("dlrbtjd1367!")
         driver.find_element(By.ID, "save").click()
-        time.sleep(3)
+        
+        # 로그인 완료 대기
+        time.sleep(4)
         status_placeholder.write("✅ 1. 로그인 완료")
 
-        # 2. 메뉴 순차 클릭 로직
-        status_placeholder.write("📂 메뉴 경로 이동 중...")
+        # 2. 구매입력 URL로 직접 이동
+        status_placeholder.write("🚀 구매입력 페이지로 직접 이동 중...")
+        direct_url = "https://loginad.ecount.com/ec5/view/erp?w_flag=1&ec_req_sid=AD-ETDLqM7TZHHlO#menuType=MENUTREE_000004&menuSeq=MENUTREE_000510&groupSeq=MENUTREE_000031&prgId=E040303&depth=4"
+        driver.get(direct_url)
         
-        # 재고 I 클릭
-        menu1 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth1_MENUTREE_000004"]')))
-        menu1.click()
-        time.sleep(1)
+        # 페이지 전체가 로드될 때까지 충분히 대기
+        time.sleep(6) 
 
-        # 구매관리 클릭
-        menu2 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth2_MENUTREE_000031"]')))
-        menu2.click()
-        time.sleep(1)
-
-        # 구매입력 클릭
-        menu3 = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="link_depth4_MENUTREE_000510"]')))
-        menu3.click()
-        status_placeholder.write("✅ 2. 구매입력 메뉴 진입 성공")
+        # 3. 프레임 전환 (핵심 단계)
+        status_placeholder.write("🔄 입력창(iframe) 활성화 중...")
+        driver.switch_to.default_content()
         
-        # --- 중요: 메뉴 클릭 후 새로운 프레임이 뜰 때까지 대기 ---
-        time.sleep(3)
+        # EC_FRAME이 나타날 때까지 대기 후 전환
+        try:
+            wait.until(EC.frame_to_be_available_and_switch_to_it((By.ID, "EC_FRAME")))
+            status_placeholder.write("✅ 2. 구매입력창 진입 성공")
+        except:
+            # 혹시라도 프레임 ID가 다를 경우를 대비해 스크린샷 캡처
+            driver.save_screenshot("frame_error.png")
+            status_placeholder.image("frame_error.png", caption="프레임 전환 실패 시 화면")
+            return {"status": "error", "message": "입력 프레임을 찾을 수 없습니다."}
 
-        # 3. 품목코드(VIN) 입력
+        # 4. 데이터 입력 (JS 클릭 후 활성 요소에 입력)
         status_placeholder.write("📝 품목코드(VIN) 입력 중...")
         vin_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[3]'
         vin_cell = wait.until(EC.element_to_be_clickable((By.XPATH, vin_xpath)))
         driver.execute_script("arguments[0].click();", vin_cell)
         time.sleep(1)
+        
         driver.switch_to.active_element.send_keys(data.get('vin', ''))
         driver.switch_to.active_element.send_keys(Keys.ENTER)
-        status_placeholder.write(f"✅ 3. 품목코드 입력 완료 ({data.get('vin')})")
-        time.sleep(1)
+        time.sleep(1.5)
+        status_placeholder.write(f"✅ 3. 품목코드 입력 완료: {data.get('vin')}")
 
-        # 4. 수량 입력
-        status_placeholder.write("🔢 수량 입력 중...")
-        qty_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[7]'
-        qty_cell = driver.find_element(By.XPATH, qty_xpath)
+        # 5. 수량(7) 및 단가(8) 입력
+        # 수량
+        qty_cell = driver.find_element(By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[7]')
         driver.execute_script("arguments[0].click();", qty_cell)
         time.sleep(0.5)
         driver.switch_to.active_element.send_keys("1")
         driver.switch_to.active_element.send_keys(Keys.ENTER)
-        status_placeholder.write("✅ 4. 수량 입력 완료 (1)")
+        status_placeholder.write("✅ 4. 수량 입력 완료")
 
-        # 5. 단가 입력
-        status_placeholder.write("💰 단가 입력 중...")
+        # 단가 (만원 단위 환산 로직 포함)
         price_str = str(data.get('price', '0'))
         price_val = re.sub(r'[^0-9]', '', price_str)
         if price_val and int(price_val) < 100000:
             price_val = str(int(price_val) * 10000)
 
-        price_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[8]'
-        price_cell = driver.find_element(By.XPATH, price_xpath)
+        price_cell = driver.find_element(By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[8]')
         driver.execute_script("arguments[0].click();", price_cell)
         time.sleep(0.5)
         driver.switch_to.active_element.send_keys(price_val)
         driver.switch_to.active_element.send_keys(Keys.ENTER)
-        status_placeholder.write(f"✅ 5. 단가 입력 완료 ({price_val})")
+        status_placeholder.write(f"✅ 5. 단가 입력 완료: {price_val}")
 
-        # 6. 저장
-        status_placeholder.write("💾 저장 중 (F8)...")
-        time.sleep(1)
+        # 6. 저장 (F8)
+        status_placeholder.write("💾 전표 저장 중...")
         driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.F8)
         time.sleep(3)
-        status_placeholder.write("✅ 6. 저장 작업 완료!")
+        status_placeholder.write("✅ 6. 저장 완료!")
         
-        return {"status": "success", "message": "모든 작업이 완료되었습니다."}
+        return {"status": "success", "message": "이카운트 입력이 성공적으로 마무리되었습니다."}
 
     except Exception as e:
         return {"status": "error", "message": str(e)}
