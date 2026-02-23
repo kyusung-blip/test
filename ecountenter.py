@@ -49,20 +49,33 @@ def run_ecount_web_automation(data, status_placeholder):
         user_pw.clear()
         user_pw.send_keys("dlrbtjd1367!")
         
-        # 로그인 버튼 클릭
+        # 3. 로그인 버튼 클릭
+        status_placeholder.write("🚀 로그인 버튼 클릭 및 세션 대기 중...")
         login_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="save"]')))
         login_btn.click()
         
-        status_placeholder.write("⏳ 세션 승인 대기 중...")
-        time.sleep(5)
-
-        # 로그인 결과 검증
-        if "login" in driver.current_url.lower():
-            driver.save_screenshot("login_error.png")
-            status_placeholder.image("login_error.png", caption="로그인 실패 시점")
-            return {"status": "error", "message": "로그인 실패 (ID/PW 오류 또는 보안문자 발생)"}
+        # --- 수정된 판정 로직 ---
+        # 5초간 기다리며 URL이 바뀌거나 메인 화면 요소가 보이는지 확인
+        time.sleep(5) 
         
-        status_placeholder.write("✅ 1. 로그인 성공")
+        # 현재 URL이 로그인 페이지가 아니거나, 'MyPage' 같은 메인 요소가 보이면 성공으로 간주
+        is_login_success = False
+        if "login" not in driver.current_url.lower():
+            is_login_success = True
+        else:
+            # 혹시 모르니 메인 상단 메뉴(MyPage 등)가 있는지 확인
+            try:
+                wait.until(EC.presence_of_element_located((By.XPATH, "//*[contains(text(), 'MyPage')]")))
+                is_login_success = True
+            except:
+                is_login_success = False
+
+        if not is_login_success:
+            driver.save_screenshot("login_failed_debug.png")
+            status_placeholder.image("login_failed_debug.png", caption="로그인 판정 실패 시점")
+            return {"status": "error", "message": "❌ 로그인 판정 실패 (정보 확인 필요)"}
+
+        status_placeholder.write("✅ 1. 로그인 성공 확인!")
 
         # --- 2단계: 구매입력 직접 이동 ---
         status_placeholder.write("🚀 구매입력 페이지로 직접 이동...")
