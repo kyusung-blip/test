@@ -970,25 +970,24 @@ with tab3:
                 
     st.markdown("---")
     st.subheader("🛠️ 웹 자동화 테스트")
-    if st.button("🚀 웹 방식 구매입력 (TEST)", key="btn_web_test_run", type="primary", use_container_width=True):
-        # 필수 값 체크
+    if st.button("🚀 웹 방식 구매입력 (TEST)", key="btn_web_test_run"):
         if not v_vin or not v_price:
-            st.error("차대번호(VIN)와 차량대(Price) 정보가 필요합니다.")
+            st.error("차대번호와 단가 정보가 없습니다.")
         else:
-            with st.spinner("브라우저를 실행하여 이카운트에 로그인 중입니다..."):
-                import ecountenter # 파일 임포트
+            # 1. st.status를 사용하여 상태창을 만듭니다.
+            with st.status("이카운트 자동 입력을 시작합니다...", expanded=True) as status_box:
+                import ecountenter
+                test_data = {"vin": v_vin, "price": v_price}
                 
-                # 데이터 전송 (vin과 price 포함)
-                test_data = {
-                    "vin": v_vin,
-                    "price": v_price
-                }
-                res = ecountenter.run_ecount_web_automation(test_data)
+                # 2. 여기서 status_box를 두 번째 인자로 반드시 전달해야 합니다!
+                res = ecountenter.run_ecount_web_automation(test_data, status_box)
                 
                 if res["status"] == "success":
-                    st.success(res["message"])
+                    status_box.update(label="🎉 모든 입력 및 저장 완료!", state="complete", expanded=False)
+                    st.success("이카운트 저장에 성공했습니다.")
                 else:
-                    st.error(res["message"])
+                    status_box.update(label="❌ 작업 중 오류 발생", state="error")
+                    st.error(f"오류 내용: {res['message']}")
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
