@@ -471,9 +471,9 @@ with col_info:
     
     # R4: 연락처, 주소, 지역 (한 줄로 배치)
     r4_1, r4_2, r4_3 = st.columns([1.5, 3, 1.5])
-    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
+    v_dealer_phone = r4_1.text_input("딜러연락처(phone)", value=parsed.get('dealer_phone', ""))
     v_address = r4_2.text_input(
-        "주소", 
+        "주소(address)", 
         value=st.session_state.get("v_address_key", ""), 
         key="v_address_key",
         on_change=update_region
@@ -664,11 +664,11 @@ with col_list:
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "sms")
             st.rerun()
 
-        if m_c1.button("아웃소싱", key="btn_out"):
+        if m_c1.button("아웃소싱(outsource)", key="btn_out"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "outsource")
             st.rerun()
 
-        if m_c2.button("주소공유", key="btn_share"):
+        if m_c2.button("주소공유(address)", key="btn_share"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "share_address")
             st.rerun()
         
