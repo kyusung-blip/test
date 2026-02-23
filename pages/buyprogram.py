@@ -968,26 +968,31 @@ with tab3:
                 st.error("❌ 세션 획득 실패")
                 st.json(login_error)
                 
-    st.markdown("---")
-    st.subheader("🛠️ 웹 자동화 테스트")
-    if st.button("🚀 웹 방식 구매입력 (TEST)", key="btn_web_test_run"):
+    st.divider()
+    st.markdown("### 🤖 이카운트 웹 자동화 (Selenium)")
+    
+    if st.button("🚀 웹 방식 구매입력 실행", key="btn_web_automation", type="primary", use_container_width=True):
         if not v_vin or not v_price:
-            st.error("차대번호와 단가 정보가 없습니다.")
+            st.warning("⚠️ 차대번호(VIN)와 차량대(Price) 정보가 입력되어야 합니다.")
         else:
-            # 1. st.status를 사용하여 상태창을 만듭니다.
-            with st.status("이카운트 자동 입력을 시작합니다...", expanded=True) as status_box:
+            # 진행 상태창 생성
+            with st.status("이카운트 자동 입력을 수행하고 있습니다...", expanded=True) as status_box:
                 import ecountenter
-                test_data = {"vin": v_vin, "price": v_price}
+                # 자동화에 필요한 데이터 구성
+                automation_data = {
+                    "vin": v_vin,
+                    "price": v_price
+                }
                 
-                # 2. 여기서 status_box를 두 번째 인자로 반드시 전달해야 합니다!
-                res = ecountenter.run_ecount_web_automation(test_data, status_box)
+                # 로직 실행
+                result = ecountenter.run_ecount_web_automation(automation_data, status_box)
                 
-                if res["status"] == "success":
-                    status_box.update(label="🎉 모든 입력 및 저장 완료!", state="complete", expanded=False)
-                    st.success("이카운트 저장에 성공했습니다.")
+                if result["status"] == "success":
+                    status_box.update(label="🎉 구매입력 및 저장 성공!", state="complete", expanded=False)
+                    st.balloons()
                 else:
-                    status_box.update(label="❌ 작업 중 오류 발생", state="error")
-                    st.error(f"오류 내용: {res['message']}")
+                    status_box.update(label="❌ 자동화 작업 실패", state="error")
+                    st.error(f"실패 원인: {result['message']}")
 
     # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
     st.divider()
