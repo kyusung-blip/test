@@ -274,7 +274,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 
                 # 품목코드 입력 (Row 2)
                 prod_val = data.get('vin') # 품목코드에 vin 사용
-                status_placeholder.write(f"📍 [그리드 Row 1] 차량 품목 입력: {prod_val}")
+                status_placeholder.write(f"📍 [그리드 Row 2] 차량 품목 입력: {prod_val}")
                 prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[2]/td[3]/span')))
                 driver.execute_script("arguments[0].click();", prod_cell)
                 time.sleep(1.5)
@@ -320,7 +320,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 
                 # 품목코드 입력 (Row 2)
                 prod_val = data.get('vin') # 품목코드에 vin 사용
-                status_placeholder.write(f"📍 [그리드 Row 1] 차량 품목 입력: {prod_val}")
+                status_placeholder.write(f"📍 [그리드 Row 3] 차량 품목 입력: {prod_val}")
                 prod_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[3]/td[3]/span')))
                 driver.execute_script("arguments[0].click();", prod_cell)
                 time.sleep(1.5)
@@ -341,7 +341,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 time.sleep(1)
 
                 # 공급가액 입력 (Row 3) - fee2 값
-                con_amt_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[3]/td[9]/span')))
+                con_amt_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[3]/td[8]/span[2]')))
                 driver.execute_script("arguments[0].click();", con_amt_cell)
                 time.sleep(0.5)
                 driver.switch_to.active_element.send_keys(str(fee2_val))
