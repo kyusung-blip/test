@@ -82,40 +82,46 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.save_screenshot("menu_click_error.png")
             return {"status": "error", "message": f"메뉴 이동 중 오류 발생: {str(e)[:50]}"}
 
-                # 4. 데이터 입력 시작
+         # 4. 데이터 입력 (들여쓰기 수정됨)
         try:
-            # [핵심] 현재 눈에 보이는(display: block) 탭 내부의 그리드만 찾도록 XPath 수정
             active_grid_path = "//div[contains(@class, 'tab-pane') and not(contains(@style, 'display: none'))]//*[@id='grid-main']"
             
-            # 1. 품목코드 입력
+            # 품목코드
             prod_xpath = f"{active_grid_path}/tbody/tr[1]/td[3]/span"
             prod_cell = wait.until(EC.element_to_be_clickable((By.XPATH, prod_xpath)))
             driver.execute_script("arguments[0].click();", prod_cell)
-            time.sleep(2) # 입력 모드 전환 및 혹시 모를 팝업 대기
-        
-            # 입력창이 활성화되면 값 입력
+            time.sleep(2)
+            
             active_el = driver.switch_to.active_element
             active_el.send_keys(data.get('vin', ''))
             time.sleep(1)
             active_el.send_keys(Keys.ENTER)
-            time.sleep(2) # 검색 결과 반영 대기
-        
-            # [팁] 만약 품목 입력 후 팝업이 남아있다면 ESC를 눌러 닫아줘야 다음 단계가 진행됩니다.
+            time.sleep(2)
             active_el.send_keys(Keys.ESCAPE) 
-            time.sleep(0.5)
-        
-            # 2. 수량 입력
+            
+            # 수량
             qty_xpath = f"{active_grid_path}/tbody/tr[1]/td[7]/span"
             qty_cell = wait.until(EC.element_to_be_clickable((By.XPATH, qty_xpath)))
             driver.execute_script("arguments[0].click();", qty_cell)
             time.sleep(1)
             driver.switch_to.active_element.send_keys("1")
             driver.switch_to.active_element.send_keys(Keys.ENTER)
-        
+            
+            # [추가] 저장 로직도 여기에 포함되어야 성공 반환이 가능합니다.
+            status_placeholder.write("💾 저장 중...")
+            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="group3slipSave"]')))
+            driver.execute_script("arguments[0].click();", save_btn)
+            time.sleep(3)
+            
+            return {"status": "success", "message": "모든 데이터 입력 및 저장 완료!"}
+
         except Exception as e:
-            # 에러 발생 시 Message 외에 구체적인 클래스명 출력
-            print(f"상세 에러 타입: {type(e).__name__}") 
-            driver.save_screenshot("debug_last_frame.png")
+            driver.save_screenshot("input_error.png")
+            return {"status": "error", "message": f"입력 단계 오류: {type(e).__name__}"}
+
+    except Exception as e:
+        return {"status": "error", "message": f"시스템 오류: {str(e)[:50]}"}
+    
     finally:
-        if 'driver' in locals():
+        if driver:
             driver.quit()
