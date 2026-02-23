@@ -140,21 +140,37 @@ def run_ecount_web_automation(data, status_placeholder):
         driver.switch_to.active_element.send_keys(Keys.ENTER)
         status_placeholder.write(f"✅ 4. 단가 입력 완료: {price_val}")
 
-        # 5. 저장 (F8)
-        status_placeholder.write("💾 전표 저장 중...")
-        driver.find_element(By.TAG_NAME, 'body').send_keys(Keys.F8)
-        time.sleep(5)  # 서버 처리 시간을 충분히 줍니다.
-    
-        # 성공 여부를 스크린샷으로 기록 (디버깅용)
-        driver.save_screenshot("after_save_check.png")
-        status_placeholder.image("after_save_check.png", caption="저장 직후 화면 상태")
+        # 5. 저장 (알려주신 XPath 직접 클릭)
+        status_placeholder.write("💾 전표 저장 중 (버튼 클릭)...")
         
-        status_placeholder.write("✅ 5. 저장 프로세스 완료!")
-        
-        return {"status": "success", "message": "이카운트 입력이 완료되었습니다."}
+        try:
+            # 1. 알려주신 저장 버튼 XPath가 나타날 때까지 대기
+            save_btn_xpath = '//*[@id="group3slipSave"]'
+            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, save_btn_xpath)))
+            
+            # 2. 확실하게 하기 위해 버튼으로 스크롤 후 클릭
+            driver.execute_script("arguments[0].scrollIntoView(true);", save_btn)
+            time.sleep(0.5)
+            
+            # 3. 자바스크립트로 강제 클릭 (가장 확실한 방법)
+            driver.execute_script("arguments[0].click();", save_btn)
+            status_placeholder.write("⏳ 저장 버튼 클릭 완료, 서버 응답 대기 중...")
+            
+            # 4. 저장 후 서버에서 처리가 완료되도록 충분히 대기 (매우 중요)
+            # 이카운트는 저장 후 화면이 리로드되거나 '저장되었습니다' 팝업이 뜹니다.
+            time.sleep(5) 
+            
+            # 5. 저장 후 상태 확인을 위해 스크린샷 저장
+            driver.save_screenshot("after_save_check.png")
+            status_placeholder.image("after_save_check.png", caption="저장 처리 후 화면")
+            
+            status_placeholder.write("✅ 5. 저장 프로세스 완료!")
+            return {"status": "success", "message": "이카운트 입력 및 저장이 완료되었습니다."}
 
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+        except Exception as e:
+            driver.save_screenshot("save_error.png")
+            status_placeholder.write(f"❌ 저장 실패: {str(e)[:50]}")
+            return {"status": "error", "message": f"저장 단계 오류: {str(e)[:50]}"}
     finally:
         if 'driver' in locals():
             driver.quit()
