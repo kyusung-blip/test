@@ -203,7 +203,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 time.sleep(0.5)
 
             # --- [거래처] ---
-            val = data.get('biz_num')
+            val = data.get('bizcl_num')
             if val:
                 status_placeholder.write(f"📍 [거래처] 입력 시도: {val}")
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[19]/div[2]/div/div/input[1]')))
