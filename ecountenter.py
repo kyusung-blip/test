@@ -82,68 +82,40 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.save_screenshot("menu_click_error.png")
             return {"status": "error", "message": f"메뉴 이동 중 오류 발생: {str(e)[:50]}"}
 
-        # 4. 데이터 입력 (그리드 직접 타격)
-        status_placeholder.write("📝 그리드 입력 시작...")
-
+                # 4. 데이터 입력 시작
         try:
-            # --- (1) 품목코드 입력 ---
-            status_placeholder.write("🔹 품목코드 입력 중...")
-            prod_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[3]/span'
+            # [핵심] 현재 눈에 보이는(display: block) 탭 내부의 그리드만 찾도록 XPath 수정
+            active_grid_path = "//div[contains(@class, 'tab-pane') and not(contains(@style, 'display: none'))]//*[@id='grid-main']"
+            
+            # 1. 품목코드 입력
+            prod_xpath = f"{active_grid_path}/tbody/tr[1]/td[3]/span"
             prod_cell = wait.until(EC.element_to_be_clickable((By.XPATH, prod_xpath)))
             driver.execute_script("arguments[0].click();", prod_cell)
-            time.sleep(1.5) # 알려주신 1.5초 대기
-            
-            # 활성화된 입력창에 값 전송
-            driver.switch_to.active_element.send_keys(data.get('vin', ''))
-            driver.switch_to.active_element.send_keys(Keys.ENTER)
-            time.sleep(1) # 엔터 후 그리드 안정화
-
-            # --- (2) 수량 입력 ---
-            status_placeholder.write("🔹 수량 입력 중...")
-            qty_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[7]/span'
+            time.sleep(2) # 입력 모드 전환 및 혹시 모를 팝업 대기
+        
+            # 입력창이 활성화되면 값 입력
+            active_el = driver.switch_to.active_element
+            active_el.send_keys(data.get('vin', ''))
+            time.sleep(1)
+            active_el.send_keys(Keys.ENTER)
+            time.sleep(2) # 검색 결과 반영 대기
+        
+            # [팁] 만약 품목 입력 후 팝업이 남아있다면 ESC를 눌러 닫아줘야 다음 단계가 진행됩니다.
+            active_el.send_keys(Keys.ESCAPE) 
+            time.sleep(0.5)
+        
+            # 2. 수량 입력
+            qty_xpath = f"{active_grid_path}/tbody/tr[1]/td[7]/span"
             qty_cell = wait.until(EC.element_to_be_clickable((By.XPATH, qty_xpath)))
             driver.execute_script("arguments[0].click();", qty_cell)
-            time.sleep(0.8)
-            
+            time.sleep(1)
             driver.switch_to.active_element.send_keys("1")
             driver.switch_to.active_element.send_keys(Keys.ENTER)
-            time.sleep(0.5)
-
-            # --- (3) 단가 입력 ---
-            status_placeholder.write("🔹 단가 입력 중...")
-            price_xpath = '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span'
-            price_cell = wait.until(EC.element_to_be_clickable((By.XPATH, price_xpath)))
-            driver.execute_script("arguments[0].click();", price_cell)
-            time.sleep(0.8)
-            
-            # 단가 계산 (기존 로직 유지)
-            price_val = re.sub(r'[^0-9]', '', str(data.get('price', '0')))
-            driver.switch_to.active_element.send_keys(price_val)
-            driver.switch_to.active_element.send_keys(Keys.ENTER)
-            
-            status_placeholder.write("✅ 그리드 데이터 입력 완료")
-
+        
         except Exception as e:
-            driver.save_screenshot("input_error.png")
-            return {"status": "error", "message": f"입력 단계 오류: {str(e)[:50]}"}
-
-        # 5. 저장 (알려주신 전용 ID 클릭)
-        status_placeholder.write("💾 전표 저장 중...")
-        try:
-            save_btn_xpath = '//*[@id="group3slipSave"]'
-            save_btn = wait.until(EC.element_to_be_clickable((By.XPATH, save_btn_xpath)))
-            
-            # 다른 팝업이 가리고 있을 수 있으므로 JS로 강제 클릭
-            driver.execute_script("arguments[0].click();", save_btn)
-            
-            # 저장 후 서버 응답을 위해 충분히 대기
-            time.sleep(5) 
-            driver.save_screenshot("final_result.png")
-            status_placeholder.image("final_result.png", caption="최종 저장 결과")
-            
-            return {"status": "success", "message": "성공적으로 저장되었습니다."}
-        except Exception as e:
-            return {"status": "error", "message": f"저장 실패: {str(e)[:50]}"}
+            # 에러 발생 시 Message 외에 구체적인 클래스명 출력
+            print(f"상세 에러 타입: {type(e).__name__}") 
+            driver.save_screenshot("debug_last_frame.png")
     finally:
         if 'driver' in locals():
             driver.quit()
