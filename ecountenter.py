@@ -266,11 +266,11 @@ def run_ecount_web_automation(data, status_placeholder):
             time.sleep(1)
 
             # ---------------------------------------------------------
-            # 2. 두 번째 행: 매도비 (fee2) 처리
+            # 2. 두 번째 행: 계산서X 처리
             # ---------------------------------------------------------
             contract2_x_val = int(data.get('contract2_x', 0))
             if contract2_x_val > 0:
-                status_placeholder.write(f"📍 [그리드 Row 2] 매도비 입력 중: {contract2_x_val}")
+                status_placeholder.write(f"📍 [그리드 Row 2] 계산서X 입력 중: {contract2_x_val}")
                 
                 # 품목코드 입력 (Row 2)
                 prod_val = data.get('vin') # 품목코드에 vin 사용
@@ -312,11 +312,11 @@ def run_ecount_web_automation(data, status_placeholder):
                 status_placeholder.write("⏭️ [계산서X] 값이 0이거나 없어 건너뜁니다.")
 
             # ---------------------------------------------------------
-            # 3. 세 번째 행: 계산서X (contract2_x) 처리
+            # 3. 세 번째 행: 매도비 처리
             # ---------------------------------------------------------
             fee2_val = int(data.get('fee2', 0))
             if fee2_val > 0:
-                status_placeholder.write(f"📍 [그리드 Row 3] 계산서X 입력 중: {fee2_val}")
+                status_placeholder.write(f"📍 [그리드 Row 3] 매도비 입력 중: {fee2_val}")
                 
                 # 품목코드 입력 (Row 2)
                 prod_val = data.get('vin') # 품목코드에 vin 사용
