@@ -13,8 +13,10 @@ import importlib
 import inventoryenter
 import Inspectioncheck
 import socket
+import ecount
 import google_sheet_manager as gsm
 from st_copy_to_clipboard import st_copy_to_clipboard
+import cyberts_crawler
 
 # --- 0. 모든 위젯 키 정의 (항상 최상단에 위치) ---
 ALL_WIDGET_KEYS = [
@@ -22,10 +24,13 @@ ALL_WIDGET_KEYS = [
     "v_biz_name_input", "v_biz_num_input", "acc_o_input", 
     "acc_x_input", "acc_fee_input", "sender_input", 
     "v_declaration_key", "v_inspection_key", "auto_alt_car_name",
-    "v_psource"
+    "v_psource", "v_spec_num_key"
 ]
 
 # --- 1. 페이지 상태 및 리셋 로직 ---
+if "widget_version" not in st.session_state:
+    st.session_state["widget_version"] = 0
+    
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
     st.session_state["out_tab1_final"] = "" # Tab1 결과값 초기화
@@ -132,15 +137,16 @@ st.markdown("""
         border: 1px solid #D1D5DB !important;
     }
 
-    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라 */
+    /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라, 제원관리번호 */
     input[aria-label="사이트"], input[aria-label="세일즈팀"], 
-    input[aria-label="바이어"], input[aria-label="나라"] {
+    input[aria-label="바이어"], input[aria-label="나라"],
+    input[aria-label="제원관리번호"] {
         background-color: #F5F3FF !important;
         border: 1px solid #DDD6FE !important;
     }
 
     /* 5. 연락처 및 주소 정보 (연한 녹색) - 연락처, 지역, 주소 */
-    input[aria-label="딜러연락처"], input[aria-label="지역"], input[aria-label="주소"] {
+    input[aria-label="딜러연락처(phone)"], input[aria-label="지역"], input[aria-label="주소(address)"] {
         background-color: #F0FDF4 !important;
         border: 1px solid #BBF7D0 !important;
     }
@@ -208,32 +214,42 @@ st.markdown("""
 if 'output_text' not in st.session_state:
     st.session_state.output_text = ""
 
-label_col, delete_col = st.columns([7, 1])
+label_col, reset_col = st.columns([7, 1])
 
 with label_col:
     st.subheader("📥 데이터 붙여넣기")
 
-with delete_col:
-    # 입력칸만 비우는 전용 버튼
-    if st.button("🗑️ 입력 삭제"):
-        if "raw_input_main" in st.session_state:
-            st.session_state["raw_input_main"] = ""  # 값을 직접 빈 문자열로 강제 주입
-        st.session_state["last_raw_input"] = ""      # 비교용 데이터도 초기화
-        st.session_state["parsed_data"] = {}         # 파싱된 바구니도 비움
+with reset_col:
+    # 기존 "입력 삭제"와 "전체 리셋" 기능을 통합한 버튼
+    if st.button("♻️ 전체 리셋", type="secondary", use_container_width=True):
+        # 1. 모든 세션 상태 변수 삭제
+        for key in list(st.session_state.keys()):
+            del st.session_state[key]
+        
+        # 2. 필수 기본값 재설정 (오류 방지)
+        st.session_state["current_page"] = "buyprogram"
+        st.session_state["inspection_status"] = "X"
+        st.session_state["v_inspection_key"] = "X"
+        st.session_state["parsed_data"] = {}
+        st.session_state["dealer_data"] = {}
+        st.session_state["country_data"] = ""
+        st.session_state["detected_region"] = ""
+        
+        # 3. 입력창 및 결과값 초기화
+        st.session_state["raw_input_main"] = ""
+        st.session_state["last_raw_input"] = ""
+        st.session_state["out_tab1_final"] = ""
+        st.session_state["out_tab2_final"] = ""
+        st.session_state["out_tab3"] = ""
+        
+        # 4. 모든 위젯 키 강제 초기화
+        for k in ALL_WIDGET_KEYS:
+            st.session_state[k] = ""
+            
+        # 5. 페이지 새로고침
         st.rerun()
 raw_input = st.text_area("엑셀 데이터를 이곳에 붙여넣으세요", height=100, key="raw_input_main")
 parsed = st.session_state.get("parsed_data", {})
-
-# 매입사원 선택
-v_username = st.selectbox(
-    "매입사원", 
-    ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
-    index=0
-)
-    
-# [핵심 수정] parsed 데이터를 세션에서 관리합니다.
-if "parsed_data" not in st.session_state:
-    st.session_state["parsed_data"] = {}
 
 # --- 1. 파싱 및 외부 데이터 조회 로직 (위젯 선언보다 상단에 위치) ---
 if raw_input:
@@ -242,7 +258,9 @@ if raw_input:
         with st.spinner("데이터를 분석하고 외부 정보를 조회 중입니다..."):
             # A. 기초 데이터 파싱 (logic.py)
             parsed_result = lg.parse_excel_data(raw_input)
-            
+            # [수정] 위젯이 그려지기 전에 세션 값을 먼저 세팅합니다.
+            st.session_state["v_spec_num_key"] = parsed_result.get('spec_num', "")
+                       
             # B. 주요 변수 추출
             plate = parsed_result.get('plate', "").strip()
             contact = parsed_result.get('dealer_phone', "").strip()
@@ -252,6 +270,7 @@ if raw_input:
             
             # 1️⃣ [P.Source 세션 저장]
             st.session_state["v_psource"] = parsed_result.get('psource', "")
+            st.session_state["v_spec_num_key"] = parsed_result.get('spec_num', "")
 
             # 2️⃣ [인스펙션 조회] (Inspectioncheck.py)
             if plate:
@@ -310,50 +329,49 @@ if raw_input:
             # 7️⃣ [기타 금액 데이터]
             st.session_state["parsed_data"] = parsed_result
             st.session_state["last_raw_input"] = raw_input
-            
+            st.session_state["last_raw_input"] = raw_input
             # 처리가 끝났으므로 페이지 재실행 (상단부터 다시 그리면서 값 채움)
             st.rerun()
+
+# --- 매입사원 선택 및 차량 제원 정보 통합 행 ---
+with st.container(border=True):
+    # 컬럼 비율 조정 (중앙 제원 칸이 5개이므로 여유 있게 배분)
+    row_top_cols = st.columns([1.5, 6, 1.5])
+
+    with row_top_cols[0]:
+        v_username = st.selectbox(
+            "매입사원", 
+            ["매입담당자", "임진수", "이민지", "이규성", "윤성준", "김태윤"], 
+            index=0
+        )
+
+# --- 상단 제원 입력칸 섹션 ---
+    with row_top_cols[1]:
+        s1, s2, s3, s4, s5 = st.columns(5)
+        
+        # 버전 번호를 키에 포함 (예: "v_l_0", "v_l_1" ...)
+        ver = st.session_state["widget_version"]
+    
+        # value는 세션 변수에서 가져오고, key는 버전을 포함시킴
+        s1.text_input("길이", value=st.session_state.get("v_l", ""), key=f"v_l_{ver}")
+        s2.text_input("너비", value=st.session_state.get("v_w", ""), key=f"v_w_{ver}")
+        s3.text_input("높이", value=st.session_state.get("v_h", ""), key=f"v_h_{ver}")
+        s5.text_input("중량", value=st.session_state.get("v_wt", ""), key=f"v_wt_{ver}")
+        
+        # CBM (기존 로직 유지)
+        s4.text_input("CBM", value=st.session_state.get("v_c", "0.00"), key=f"v_c_{ver}")
+    with row_top_cols[2]:
+        v_spec_num = st.text_input("제원관리번호", key="v_spec_num_key")
+    
+# [핵심 수정] parsed 데이터를 세션에서 관리합니다.
+if "parsed_data" not in st.session_state:
+    st.session_state["parsed_data"] = {}
+
+
 
 # 현재 화면에서 사용할 parsed 데이터 로드
 parsed = st.session_state.get("parsed_data", {})
     
-# 리셋 버튼을 위해 컬럼 나눔
-top_col1, top_col2 = st.columns([8, 1])
-
-top_col1, top_col2 = st.columns([8, 1])
-with top_col2:
-    if st.button("♻️ 전체 리셋"):
-        # 1. 모든 세션 상태 변수를 완전히 삭제 (초기화)
-        for key in list(st.session_state.keys()):
-            del st.session_state[key]
-        
-        # 2. 필수 기본값 재설정 (페이지 이탈 방지)
-        st.session_state["current_page"] = "buyprogram"
-        st.session_state["inspection_status"] = "X"
-        st.session_state["v_inspection_key"] = "X"
-        st.session_state["parsed_data"] = {}
-        st.session_state["dealer_data"] = {}
-        st.session_state["country_data"] = ""
-        st.session_state["detected_region"] = ""
-        
-        # 3. Tab 결과값 초기화
-        st.session_state["out_tab1_final"] = ""
-        st.session_state["out_tab2_final"] = ""
-        st.session_state["out_tab3"] = ""
-        
-        # 4. 모든 위젯 키 초기화 (명시적으로)
-        for widget_key in ALL_WIDGET_KEYS:
-            st.session_state[widget_key] = ""
-        
-        # 5. 추가 위젯 키들 초기화
-        st.session_state["last_raw_input"] = ""
-        st.session_state["output_text"] = ""
-        st.session_state["remit_name_widget"] = ""  # 차명(송금용) 위젯 초기화 추가
-        st.session_state["psource_widget"] = ""     # P.Source 위젯 초기화 추가
-        
-        # 6. 페이지 즉시 리런 (완전한 초기 화면으로 이동)
-        st.rerun()
-
 if "inspection_status" not in st.session_state:
     st.session_state["inspection_status"] = "X"
 st.divider()
@@ -364,25 +382,28 @@ col_info, col_list = st.columns([0.7, 0.3])
 # --- [좌측: 매입정보 (70%)] ---
 with col_info:
     d_data = st.session_state.get("dealer_data", {})
-    title_col, insp_col = st.columns([4, 1])
+    title_col, insp_col = st.columns([3, 1])
+
     with title_col:
         st.markdown("### 🚗 매입 정보")
-    with insp_col:
-        # 상태값 인덱스 계산 로직을 여기로 옮겨오면 더 좋습니다.
-        insp_list = ["X", "S", "C"]
-        current_insp = st.session_state.get("inspection_status", "X")
-        try:
-            insp_idx = insp_list.index(current_insp)
-        except:
-            insp_idx = 0
 
-        v_inspection = st.selectbox(
+    with insp_col:
+        insp_list = ["X", "S", "C"]
+        # 세션 상태에서 현재 값을 가져오되, 없으면 기본값 "X"
+        current_insp = st.session_state.get("inspection_status", "X")
+        
+        # index 추출 로직 (ValueError 방지)
+        insp_idx = insp_list.index(current_insp) if current_insp in insp_list else 0
+        
+        st.selectbox(
             "Inspection", 
-            insp_list, 
+            options=insp_list, 
             index=insp_idx, 
-            key="v_inspection_key", # 유일한 키 유지
+            key="v_inspection_key", 
             label_visibility="collapsed"
         )
+
+    st.divider()
 
    
     # R1: 차번호, 연식, 차명, 차명(송금용)
@@ -391,13 +412,19 @@ with col_info:
     v_year = r1_2.text_input("연식", value=parsed.get('year', ""))
     v_car_name = r1_3.text_input("차명", value=parsed.get('car_name', ""))
     default_alt_name = st.session_state.get("auto_alt_car_name", v_car_name)
-    # 차명(송금용) - 입력값을 대문자로 변환하여 저장
+    
+    # 차명(송금용) - 실시간 대문자 변환을 위한 콜백 함수
+    def uppercase_remit_name():
+        val = st.session_state.get("remit_name_widget", "")
+        st.session_state["remit_name_widget"] = val.upper()
+    
     remit_input = r1_4.text_input(
         "차명(송금용)", 
         value=st.session_state.get("auto_alt_car_name", ""),
-        key="remit_name_widget"
+        key="remit_name_widget",
+        on_change=uppercase_remit_name
     )
-    v_car_name_remit = remit_input.upper() if remit_input else ""
+    v_car_name_remit = st.session_state.get("remit_name_widget", "")
 
     # R2: 브랜드, VIN, km, color
     r2_1, r2_2, r2_3, r2_4 = st.columns(4)
@@ -444,9 +471,9 @@ with col_info:
     
     # R4: 연락처, 주소, 지역 (한 줄로 배치)
     r4_1, r4_2, r4_3 = st.columns([1.5, 3, 1.5])
-    v_dealer_phone = r4_1.text_input("딜러연락처", value=parsed.get('dealer_phone', ""))
+    v_dealer_phone = r4_1.text_input("딜러연락처(phone)", value=parsed.get('dealer_phone', ""))
     v_address = r4_2.text_input(
-        "주소", 
+        "주소(address)", 
         value=st.session_state.get("v_address_key", ""), 
         key="v_address_key",
         on_change=update_region
@@ -473,8 +500,6 @@ with col_info:
     acc1, acc2 = st.columns([2, 3])
     # 엑셀에서 가져온 원본 숫자를 "1,300만원" 형식으로 변환하여 표시
     v_price = acc1.text_input("차량대", value=pm.format_number(parsed.get('price', "")))
-    # DECLARATION 자동 계산 - 차량대금(price) 기반으로 항상 자동 계산
-    auto_decl_val = pm.calculate_declaration(v_price)
     v_acc_o = acc2.text_input("차량대 계좌", value=d_data.get("acc_o", ""), key="acc_o_input")
 
     acc3, acc4 = st.columns([2, 3])
@@ -488,15 +513,18 @@ with col_info:
     # 들여쓰기를 왼쪽으로 맞춰야 합니다.
     total_val = pm.calculate_total(v_price, v_contract_x, v_fee)
     
+    # DECLARATION 자동 계산 및 세션 상태 저장
+    auto_decl_val = pm.calculate_declaration(v_price)
+    st.session_state["v_declaration_key"] = pm.format_number(auto_decl_val)
+    
     r5_1, r5_2, r5_3, r5_4 = st.columns([2, 2, 2, 2])
     v_total = r5_1.text_input("합계금액 (자동계산)", value=pm.format_number(total_val), disabled=True)
     v_declaration = r5_2.text_input("DECLARATION", value=pm.format_number(auto_decl_val), key="v_declaration_key")
     sender_input = r5_3.text_input("입금자명", value=d_data.get("sender", ""), key="sender_input")
     v_sender = sender_input.upper() if sender_input else ""
     v_psource = r5_4.text_input(
-        "P.Source", 
-        value=st.session_state.get("v_psource", ""), 
-        key="psource_widget"  # 위젯 key를 변경하여 session_state와 충돌 방지
+    "P.Source", 
+    key="v_psource" # 위젯 key를 세션 키와 일치시킴
     )
     
     
@@ -602,6 +630,21 @@ with col_list:
             "sales": v_sales, "address": v_address, "dealer_phone": v_dealer_phone,
             "region": v_region, "site": v_site
         }
+        
+        # etc.py용 데이터 (입고방 알림, 서류안내 문자용)
+        etc_data = {
+            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+            "deposit": v_deposit, "company": v_company, 
+            "biz_name": v_biz_name, "biz_num": v_biz_num,
+            "declaration": v_declaration, "ex_rate": v_ex_rate,
+            "auc_type": v_auc_type, "auc_region": v_auc_region,
+            "spec_num": v_spec_num
+        }
 
         m_c1, m_c2 = st.columns(2)
         
@@ -621,13 +664,14 @@ with col_list:
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "sms")
             st.rerun()
 
-        if m_c1.button("아웃소싱", key="btn_out"):
+        if m_c1.button("아웃소싱(outsource)", key="btn_out"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "outsource")
             st.rerun()
 
-        if m_c2.button("주소공유", key="btn_share"):
+        if m_c2.button("주소공유(address)", key="btn_share"):
             st.session_state["out_tab1_final"] = msg_logic.handle_confirm(input_data, "share_address")
             st.rerun()
+        
 
         st.divider()
         
@@ -658,7 +702,22 @@ with col_list:
             "total": v_total, "deposit": v_deposit, "balance": v_balance,
             "company": v_company, "ex_date": v_ex_date, "ex_rate": v_ex_rate,
             "usd_price": v_usd, "won_price": v_won, "car_name_remit": v_car_name_remit,
-            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "spec_num": v_spec_num
+        }
+                # etc.py용 데이터 (입고방 알림, 서류안내 문자용)
+        etc_data = {
+            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
+            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+            "deposit": v_deposit, "company": v_company, 
+            "biz_name": v_biz_name, "biz_num": v_biz_num,
+            "declaration": v_declaration, "ex_rate": v_ex_rate,
+            "auc_type": v_auc_type, "auc_region": v_auc_region,
+            "spec_num": v_spec_num
         }
 
         r_c1, r_c2 = st.columns(2)
@@ -686,6 +745,22 @@ with col_list:
             st.session_state["out_tab2_final"] = remit.handle_remit(remit_data, "헤이딜러")
             st.rerun()
 
+                # Tab3에서 이동한 버튼들 (2열 구성 유지)
+        if r_c1.button("입고방 알림", key="btn_etc1"):
+            st.session_state["out_tab2_final"] = etc.handle_etc(etc_data, "입고방")
+            st.rerun()
+            
+        if r_c2.button("서류안내 문자", key="btn_etc2"):
+            st.session_state["out_tab2_final"] = etc.handle_etc(etc_data, "서류문자")
+            st.rerun()
+
+        if r_c1.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
+            with st.spinner("시트에 등록 중..."):
+                res = inventoryenter.run_integrated_registration(etc_data)
+                if res["status"] in ["success", "partial"]:
+                    st.success(res["message"])
+                else:
+                    st.error(res["message"])
 
         st.divider()
 
@@ -702,103 +777,205 @@ with col_list:
             st.info("송금 유형 버튼을 클릭하세요.")
 
     # --- Tab 3: 기타 ---
-    with tab3:
-        etc_data = {
-            "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
-            "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
-            "region": v_region, "sales": v_sales, "buyer": v_buyer, 
-            "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
-            "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
-            "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
-            "deposit": v_deposit, "company": v_company, 
-            "biz_name": v_biz_name, "biz_num": v_biz_num,
-            "declaration": v_declaration, "ex_rate": v_ex_rate
-        }
-        
-        e_c1, e_c2 = st.columns(2)
-        if e_c1.button("입고방 알림", key="btn_etc1"):
-            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "입고방")
-            st.rerun()
-            
-        if e_c2.button("🚀 정보등록", type="primary", key="btn_etc_reg"):
-            with st.spinner("시트에 등록 중..."):
-                res = inventoryenter.run_integrated_registration(etc_data)
-                if res["status"] in ["success", "partial"]:
-                    st.success(res["message"])
-                else:
-                    st.error(res["message"])
+    # --- Tab 3: 기타 및 ERP 연동 ---
+with tab3:
 
-        if e_c2.button("서류안내 문자", key="btn_etc2"):
-            st.session_state["out_tab3"] = etc.handle_etc(etc_data, "서류문자")
-            st.rerun()
-            
-        # buyprogram.py 내 버튼 로직 예시
-        if st.button("📊 이카운트 품목 및 구매 최종 등록", key="btn_ecount_final"):
-    # ⭐ 먼저 매입담당자 선택 여부 확인
-            if v_username == "매입담당자":
-                st.warning("⚠️ 매입담당자를 선택해주세요")
-            else:
-                # etc_data에서 VIN(차대번호) 추출
-                vin_to_check = etc_data.get("vin")
-                
-                if not vin_to_check:
-                    st.error("VIN(차대번호) 정보가 없습니다. 데이터를 먼저 확인해주세요.")
-                else:
-                    with st.spinner("구글 시트 조회 및 이카운트 등록 중..."):
-                        # 1단계: inventoryenter.py의 함수를 사용하여 구글 시트 NO(순번) 조회
-                        import inventoryenter
-                        importlib.reload(inventoryenter) # 최신 데이터 반영을 위해 리로드
-                        
-                        # 제공해주신 get_no_by_vin 함수 호출
-                        existing_no = inventoryenter.get_no_by_vin(vin_to_check)
-                        
-                        if not existing_no:
-                            # 구글 시트에 없으면 등록 자체가 불가능하므로 경고 후 중단
-                            st.warning("⚠️ 구글 시트에서 해당 VIN을 찾을 수 없습니다. [🚀 정보등록]을 먼저 완료해주세요.")
-                        else:
-                            st.info(f"🔍 확인됨: 구글 시트 순번 NO.{existing_no}")
-                            
-                            # 2단계: 이카운트 세션 획득 및 API 호출
-                            import ecount
-                            session_id = ecount.get_session_id()
-                            
-                            if session_id:
-                                # [Step A] 품목 등록
-                                item_res = ecount.register_item(etc_data, session_id, existing_no)
-                                
-                                if str(item_res.get("Status")) == "200":
-                                    st.info("✅ 1. 이카운트 품목 등록 완료")
-                                    
-                                    # [Step B] 구매 입력 (v_username은 상단 selectbox 변수)
-                                    pur_res = ecount.register_purchase(etc_data, session_id, v_username)
-                                    
-                                    if str(pur_res.get("Status")) == "200":
-                                        st.success("✅ 2. 이카운트 구매입력 전표 생성 완료!")
-                                        st.balloons()
-                                    else:
-                                        st.error(f"❌ 구매입력 실패: {pur_res.get('Message')}")
-                                else:
-                                    # 이미 등록된 품목(VIN)인 경우에 대한 처리 (필요시)
-                                    st.error(f"❌ 품목 등록 실패: {item_res.get('Message')}")
-                            else:
-                                st.error("❌ 이카운트 로그인에 실패했습니다. API 키를 확인해주세요.")
+    # 1. 외부 링크 및 기본 정보 데이터 구성
+    etc_data = {
+        "plate": v_plate, "year": v_year, "car_name_remit": v_car_name_remit,
+        "brand": v_brand, "vin": v_vin, "km": v_km, "color": v_color,
+        "region": v_region, "sales": v_sales, "buyer": v_buyer, "dealer_phone": v_dealer_phone,
+        "country": v_country, "inspection": st.session_state.get("v_inspection_key", "?"),
+        "h_type": v_h_type, "h_id": v_h_id, "h_delivery": v_h_delivery,
+        "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
+        "deposit": v_deposit, "company": v_company, 
+        "biz_name": v_biz_name, "biz_num": v_biz_num,
+        "declaration": v_declaration, "ex_rate": v_ex_rate, 
+        "psource": st.session_state.get("v_psource", ""),
+        "v_c": st.session_state.get("v_c", "0.00"),
+        "length": st.session_state.get("v_l", "0"),
+        "width": st.session_state.get("v_w", "0"),
+        "height": st.session_state.get("v_h", "0"),
+        "weight": st.session_state.get("v_wt", "0"),
+        "spec_num": v_spec_num
+    }
 
+    st.markdown("### 🔍 차량 정보 및 제원 관리")
+    e_c1, e_c2 = st.columns(2)
+    
+    with e_c1:
+        # --- 좌측: 원본 사이트 이동 버튼 ---
         if v_site and v_site.startswith("http"):
-            e_c2.link_button("🌐 사이트 이동", v_site)
+            st.link_button("🌐 원본 사이트 이동", v_site, use_container_width=True)
         else:
-            e_c2.button("🌐 사이트 이동", disabled=True, key="btn_site_move")
+            st.button("🌐 사이트 링크 없음", disabled=True, use_container_width=True)
+            
+# buyprogram.py 내의 e_c2 (제원조회 버튼) 부분 수정
+    with e_c2:
+            if st.button("📋 제원조회 실행", key="btn_run_spec_crawler", use_container_width=True, type="primary"):
+                spec_val = st.session_state.get("v_spec_num_key", "")
+                
+                if spec_val:
+                    with st.spinner("Cyberts 정보를 불러오는 중..."):
+                        try:
+                            res = cyberts_crawler.fetch_vehicle_specs(spec_val)
+                            
+                            if res.get("status") == "success":
+                                data = res.get("data", {})
+                                
+                                # 1. 원본 데이터 세션 저장
+                                l_str = data.get("length", "0")
+                                w_str = data.get("width", "0")
+                                h_str = data.get("height", "0")
+                                
+                                st.session_state["v_l"] = str(l_str)
+                                st.session_state["v_w"] = str(w_str)
+                                st.session_state["v_h"] = str(h_str)
+                                st.session_state["v_wt"] = str(data.get("weight", ""))
+                                
+                                # 2. [추가] CBM 직접 계산 로직
+                                try:
+                                    # mm 단위를 m 단위로 변환하여 곱함 (L*W*H / 1,000,000,000)
+                                    l_val = float(l_str)
+                                    w_val = float(w_str)
+                                    h_val = float(h_str)
+                                    cbm_calc = (l_val * w_val * h_val) / 1000000000
+                                    # 세션에 계산된 CBM 저장 (소수점 2자리)
+                                    st.session_state["v_c"] = f"{cbm_calc:.2f}"
+                                except:
+                                    st.session_state["v_c"] = "0.00"
+    
+                                # 3. 위젯 버전 업데이트 및 리런
+                                st.session_state["widget_version"] += 1
+                                st.toast("✅ 제원 및 CBM 업데이트 완료!")
+                                st.rerun()
+                            else:
+                                st.error(f"❌ 실패: {res.get('message')}")
+                                
+                        except Exception as e:
+                            st.error(f"⚠️ 시스템 오류 발생: {e}")
+                else:
+                    st.warning("제원관리번호를 입력해주세요.")
+    
+    st.divider()
 
-        st.divider()
+    # 2. 이카운트 ERP 구매입력 섹션
+    st.divider()
+    st.markdown("### 📊 이카운트 ERP 관리")
+    if st.button("🚀 이카운트 데이터 동기화 및 구매입력", key="btn_integrated_ecount", type="primary", use_container_width=True):
+        if not v_vin or not v_biz_num:
+            st.error("⚠️ 차대번호와 사업자번호는 필수 입력 항목입니다.")
+            st.stop()
+        with st.spinner("구글 시트에서 NO. 정보를 조회 중..."):
+        # 1. 구글 시트에서 NO. 값 가져오기
+            found_no = gsm.get_no_by_plate(v_plate)
         
-# 결과 출력 섹션
-        current_content3 = st.session_state.get("out_tab3", "")
-        if current_content3:
-            st.markdown("##### ➕ 기타 알림 내용")
-            st.caption("👇 우측 상단 복사 아이콘 클릭")
-            st.code(current_content3, language=None)
+            if not found_no:
+                st.warning("⚠️ 구글 시트 '2026'에서 해당 차량번호를 찾을 수 없어 제원관리번호로 대체합니다.")
+                # 찾지 못했을 경우 기존처럼 v_spec_num을 사용하거나 빈값 처리
+                final_spec_no = v_spec_num 
+            else:
+                final_spec_no = found_no
+                st.info(f"✅ 구글 시트 NO. 확인: {final_spec_no}")
+            etc_data["v_c"] = st.session_state.get("v_c", "0.00")
+            
+        with st.spinner("이카운트 작업 진행 중..."):
+            # 0. 세션 획득
+            session_id, login_error = ecount.get_session_id()
+            if not session_id:
+                st.error("❌ 이카운트 로그인 실패")
+                st.json(login_error)
+                st.stop()
+    
+            # 1. 품목 체크 및 등록
+            item_exists, _ = ecount.check_item_exists(session_id, v_vin)
+            if not item_exists:
+                st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
+                res_item = ecount.register_item(etc_data, session_id, final_spec_no)
+                err_msg = res_item.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "")
+                # --- 디버깅용 로그 추가 ---
+                st.write("📡 품목 등록 시도 응답:", res_item) 
+                if "이미 품목등록에 존재하는 코드" in err_msg:
+                    st.write("✔️ 확인 결과, 이미 등록된 품목입니다. (중복 등록 방지)")
+                elif str(res_item.get("Status")) != "200" or res_item.get("Data", {}).get("SuccessCnt", 0) == 0:
+                    st.error("❌ 품목 등록 실패")
+                    st.json(res_item)
+                    st.stop()
+                else:
+                    st.success("✅ 품목 등록 완료")
+            else:
+                st.write("✔️ 품목 확인 완료")
+    
+            # 2. 거래처 등록 시도 (조회 없이 바로 진행)
+            st.info(f"🔄 거래처 확인 및 등록 시도: {v_biz_num}")
+            res_cust = ecount.register_customer(etc_data, session_id)
+            
+            # 응답 데이터 안전하게 추출
+            cust_data_part = res_cust.get("Data", {})
+            cust_details = cust_data_part.get("ResultDetails", [])
+            cust_err_msg = cust_details[0].get("TotalError", "") if cust_details else ""
 
-            if st.button("♻️ 내용 리셋", key="reset_tab3"):
-                st.session_state["out_tab3"] = ""
-                st.rerun()
-        else:
-            st.info("알림 생성 버튼을 클릭하세요.")
+            # 이카운트 응답에 따른 분기 처리
+            if str(res_cust.get("Status")) == "200" and cust_data_part.get("SuccessCnt", 0) > 0:
+                st.success("✅ 신규 거래처 등록 완료")
+            elif "중복되는 코드는 등록할 수 없습니다" in cust_err_msg or "이미 등록된" in cust_err_msg:
+                # 중복 에러가 나면 이미 있는 것이므로 성공으로 간주하고 진행
+                st.write("✔️ 확인 결과, 이미 등록된 거래처입니다. (다음 단계 진행)")
+            else:
+                # 그 외의 진짜 에러(권한, 필수값 누락 등)인 경우에만 중단
+                st.error("❌ 거래처 처리 중 오류 발생")
+                st.json(res_cust)
+                st.stop()
+    
+            # 3. 최종 구매입력 진행
+            st.info("📝 구매전표 생성 중...")
+            res_pur = ecount.register_purchase(etc_data, session_id, v_username)
+            
+            if str(res_pur.get("Status")) == "200":
+                data_part = res_pur.get("Data", {})
+                if data_part.get("SuccessCnt", 0) > 0:
+                    st.balloons()
+                    st.success(f"🎉 전표 생성 성공! 전표번호: {data_part.get('SlipNos')[0]}")
+                else:
+                    # 데이터 정합성 에러 (예: 창고코드 틀림 등)
+                    st.error("❌ 전표 생성 실패 (데이터 에러)")
+                    st.warning(data_part.get("ResultDetails", [{}])[0].get("TotalError", "상세 에러 확인 불가"))
+                    with st.expander("전체 에러 로그 확인"):
+                        st.json(res_pur)
+            else:
+                # 시스템/통신 에러
+                st.error(f"❌ API 통신 실패: {res_pur.get('Message')}")
+                st.json(res_pur)
+    st.divider()
+    st.markdown("### 🧪 API 권한 테스트")
+    if st.button("🛠️ 거래처 등록 TEST 실행", key="btn_test_cust_reg", use_container_width=True):
+        with st.spinner("샌드박스 서버로 테스트 데이터 전송 중..."):
+            # 1. 세션 획득
+            session_id, login_error = ecount.get_session_id()
+            
+            if session_id:
+                # 2. 테스트 함수 호출
+                test_res = ecount.register_customer_test(session_id)
+                
+                # 3. 결과 출력
+                if str(test_res.get("Status")) == "200":
+                    st.success("✅ 테스트 통신 성공!")
+                    st.json(test_res) # 서버 응답 구조 확인용
+                else:
+                    st.error("❌ 테스트 실패")
+                    st.json(test_res) # 에러 원인 분석용
+            else:
+                st.error("❌ 세션 획득 실패")
+                st.json(login_error)
+
+    # 3. 기타 알림 내용 출력칸 (기존 기능 유지)
+    st.divider()
+    current_content3 = st.session_state.get("out_tab3", "")
+    if current_content3:
+        st.markdown("##### ➕ 생성된 알림 내용")
+        st.code(current_content3, language=None)
+        if st.button("♻️ 내용 리셋", key="reset_tab3"):
+            st.session_state["out_tab3"] = ""
+            st.rerun()
+    else:
+        st.info("알림이나 전표 생성 버튼을 클릭하세요.")
