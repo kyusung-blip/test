@@ -574,6 +574,8 @@ with col_info:
                 # st.rerun()  # 필요시 화면 새로고침
             else:
                 st.error(save_res["message"])
+                
+    v_bizcl_num = v_biz_num.replace("-", "") if v_biz_num else ""
 
     # 하단 세부 정산 프레임
     row_bottom = st.columns(2)
@@ -790,6 +792,7 @@ with tab3:
         "price": v_price, "fee": v_fee, "contract_x": v_contract_x, 
         "deposit": v_deposit, "company": v_company, 
         "biz_name": v_biz_name, "biz_num": v_biz_num,
+        "bizcl_num": v_bizcl_num,
         "declaration": v_declaration, "ex_rate": v_ex_rate, 
         "psource": st.session_state.get("v_psource", ""),
         "v_c": st.session_state.get("v_c", "0.00"),
