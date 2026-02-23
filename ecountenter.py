@@ -25,17 +25,38 @@ def run_ecount_web_automation(data, status_placeholder):
         )
         wait = WebDriverWait(driver, 20)
 
-        # 1. 로그인 (세션 확보)
-        status_placeholder.write("🔐 로그인 시도 중...")
-        driver.get("https://login.ecount.com/Login/")
+        # 1. 'ID Login' 탭을 먼저 클릭 (스크린샷 기반 활성화 보장)
+        try:
+            id_login_tab = wait.until(EC.element_to_be_clickable((By.ID, "liId")))
+            id_login_tab.click()
+            time.sleep(0.5)
+        except:
+            pass # 이미 선택되어 있을 수 있음
+
+        # 2. 정보 입력
+        status_placeholder.write("📝 로그인 정보 입력 중...")
         wait.until(EC.presence_of_element_located((By.ID, "com_code"))).send_keys("682186")
         driver.find_element(By.ID, "id").send_keys("이규성")
-        driver.find_element(By.ID, "passwd").send_keys("dlrbtjd1367!")
-        driver.find_element(By.ID, "save").click()
         
-        # 로그인 완료 대기
-        time.sleep(4)
-        status_placeholder.write("✅ 1. 로그인 완료")
+        pw_field = driver.find_element(By.ID, "passwd")
+        pw_field.send_keys("dlrbtjd1367!")
+        
+        # 3. 로그인 시도 (버튼 클릭 대신 엔터 키 사용이 더 확실할 때가 많음)
+        time.sleep(1)
+        pw_field.send_keys(Keys.ENTER)
+        
+        # 4. 로그인 성공 여부 체크 (URL 변화 확인)
+        status_placeholder.write("⏳ 로그인 처리 대기 중...")
+        time.sleep(5) 
+
+        # 현재 URL이 여전히 'login'을 포함하고 있다면 실패로 간주
+        if "login" in driver.current_url.lower():
+            # 실패 원인 분석을 위해 화면 캡처
+            driver.save_screenshot("login_failed.png")
+            status_placeholder.image("login_failed.png", caption="로그인 실패 상태")
+            return {"status": "error", "message": "❌ 로그인을 완료하지 못했습니다. ID/PW를 다시 확인하거나 보안 문자가 떴는지 확인해주세요."}
+
+        status_placeholder.write("✅ 1. 로그인 성공")
 
         # 2. 구매입력 URL로 직접 이동
         status_placeholder.write("🚀 구매입력 페이지로 직접 이동 중...")
