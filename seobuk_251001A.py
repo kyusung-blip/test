@@ -558,12 +558,13 @@ def scrape_seobuk(driver, url, row_idx_hint):
             
             # car-no가 나타날 때까지 대기
             wait = Wait(driver, 15) # 대기 시간을 15초로 늘림
-            plate_el = wait.until(EC.presence_of_element_located((By.ID, 'car-no')))
-            
+            CAR_NO_XPATH = '//*[@id="car-no"]'
+            plate_el = wait.until(EC.presence_of_element_located((By.XPATH, CAR_NO_XPATH)))
             # 번호가 비어있지 않은지 확인 (로딩 중엔 공백일 수 있음)
             time.sleep(2) 
-            plate_text = safe_text(plate_el)
+            
             plate_attr = plate_el.get_attribute("data-car-plate-number")
+            plate_text = plate_el.text.strip()
             final_plate = plate_attr if plate_attr else plate_text
             
             if final_plate and len(final_plate) >= 4:
