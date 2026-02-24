@@ -876,8 +876,8 @@ with tab3:
     
     if st.button("🚀 통합 구매입력 실행 (제원+등록+전표)", key="btn_all_in_one_ecount", type="primary", use_container_width=True):
         # 0. 기초 필수값 검증
-        if not v_vin or not v_biz_num or not v_plate:
-            st.error("⚠️ 차대번호, 사업자번호, 차량번호는 필수 입력 항목입니다.")
+        if not v_vin or not v_biz_num or not v_username or not v_car_name_remit:
+            st.error("⚠️ 차명, 차대번호, 매입사원, 제원관리번호, 사업자번호는 필수 입력 항목입니다.")
             st.stop()
 
         with st.status("🔄 통합 프로세스 시작...", expanded=True) as status:
