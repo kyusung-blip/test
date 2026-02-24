@@ -434,7 +434,7 @@ with col_info:
     v_color = r2_4.text_input("color", value=parsed.get('color', ""))
 
     # R3: 사이트, 세일즈팀, 바이어, 나라, 확인버튼
-    r3_1, r3_2, r3_3, r3_4, r3_5 = st.columns([1.5, 1.5, 1.5, 1.5, 1])
+    r3_1, r3_2, r3_3, r3_4, r3_5, r3_6 = st.columns([1.2, 1.0, 1.0, 0.8, 1.5, 0.5])
     v_site = r3_1.text_input("사이트", value=parsed.get('site', ""))
     v_sales = r3_2.text_input("세일즈팀", value=parsed.get('sales', ""))
     v_buyer = r3_3.text_input("바이어", value=parsed.get('buyer', ""))
@@ -442,21 +442,23 @@ with col_info:
     # 세션에 저장된 나라 정보가 있으면 그걸 먼저 보여줌
     current_country_val = st.session_state.get("country_data", "")
     v_country = r3_4.text_input("나라", value=current_country_val if current_country_val else "")
+    with r3_5:
+    # 1. 입력된 나라 코드를 기반으로 mapping.py에서 항구 리스트 가져오기
     display_options = mapping.get_port_display_list(v_country)
-    # 3. 드롭다운 배치
+    
     v_port_selected = ""
     if v_country and display_options:
-        # 드롭다운 생성
         v_port_selected = st.selectbox(
-            "⚓ 항구 선택",
+            "항구 선택",
             options=display_options,
-            key="port_select_box"
+            key="v_port_selectbox",
+            label_visibility="visible" # 라벨을 숨기고 싶으면 "collapsed"
         )
-    elif v_country:
-        # 매핑된 값이 없을 경우
-        st.caption("ℹ️ 매핑된 항구 정보가 없습니다.")
+    else:
+        # 매핑 데이터가 없을 경우 입력창 표시
+        v_port_selected = st.text_input("항구(직접입력)", key="v_port_manual")
 
-    if r3_5.button("확인", key="btn_country_confirm"):
+    if r3_6.button("확인", key="btn_country_confirm"):
         with st.spinner("데이터 처리 중..."):
             res = country.handle_buyer_country(v_buyer, v_country)
             
