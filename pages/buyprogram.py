@@ -435,45 +435,62 @@ with col_info:
 
     # R3: 사이트, 세일즈팀, 바이어, 나라, 확인버튼
     r3_1, r3_2, r3_3, r3_4, r3_5, r3_6 = st.columns([1.2, 1.0, 1.0, 0.8, 1.5, 0.5])
-    v_site = r3_1.text_input("사이트", value=parsed.get('site', ""))
-    v_sales = r3_2.text_input("세일즈팀", value=parsed.get('sales', ""))
-    v_buyer = r3_3.text_input("바이어", value=parsed.get('buyer', ""))
-    
-    # 세션에 저장된 나라 정보가 있으면 그걸 먼저 보여줌
-    current_country_val = st.session_state.get("country_data", "")
-    v_country = r3_4.text_input("나라", value=current_country_val if current_country_val else "")
-    with r3_5:
-    # 1. 입력된 나라 코드를 기반으로 mapping.py에서 항구 리스트 가져오기
-    display_options = mapping.get_port_display_list(v_country)
-    
-    v_port_selected = ""
-    if v_country and display_options:
-        v_port_selected = st.selectbox(
-            "항구 선택",
-            options=display_options,
-            key="v_port_selectbox",
-            label_visibility="visible" # 라벨을 숨기고 싶으면 "collapsed"
-        )
-    else:
-        # 매핑 데이터가 없을 경우 입력창 표시
-        v_port_selected = st.text_input("항구(직접입력)", key="v_port_manual")
+    with r3_1:
+        v_site = st.text_input("사이트", value=parsed.get('site', ""))
 
-    if r3_6.button("확인", key="btn_country_confirm"):
+    with r3_2:
+        v_sales = st.text_input("세일즈팀", value=parsed.get('sales', ""))
+    
+    with r3_3:
+        v_buyer = st.text_input("바이어", value=parsed.get('buyer', ""))
+    
+    with r3_4:
+        # 세션에 저장된 나라 정보 로드
+        current_country_val = st.session_state.get("country_data", "")
+        v_country = st.text_input("나라", value=current_country_val if current_country_val else "")
+    
+    with r3_5:
+        # 1. 입력된 나라 코드를 기반으로 mapping.py에서 항구 리스트 가져오기
+        display_options = mapping.get_port_display_list(v_country)
+        
+        v_port_selected = ""
+        if v_country and display_options:
+            v_port_selected = st.selectbox(
+                "항구 선택",
+                options=display_options,
+                key="v_port_selectbox",
+                label_visibility="visible" # 라벨을 숨기고 싶으면 "collapsed"
+            )
+        else:
+            # 매핑 데이터가 없을 경우 입력창 표시
+            v_port_selected = st.text_input("항구(직접입력)", key="v_port_manual")
+
+    with r3_6:
+    # 텍스트 입력 칸들과 높이를 맞추기 위한 빈 공간 확보
+    st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+    
+    if st.button("확인", key="btn_country_confirm", use_container_width=True):
         with st.spinner("데이터 처리 중..."):
+            # country.py 모듈을 통한 바이어/국가 정보 처리
             res = country.handle_buyer_country(v_buyer, v_country)
             
             if res["status"] == "fetched":
                 st.session_state["country_data"] = res["country"]
-                st.success(f"조회 완료: {res['country']}")
+                st.success(f"✅ 조회 완료: {res['country']}")
                 st.rerun()
+            
             elif res["status"] == "updated":
-                st.success(f"정보 수정 완료: {v_country}")
+                st.success(f"✅ 정보 수정 완료: {v_country}")
+                # 필요한 경우 세션 상태를 업데이트하거나 rerun을 추가할 수 있습니다.
+            
             elif res["status"] == "added":
-                st.success(f"새로운 바이어 추가 완료: {v_buyer}")
+                st.success(f"✅ 새로운 바이어 추가 완료: {v_buyer}")
+            
             elif res["status"] == "match":
-                st.info("정보가 이미 일치합니다.")
+                st.info("ℹ️ 정보가 이미 일치합니다.")
+            
             else:
-                st.error(res.get("message", "오류가 발생했습니다."))
+                st.error(res.get("message", "🔴 오류가 발생했습니다."))
     # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
     d_data = st.session_state.get("dealer_data")
     if not isinstance(d_data, dict):
