@@ -557,29 +557,34 @@ def scrape_seobuk(driver, url, row_idx_hint):
             driver.get(f"https://www.seobuk.org/search/detail/{carId}")
             
             # car-no가 나타날 때까지 대기
-            wait = Wait(driver, 15) # 대기 시간을 15초로 늘림
+            wait = Wait(driver, 15)
             CAR_NO_XPATH = '//*[@id="car-no"]'
             plate_el = wait.until(EC.presence_of_element_located((By.XPATH, CAR_NO_XPATH)))
-            # 번호가 비어있지 않은지 확인 (로딩 중엔 공백일 수 있음)
+            
+            # 데이터 렌더링 시간 확보
             time.sleep(2) 
             
+            # 속성값과 텍스트 중 있는 것을 선택
             plate_attr = plate_el.get_attribute("data-car-plate-number")
             plate_text = plate_el.text.strip()
             final_plate = plate_attr if plate_attr else plate_text
             
+            # ✅ 들여쓰기 수정됨
             if final_plate and len(final_plate) >= 4:
-                    out["plate"] = final_plate
-                    st.success(f"✅ 서북 데이터 로드 성공: {final_plate}")
-                    break # 성공 시 루프 탈출
-                else:
-                    raise Exception("데이터가 비어있음") # 성공 시 루프 탈출
+                out["plate"] = final_plate
+                st.success(f"✅ 서북 데이터 로드 성공: {final_plate}")
+                break # 성공 시 루프 탈출
+            else:
+                raise Exception("데이터가 비어있음") 
+                
         except Exception as e:
             if attempt == 0:
-                print(f"[SEOBUK] 1차 시도 실패, 재시도 중... ({carId})")
+                # Streamlit 화면에서도 상황을 알 수 있게 st.warning 추가 권장
+                st.warning(f"⚠️ [SEOBUK] 1차 시도 실패, 재시도 중... ({carId})")
                 driver.refresh()
                 time.sleep(3)
             else:
-                print(f"[SEOBUK] 최종 로딩 타임아웃: {carId}")
+                st.error(f"❌ [SEOBUK] 최종 로딩 타임아웃: {carId}")
                 return out
 
     # 4. 데이터 추출 (더 견고한 Selector 사용)
