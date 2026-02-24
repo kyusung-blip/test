@@ -442,6 +442,19 @@ with col_info:
     # 세션에 저장된 나라 정보가 있으면 그걸 먼저 보여줌
     current_country_val = st.session_state.get("country_data", "")
     v_country = r3_4.text_input("나라", value=current_country_val if current_country_val else "")
+    display_options = mapping.get_port_display_list(v_country)
+    # 3. 드롭다운 배치
+    v_port_selected = ""
+    if v_country and display_options:
+        # 드롭다운 생성
+        v_port_selected = st.selectbox(
+            "⚓ 항구 선택",
+            options=display_options,
+            key="port_select_box"
+        )
+    elif v_country:
+        # 매핑된 값이 없을 경우
+        st.caption("ℹ️ 매핑된 항구 정보가 없습니다.")
 
     if r3_5.button("확인", key="btn_country_confirm"):
         with st.spinner("데이터 처리 중..."):
