@@ -467,30 +467,30 @@ with col_info:
 
     with r3_6:
     # 텍스트 입력 칸들과 높이를 맞추기 위한 빈 공간 확보
-    st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
-    
-    if st.button("확인", key="btn_country_confirm", use_container_width=True):
-        with st.spinner("데이터 처리 중..."):
-            # country.py 모듈을 통한 바이어/국가 정보 처리
-            res = country.handle_buyer_country(v_buyer, v_country)
-            
-            if res["status"] == "fetched":
-                st.session_state["country_data"] = res["country"]
-                st.success(f"✅ 조회 완료: {res['country']}")
-                st.rerun()
-            
-            elif res["status"] == "updated":
-                st.success(f"✅ 정보 수정 완료: {v_country}")
-                # 필요한 경우 세션 상태를 업데이트하거나 rerun을 추가할 수 있습니다.
-            
-            elif res["status"] == "added":
-                st.success(f"✅ 새로운 바이어 추가 완료: {v_buyer}")
-            
-            elif res["status"] == "match":
-                st.info("ℹ️ 정보가 이미 일치합니다.")
-            
-            else:
-                st.error(res.get("message", "🔴 오류가 발생했습니다."))
+        st.markdown("<div style='margin-top:28px;'></div>", unsafe_allow_html=True)
+        
+        if st.button("확인", key="btn_country_confirm", use_container_width=True):
+            with st.spinner("데이터 처리 중..."):
+                # country.py 모듈을 통한 바이어/국가 정보 처리
+                res = country.handle_buyer_country(v_buyer, v_country)
+                
+                if res["status"] == "fetched":
+                    st.session_state["country_data"] = res["country"]
+                    st.success(f"✅ 조회 완료: {res['country']}")
+                    st.rerun()
+                
+                elif res["status"] == "updated":
+                    st.success(f"✅ 정보 수정 완료: {v_country}")
+                    # 필요한 경우 세션 상태를 업데이트하거나 rerun을 추가할 수 있습니다.
+                
+                elif res["status"] == "added":
+                    st.success(f"✅ 새로운 바이어 추가 완료: {v_buyer}")
+                
+                elif res["status"] == "match":
+                    st.info("ℹ️ 정보가 이미 일치합니다.")
+                
+                else:
+                    st.error(res.get("message", "🔴 오류가 발생했습니다."))
     # dealer_data가 딕셔너리인지 한 번 더 확인하는 안전 장치
     d_data = st.session_state.get("dealer_data")
     if not isinstance(d_data, dict):
