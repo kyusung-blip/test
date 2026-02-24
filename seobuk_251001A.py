@@ -558,15 +558,20 @@ def scrape_seobuk(driver, url, row_idx_hint):
             
             # car-no가 나타날 때까지 대기
             wait = Wait(driver, 15) # 대기 시간을 15초로 늘림
-            wait.until(EC.presence_of_element_located((By.ID, 'car-no')))
+            plate_el = wait.until(EC.presence_of_element_located((By.ID, 'car-no')))
             
             # 번호가 비어있지 않은지 확인 (로딩 중엔 공백일 수 있음)
             time.sleep(2) 
-            plate_text = safe_text(driver.find_element(By.ID, 'car-no'))
+            plate_text = safe_text(plate_el)
+            plate_attr = plate_el.get_attribute("data-car-plate-number")
+            final_plate = plate_attr if plate_attr else plate_text
             
-            if plate_text and len(plate_text) > 4:
-                out["plate"] = plate_text
-                break # 성공 시 루프 탈출
+            if final_plate and len(final_plate) >= 4:
+                    out["plate"] = final_plate
+                    st.success(f"✅ 서북 데이터 로드 성공: {final_plate}")
+                    break # 성공 시 루프 탈출
+                else:
+                    raise Exception("데이터가 비어있음") # 성공 시 루프 탈출
         except Exception as e:
             if attempt == 0:
                 print(f"[SEOBUK] 1차 시도 실패, 재시도 중... ({carId})")
