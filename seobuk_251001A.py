@@ -1405,6 +1405,19 @@ def run_pipeline(list_pairs, user_name, headless=True, hd_login_id=None):
         
         rec = None
         skip_cm = False
+        try:
+            if "seobuk" in url:
+                rec = scrape_seobuk(driver, url, row_hint)
+                # 시각적 확인을 위한 데이터 출력
+                if rec and rec.get("plate"):
+                    st.success(f"✅ 서북 데이터 추출 성공!")
+                    # 수집된 상세 내역을 표로 보여줌
+                    st.table({
+                        "항목": ["차량번호", "모델명", "연식", "주행거리", "연료", "가격"],
+                        "내용": [rec['plate'], rec['name_ko'], rec['year'], rec['mileage'], rec['fuel_ko'], rec.get('price_raw', '-')]
+                    })
+                else:
+                    st.error("❌ 서북 사이트 데이터 추출 실패 (ID: car-no 등을 찾지 못함)")
 
         try:
             # 사이트별 분기 로직 (기존 로직 유지)
