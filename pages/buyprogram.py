@@ -919,21 +919,42 @@ with tab3:
                 # --- STEP 1. 제원조회 (Cyberts) ---
                 status.write("🔍 1. Cyberts 제원 정보 조회 중...")
                 spec_val = st.session_state.get("v_spec_num_key", "")
+                
                 if spec_val:
                     res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val)
                     if res_spec.get("status") == "success":
                         data = res_spec.get("data", {})
-                        # 세션 업데이트 (CBM 계산 포함)
-                        l_val, w_val, h_val = float(data.get("length", 0)), float(data.get("width", 0)), float(data.get("height", 0))
-                        st.session_state["v_l"], st.session_state["v_w"], st.session_state["v_h"] = str(l_val), str(w_val), str(h_val)
-                        st.session_state["v_wt"] = str(data.get("weight", ""))
-                        st.session_state["v_c"] = f"{(l_val * w_val * h_val) / 1000000000:.2f}"
-                        etc_data["v_c"] = st.session_state["v_c"] # etc_data 갱신
-                        status.write("✅ 제원 조회 및 CBM 계산 완료")
+                        
+                        # 1. 원본 데이터 세션 저장 (문자열 안전하게 가져오기)
+                        l_str = str(data.get("length", "0"))
+                        w_str = str(data.get("width", "0"))
+                        h_str = str(data.get("height", "0"))
+                        wt_str = str(data.get("weight", ""))
+                        
+                        st.session_state["v_l"] = l_str
+                        st.session_state["v_w"] = w_str
+                        st.session_state["v_h"] = h_str
+                        st.session_state["v_wt"] = wt_str
+                        
+                        # 2. CBM 계산 (오류 방지를 위해 try-except로 감쌈)
+                        try:
+                            l_val = float(l_str)
+                            w_val = float(w_str)
+                            h_val = float(h_str)
+                            cbm_calc = (l_val * w_val * h_val) / 1000000000
+                            st.session_state["v_c"] = f"{cbm_calc:.2f}"
+                        except (ValueError, TypeError):
+                            st.session_state["v_c"] = "0.00"
+                        
+                        # etc_data 갱신 (자동화 입력에 사용되는 딕셔너리일 경우)
+                        if 'etc_data' in locals() or 'etc_data' in globals():
+                            etc_data["v_c"] = st.session_state["v_c"]
+                        
+                        status.write(f"✅ 제원 조회 성공 (CBM: {st.session_state['v_c']})")
                     else:
                         status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')} (계속 진행)")
                 else:
-                    status.write("⏭️ 제원번호 없음 (제원 조회를 건너뜁니다)")
+                    status.write("⏭️ 제원관리번호가 없어 조회를 건너뜁니다.")
 
                 # --- STEP 2. 구글 시트 NO. 조회 및 이카운트 세션 획득 ---
                 status.write("📋 2. 구글 시트 NO. 확인 및 이카운트 접속...")
