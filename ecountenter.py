@@ -129,6 +129,15 @@ def run_ecount_web_automation(data, status_placeholder):
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.5)
+                
+            # --- [port] ---
+            val = data.get('port')
+            if val:
+                status_placeholder.write(f"📍 [port] 입력 시도: {val}")
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[7]/div[2]/div/div/textarea')))
+                el.send_keys(str(val))
+                el.send_keys(Keys.ENTER)
+                time.sleep(0.7)
 
             # --- [YEAR] ---
             val = data.get('year')
@@ -198,15 +207,6 @@ def run_ecount_web_automation(data, status_placeholder):
             if val:
                 status_placeholder.write(f"📍 [위치] 입력 시도: {val}")
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[14]/div[2]/div/div/input')))
-                el.send_keys(str(val))
-                el.send_keys(Keys.ENTER)
-                time.sleep(0.7)
-
-            # --- [port] ---
-            val = data.get('port')
-            if val:
-                status_placeholder.write(f"📍 [port] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[7]/div[2]/div/div/textarea')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.7)
