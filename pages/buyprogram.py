@@ -132,7 +132,8 @@ st.markdown("""
     /* 3. 차량 기본 정보 (연한 회색) - 차번호, 연식, 브랜드 등 */
     input[aria-label="차번호"], input[aria-label="연식"], input[aria-label="차명"], 
     input[aria-label="브랜드"], input[aria-label="VIN"], input[aria-label="km"], 
-    input[aria-label="color"] {
+    input[aria-label="color"],input[aria-label="길이"],input[aria-label="너비"],input[aria-label="높이"],
+    input[aria-label="CBM"],input[aria-label="중량"]{
         background-color: #F9FAFB !important;
         border: 1px solid #D1D5DB !important;
     }
