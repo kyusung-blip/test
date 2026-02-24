@@ -137,7 +137,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[7]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
-                time.sleep(0.5)
+                time.sleep(0.7)
 
             # --- [BRAND] ---
             val = data.get('brand')
@@ -146,7 +146,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[8]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
-                time.sleep(0.5)
+                time.sleep(0.7)
 
             # --- [MODEL] ---
             val = data.get('car_name_remit')
@@ -155,7 +155,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[9]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
-                time.sleep(0.5)
+                time.sleep(0.7)
 
             # --- [PLATE] ---
             val = data.get('plate')
@@ -200,7 +200,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[14]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
-                time.sleep(0.5)
+                time.sleep(0.7)
 
             # --- [port] ---
             val = data.get('port')
@@ -209,7 +209,7 @@ def run_ecount_web_automation(data, status_placeholder):
                 el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[7]/div[2]/div/div/textarea')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
-                time.sleep(0.5)
+                time.sleep(0.7)
 
             # --- [거래처] ---
             val = data.get('bizcl_num')
