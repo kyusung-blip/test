@@ -143,7 +143,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('year')
             if val:
                 status_placeholder.write(f"📍 [YEAR] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[7]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[8]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.7)
@@ -152,7 +152,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('brand')
             if val:
                 status_placeholder.write(f"📍 [BRAND] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[8]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[9]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.7)
@@ -161,7 +161,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('car_name_remit')
             if val:
                 status_placeholder.write(f"📍 [MODEL] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[9]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[10]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.7)
@@ -170,7 +170,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('plate')
             if val:
                 status_placeholder.write(f"📍 [PLATE] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[10]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[11]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.5)
@@ -197,7 +197,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('km')
             if val:
                 status_placeholder.write(f"📍 [km] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[13]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[14]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.5)
@@ -206,7 +206,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('region')
             if val:
                 status_placeholder.write(f"📍 [위치] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[14]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[15]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.7)
@@ -215,7 +215,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('bizcl_num')
             if val:
                 status_placeholder.write(f"📍 [거래처] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[19]/div[2]/div/div/input[1]')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[20]/div[2]/div/div/input[1]')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(2) # 거래처 검색 팝업 처리 대기
@@ -225,7 +225,7 @@ def run_ecount_web_automation(data, status_placeholder):
             if val:
                 status_placeholder.write(f"📍 [psource] 입력 시도: {val}")
                 # 지정하신 XPath 사용
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[23]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[24]/div[2]/div/div/input')))
                 
                 # 안정적인 입력을 위해 클릭 후 기존 내용 삭제
                 driver.execute_script("arguments[0].click();", el)
