@@ -11,5 +11,8 @@ requests
 webdriver-manager
 st-copy-to-clipboard
 beautifulsoup4
+pandas
+numpy
+
 
 
