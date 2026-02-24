@@ -179,7 +179,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('vin')
             if val:
                 status_placeholder.write(f"📍 [VIN] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[11]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[12]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.5)
@@ -188,7 +188,7 @@ def run_ecount_web_automation(data, status_placeholder):
             val = data.get('color')
             if val:
                 status_placeholder.write(f"📍 [COLOR] 입력 시도: {val}")
-                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[12]/div[2]/div/div/input')))
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[13]/div[2]/div/div/input')))
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.5)
