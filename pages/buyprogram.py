@@ -844,6 +844,7 @@ with tab3:
         "width": st.session_state.get("v_w", "0"),
         "height": st.session_state.get("v_h", "0"),
         "weight": st.session_state.get("v_wt", "0"),
+        "port" : v_port_selected,
         "spec_num": v_spec_num, "username" : v_username
     }
 
