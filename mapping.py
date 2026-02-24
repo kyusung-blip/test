@@ -33,3 +33,42 @@ def get_region_from_address(address):
         if keyword in address:
             return region_name
     return ""
+    
+COUNTRY_PORT_MAP = {
+    "AB": ["DURRES , ALBANIA"],
+    "GR": ["PIRAEUS, GREECE"],
+    "HN": ["SAN LORENZO, HONDURAS"],
+    "CL": ["IQUIQUE, CHILE"],
+    "PY": ["ASUNCION, PARAGUAY"],
+    "SV": ["LA UNION, EL SALVADOR"],
+    "UA": ["CHORNOMORSK, UKRAINE"],
+    "AO": ["LUANDA, ANGOLA"],
+    "UZ": ["TASHKENT, UZBEKISTAN"],
+    "GE": ["POTI, GEORGIA"],
+    "CR": ["LIMON, COSTA RICA", "Puerto Caldera, COSTA RICA"],
+    "DJ": ["DJIBOUTI, DJIBOUTI"],
+    "RU": ["VLADIVOSTOK, RUSSIA"],
+    "KG": ["BISHKEK, KYRGYZSTAN"],
+    "GT": ["QUETZAL, GUATEMALA"],
+    "DZ": ["ALGIERS, ALGERIA"],
+    "DR": ["CAUCEDO, DOMINICAN REP.", "RIO HAINA, DOMINICAN REP.", "SANTO DOMINGO, DR"],
+    "TR": ["ISKENDERUN, TURKEY"],
+    "SY": ["TARTUS, SYRIA"],
+    "GQ": ["MALABO, EQUATORIAL GUINEA"],
+    "AZ": ["DAKU , AZERBAIJAN"],
+    "BG": ["VARNA , BULGARIA"],
+    "DE": ["BREMERHAVEN, GERMANY"],
+    "UAE": ["JEBEL ALI, DUBAI"],
+    "BF": ["BURKINA FASO"],
+    "FR": ["FOS-SUR-MER, FRANCE"],
+    "VE": ["MARACAIBO , VENEZUELLA"],
+    "KH": ["SIHANOUKVILLE, CAMBODIA"],
+    "CU": ["MARIEL, CUBA"]
+}
+
+def get_port_display_list(code):
+    """코드를 입력받아 드롭다운에 표시할 리스트 반환"""
+    if not code:
+        return []
+    # 대문자로 변환하여 매칭
+    return COUNTRY_PORT_MAP.get(code.strip().upper(), [])
