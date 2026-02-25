@@ -1,38 +1,19 @@
-from __future__ import annotations
-import time
-import re
-from typing import Dict, Any, Optional
-
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-# 에러 처리를 위해 UnexpectedAlertPresentException 추가
-from selenium.common.exceptions import TimeoutException, WebDriverException, UnexpectedAlertPresentException, NoAlertPresentException
-
-# --- 설정값 ---
-CYBERTS_URL = "https://www.cyberts.kr/ts/tis/ism/readTsTisInqireSvcMainView.do"
-SPEC_INPUT_ID = "sFomConfmNo"
-SEARCH_BUTTON_ID = "btnSearch"
-
-FIELD_IDS = {
-    "weight": "txtCarTotWt",
-    "length": "txtChssLt",
-    "width": "txtChssBt",
-    "height": "txtChssHg",
-}
-
 def _build_chrome_options(headless: bool = True) -> Options:
     options = Options()
     if headless:
         options.add_argument("--headless=new")
+    
+    # --- 자동화 감지 우회 옵션들 ---
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
-    # 자동화 탐지 방지를 위한 유저 에이전트 추가 (차단 방지)
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+    options.add_argument("--disable-blink-features=AutomationControlled") # 자동화 표시 숨김
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+    options.add_experimental_option("useAutomationExtension", False)
+    
+    # 실제 브라우저와 유사한 유저 에이전트
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
     return options
 
 def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, Any]:
@@ -42,20 +23,36 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, An
             return {"status": "error", "message": "제원관리번호가 없습니다."}
 
         options = _build_chrome_options(headless=headless)
-        driver = webdriver.Chrome(options=options) 
+        driver = webdriver.Chrome(options=options)
         
+        # [추가] 셀레니움 감지 우회용 스크립트 실행
+        driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
+            "source": """
+                Object.defineProperty(navigator, 'webdriver', {
+                    get: () => undefined
+                })
+            """
+        })
+
         driver.get(CYBERTS_URL)
+        time.sleep(1.5) # 페이지 안정화 대기
 
-        # 1. 제원번호 입력 및 조회
-        # 입력 전 Alert이 있는지 먼저 체크 (사이트 초기 진입 시 오류 방지)
-        try:
-            alert = driver.switch_to.alert
-            alert_text = alert.text
-            alert.accept()
-            return {"status": "error", "message": f"접속 초기 팝업 발생: {alert_text}"}
-        except NoAlertPresentException:
-            pass
+        # 1. 팝업창 선제적 체크 (try-except 활용)
+        def check_alert():
+            try:
+                alert = driver.switch_to.alert
+                text = alert.text
+                alert.accept()
+                return text
+            except NoAlertPresentException:
+                return None
 
+        # 초기 접속 팝업 확인
+        initial_alert = check_alert()
+        if initial_alert:
+            return {"status": "error", "message": f"초기 사이트 팝업: {initial_alert}"}
+
+        # 2. 제원번호 입력 및 조회
         spec_input = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.ID, SPEC_INPUT_ID))
         )
@@ -65,16 +62,18 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, An
         search_button = driver.find_element(By.ID, SEARCH_BUTTON_ID)
         search_button.click()
         
-        # 2. 결과 테이블 로딩 대기
-        # 이 시점에서 "시스템 오류" Alert이 뜰 가능성이 큼
-        time.sleep(2.0)
+        # 조회 후 데이터가 뜰 때까지 대기하면서 팝업 감시
+        time.sleep(2.5)
+        after_click_alert = check_alert()
+        if after_click_alert:
+            return {"status": "error", "message": f"조회 오류 팝업: {after_click_alert}"}
 
         # 3. 데이터 수집
         specs: Dict[str, str] = {}
         for key, field_id in FIELD_IDS.items():
             try:
-                # 각 항목을 찾기 전 Alert 체크
-                element = WebDriverWait(driver, 5).until(
+                # 짧은 대기 시간으로 요소 확인
+                element = WebDriverWait(driver, 3).until(
                     EC.presence_of_element_located((By.ID, field_id))
                 )
                 raw_text = element.text.strip()
@@ -84,34 +83,29 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, An
                     continue
                 
                 clean_numbers = re.findall(r'\d+', raw_text)
-                specs[key] = clean_numbers[0] if clean_numbers else raw_text
+                specs[key] = clean_numbers[0] if clean_numbers else "0"
                 
             except TimeoutException:
-                # 특정 항목을 못 찾을 때 Alert이 떠 있는지 확인
-                try:
-                    alert = driver.switch_to.alert
-                    alert_text = alert.text
-                    alert.accept()
-                    return {"status": "error", "message": f"조회 중 사이트 팝업 발생: {alert_text}"}
-                except NoAlertPresentException:
-                    specs[key] = "0"
+                specs[key] = "0" # 못 찾으면 0으로 채우고 진행
+
+        # 수집된 데이터가 모두 0이면 결과가 없는 것으로 간주
+        if all(v == "0" for v in specs.values()):
+             return {"status": "error", "message": "조회된 제원 데이터가 없습니다. 번호를 확인하세요."}
 
         return {"status": "success", "data": specs}
 
-    except UnexpectedAlertPresentException as e:
-        # 예상치 못한 Alert이 발생했을 때 텍스트 추출 후 닫기
-        alert_text = "알 수 없는 오류"
+    except UnexpectedAlertPresentException:
+        # 이 예외는 WebDriverWait 도중 발생하므로 다시 한번 팝업 체크
         try:
-            alert_text = driver.switch_to.alert.text
-            driver.switch_to.alert.accept()
+            alert = driver.switch_to.alert
+            msg = alert.text
+            alert.accept()
+            return {"status": "error", "message": f"사이트 팝업: {msg}"}
         except:
-            pass
-        return {"status": "error", "message": f"사이트 팝업 오류: {alert_text}"}
+            return {"status": "error", "message": "사이트 팝업이 감지되어 중단되었습니다."}
 
     except WebDriverException as e:
-        return {"status": "error", "message": f"브라우저 실행 오류: {str(e)}"}
-    except Exception as e:
-        return {"status": "error", "message": f"시스템 오류: {str(e)}"}
+        return {"status": "error", "message": f"브라우저 실행 오류: {str(e)[:100]}"}
     finally:
         if driver:
             driver.quit()
