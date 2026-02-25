@@ -264,14 +264,68 @@ def run_ecount_web_automation(data, status_placeholder):
             active_el.send_keys("1")
             active_el.send_keys(Keys.ENTER)
             time.sleep(1)
+            
+            # 3. 단가 (Price2 + Fee2 합산)
+            # 숫자 외 문자 제거 후 정수로 변환하여 합산
+            p2 = int(re.sub(r'[^0-9]', '', str(data.get('price2', '0'))) or 0)
+            f2 = int(re.sub(r'[^0-9]', '', str(data.get('fee2', '0'))) or 0)
+            total_price = str(p2 + f2)
+            total_price_str = str(total_price_int)
 
-            # 단가 (Price2)
-            price_val = re.sub(r'[^0-9]', '', str(data.get('price2', '0')))
+            status_placeholder.write(f"📍 [그리드] 단가(합계) 입력: {total_price_str}")
             price_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span[2]')))
             driver.execute_script("arguments[0].click();", price_cell)
             time.sleep(1)
-            driver.switch_to.active_element.send_keys(price_val)
+            driver.switch_to.active_element.send_keys(total_price_str)
             driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
+
+            # 4. 계산서X (추가된 항목)
+            x_val = re.sub(r'[^0-9]', '', str(data.get('contract2_x', '0')))
+            status_placeholder.write(f"📍 [그리기] 계산서X 입력: {x_val}")
+            x_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[10]/span')))
+            driver.execute_script("arguments[0].click();", x_cell)
+            time.sleep(1)
+            driver.switch_to.active_element.send_keys(x_val)
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
+
+            # 5. TAX REFUND (td[11]) - 합산 단가의 8.5% 계산
+            tax_refund_val = str(int(total_price_int * 0.085)) # 소수점 절삭 후 문자열 변환
+            status_placeholder.write(f"📍 [그리드] TAX REFUND 입력 (8.5%): {tax_refund_val}")
+            tax_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[11]/span')))
+            driver.execute_script("arguments[0].click();", tax_cell)
+            time.sleep(1)
+            driver.switch_to.active_element.send_keys(tax_refund_val)
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
+
+            # 4. CUSTOM DECLARATION (계산된 값 참조)
+            dec_val = re.sub(r'[^0-9]', '', str(data.get('declaration', '0')))
+            status_placeholder.write(f"📍 [그리드] CUSTOM DECLARATION 입력: {dec_val}")
+            dec_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[13]/span')))
+            driver.execute_script("arguments[0].click();", dec_cell)
+            time.sleep(1)
+            driver.switch_to.active_element.send_keys(dec_val)
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
+
+            # 5. AUCTION COST (100,000 고정)
+            status_placeholder.write("📍 [그리드] AUCTION COST 입력: 100,000")
+            auc_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[18]/span')))
+            driver.execute_script("arguments[0].click();", auc_cell)
+            time.sleep(1)
+            driver.switch_to.active_element.send_keys("100000")
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
+
+            # 6. 말소 값 (23,000 고정) - XPath 특성상 팝업이나 별도 입력창일 경우를 대비
+            status_placeholder.write("📍 [그리드] 말소 값 입력: 23,000")
+            # 알려주신 input XPath를 직접 사용하여 입력 시도
+            malso_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="edit"]/div/div/input')))
+            malso_el.clear()
+            malso_el.send_keys("23000")
+            malso_el.send_keys(Keys.ENTER)
             time.sleep(1)
 
             # --- [최종 저장] ---
