@@ -909,46 +909,37 @@ with tab3:
     st.markdown("### ⚡ 이카운트 통합 마스터")
     
     if st.button("🚀 통합 구매입력 실행 (제원+등록+전표)", key="btn_all_in_one_ecount", type="primary", use_container_width=True):
-        # 0. 기초 필수값 검증
-        # v_vin, v_biz_num 등은 상단 위젯에서 정의된 변수여야 합니다.
+        # 0. 필수값 체크
         if not v_vin or not v_biz_num or not v_username or not v_car_name_remit:
-            st.error("⚠️ 차명, 차대번호, 매입사원, 제원관리번호, 사업자번호는 필수 입력 항목입니다.")
+            st.error("⚠️ 필수 입력 항목(차대번호, 사업자, 성함 등)이 누락되었습니다.")
             st.stop()
     
         with st.status("🔄 통합 프로세스 시작...", expanded=True) as status:
             try:
-                # --- STEP 1. 제원조회 (Cyberts) 선행 완료 ---
+                # --- STEP 1. 제원조회 선행 ---
                 status.write("🔍 1. Cyberts 제원 정보 조회 중...")
                 spec_val = st.session_state.get("v_spec_num_key", "")
                 
-                # 제원 조회 로직 실행
-                if spec_val:
-                    try:
-                        res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val)
-                        if res_spec.get("status") == "success":
-                            data = res_spec.get("data", {})
-                            
-                            # [핵심] 세션 상태 즉시 업데이트
-                            st.session_state["v_l"] = str(data.get("length", "0"))
-                            st.session_state["v_w"] = str(data.get("width", "0"))
-                            st.session_state["v_h"] = str(data.get("height", "0"))
-                            st.session_state["v_wt"] = str(data.get("weight", ""))
-                            
-                            # CBM 계산 및 반영
-                            l_v = float(st.session_state["v_l"])
-                            w_v = float(st.session_state["v_w"])
-                            h_v = float(st.session_state["v_h"])
-                            calc_cbm = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
-                            
-                            st.session_state["v_c"] = calc_cbm
-                            etc_data["v_c"] = calc_cbm  # 이카운트 전달용 딕셔너리 갱신
-                            
-                            status.write(f"✅ 제원 조회 및 CBM 계산 완료 ({calc_cbm} CBM)")
-                        else:
-                            status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')} (기존 값 사용)")
-                    except Exception as e:
-                        # 브라우저 팝업(Alert) 에러 발생 시 처리
-                        status.write(f"⚠️ 제원 사이트 오류 발생으로 조회를 건너뜁니다.")                      
+                # 서버 환경이므로 headless=True 필수
+                res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val, headless=True)
+                
+                if res_spec.get("status") == "success":
+                    data = res_spec.get("data", {})
+                    st.session_state["v_l"] = data.get("length", "0")
+                    st.session_state["v_w"] = data.get("width", "0")
+                    st.session_state["v_h"] = data.get("height", "0")
+                    st.session_state["v_wt"] = data.get("weight", "0")
+                    
+                    # CBM 계산 및 etc_data 반영
+                    l_v, w_v, h_v = float(st.session_state["v_l"]), float(st.session_state["v_w"]), float(st.session_state["v_h"])
+                    calc_cbm = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
+                    st.session_state["v_c"] = calc_cbm
+                    etc_data["v_c"] = calc_cbm
+                    status.write(f"✅ 제원 조회 완료 ({calc_cbm} CBM)")
+                else:
+                    # 실패해도 멈추지 않고 알림만 출력
+                    status.write(f"⚠️ 제원조회 건너뜀: {res_spec.get('message')}")
+                    etc_data["v_c"] = st.session_state.get("v_c", "0.00")                   
 
     
             except Exception as e:
