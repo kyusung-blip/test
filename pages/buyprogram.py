@@ -925,50 +925,26 @@ with tab3:
                     res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val)
                     if res_spec.get("status") == "success":
                         data = res_spec.get("data", {})
+                        # 세션 상태 업데이트 (화면 반영용)
+                        st.session_state["v_l"] = str(data.get("length", "0"))
+                        st.session_state["v_w"] = str(data.get("width", "0"))
+                        st.session_state["v_h"] = str(data.get("height", "0"))
+                        st.session_state["v_wt"] = str(data.get("weight", ""))
                         
-                        # 데이터 추출 및 세션 저장 (문자열 안전 처리)
-                        l_str = str(data.get("length", "0"))
-                        w_str = str(data.get("width", "0"))
-                        h_str = str(data.get("height", "0"))
-                        wt_str = str(data.get("weight", ""))
-                        
-                        st.session_state["v_l"] = l_str
-                        st.session_state["v_w"] = w_str
-                        st.session_state["v_h"] = h_str
-                        st.session_state["v_wt"] = wt_str
-                        
-                        # CBM 계산 로직 보완
+                        # CBM 계산
                         try:
-                            l_val = float(l_str)
-                            w_val = float(w_str)
-                            h_val = float(h_str)
-                            cbm_calc = (l_val * w_val * h_val) / 1000000000
-                            st.session_state["v_c"] = f"{cbm_calc:.2f}"
-                        except (ValueError, TypeError):
+                            l_v, w_v, h_v = float(st.session_state["v_l"]), float(st.session_state["v_w"]), float(st.session_state["v_h"])
+                            st.session_state["v_c"] = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
+                        except:
                             st.session_state["v_c"] = "0.00"
                         
+                        # 중요: etc_data 딕셔너리에도 최신 CBM 반영
+                        etc_data["v_c"] = st.session_state["v_c"]
                         status.write(f"✅ 제원 조회 성공 (CBM: {st.session_state['v_c']})")
                     else:
-                        status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')} (계속 진행)")
-                else:
-                    status.write("⏭️ 제원관리번호가 없어 조회를 건너뜁니다.")
-    
-                # --- STEP 2. 추가 프로세스 (등록/전표 등) ---
-                # 여기에 등록 및 전표 입력 함수들을 순차적으로 호출하세요.
-                # 예: status.write("📝 2. 전표 생성 중...")
-                
-                # --- STEP 3. 최종 마무리 및 화면 동기화 ---
-                status.update(label="✅ 모든 통합 프로세스 완료!", state="complete", expanded=False)
-                
-                # [보안 1] 위젯 버전 업데이트 (입력창 초기화/갱신용)
-                if "widget_version" in st.session_state:
-                    st.session_state["widget_version"] += 1
-                
-                # [보안 2] 토스트 알림
-                st.toast("✅ 제원 업데이트 및 프로세스가 성공적으로 완료되었습니다.")
-                
-                # [보안 3] 화면 즉시 반영을 위한 리런
-                st.rerun()
+                        status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')}")
+                    
+
     
             except Exception as e:
                 status.update(label="❌ 프로세스 중단됨", state="error")
