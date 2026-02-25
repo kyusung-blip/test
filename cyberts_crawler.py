@@ -23,34 +23,36 @@ FIELD_IDS = {
     "height": "txtChssHg",
 }
 
-def _build_chrome_options(headless: bool = True) -> Options:
+def _build_chrome_options(headless: bool = False) -> Options: # 기본값을 False로 변경
     options = Options()
+    
+    # 만약 Streamlit Cloud(리눅스 서버)에서 실행한다면 여전히 headless가 필요할 수 있습니다.
+    # 하지만 로컬 PC 테스트라면 아래 headless 관련 줄을 주석 처리하세요.
     if headless:
         options.add_argument("--headless=new")
+
+    # --- [핵심] 사람이 쓰는 브라우저처럼 위장하기 ---
+    options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-blink-features=AutomationControlled") # 1. 자동화 제어 신호 끔
+    options.add_experimental_option("excludeSwitches", ["enable-automation"]) # 2. 자동화 표시줄 제거
+    options.add_experimental_option("useAutomationExtension", False) # 3. 확장 프로그램 비활성화
     
-    # --- 자동화 감지 우회 옵션들 ---
+    # 실제 사람이 쓰는듯한 User-Agent 설정
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36")
+    
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    options.add_argument("--disable-gpu")
-    options.add_argument("--window-size=1920,1080")
-    options.add_argument("--disable-blink-features=AutomationControlled") # 자동화 표시 숨김
-    options.add_experimental_option("excludeSwitches", ["enable-automation"])
-    options.add_experimental_option("useAutomationExtension", False)
     
-    # 실제 브라우저와 유사한 유저 에이전트
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36")
     return options
 
-def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, Any]:
+def fetch_vehicle_specs(spec_num: str, *, headless: bool = False) -> Dict[str, Any]:
     driver: Optional[webdriver.Chrome] = None
     try:
-        if not spec_num or not spec_num.strip():
-            return {"status": "error", "message": "제원관리번호가 없습니다."}
-
         options = _build_chrome_options(headless=headless)
         driver = webdriver.Chrome(options=options)
-        
-        # [추가] 셀레니움 감지 우회용 스크립트 실행
+
+        # 4. [매우 중요] navigator.webdriver 속성을 False로 강제 변경
+        # 사이트 보안 시스템이 이 속성을 보고 봇인지 판단합니다.
         driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
             "source": """
                 Object.defineProperty(navigator, 'webdriver', {
@@ -60,22 +62,25 @@ def fetch_vehicle_specs(spec_num: str, *, headless: bool = True) -> Dict[str, An
         })
 
         driver.get(CYBERTS_URL)
-        time.sleep(1.5) # 페이지 안정화 대기
+        
+        # 사람처럼 보이게 랜덤한 대기 시간 추가
+        time.sleep(2) 
 
-        # 1. 팝업창 선제적 체크 (try-except 활용)
-        def check_alert():
-            try:
-                alert = driver.switch_to.alert
-                text = alert.text
-                alert.accept()
-                return text
-            except NoAlertPresentException:
-                return None
+        # --- 번호 입력 단계 ---
+        spec_input = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.ID, SPEC_INPUT_ID))
+        )
+        
+        # 한 글자씩 타이핑하는 효과 (사람처럼 보이게)
+        spec_input.clear()
+        for char in spec_num.strip():
+            spec_input.send_keys(char)
+            time.sleep(0.1) # 0.1초 간격으로 타이핑
 
-        # 초기 접속 팝업 확인
-        initial_alert = check_alert()
-        if initial_alert:
-            return {"status": "error", "message": f"초기 사이트 팝업: {initial_alert}"}
+        # 클릭 전 잠시 멈춤
+        time.sleep(0.5)
+        search_button = driver.find_element(By.ID, SEARCH_BUTTON_ID)
+        search_button.click()
 
         # 2. 제원번호 입력 및 조회
         spec_input = WebDriverWait(driver, 10).until(
