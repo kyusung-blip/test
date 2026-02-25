@@ -1,3 +1,28 @@
+from __future__ import annotations
+import time
+import re
+from typing import Dict, Any, Optional
+
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+# 에러 처리를 위해 UnexpectedAlertPresentException 추가
+from selenium.common.exceptions import TimeoutException, WebDriverException, UnexpectedAlertPresentException, NoAlertPresentException
+
+# --- 설정값 ---
+CYBERTS_URL = "https://www.cyberts.kr/ts/tis/ism/readTsTisInqireSvcMainView.do"
+SPEC_INPUT_ID = "sFomConfmNo"
+SEARCH_BUTTON_ID = "btnSearch"
+
+FIELD_IDS = {
+    "weight": "txtCarTotWt",
+    "length": "txtChssLt",
+    "width": "txtChssBt",
+    "height": "txtChssHg",
+}
+
 def _build_chrome_options(headless: bool = True) -> Options:
     options = Options()
     if headless:
