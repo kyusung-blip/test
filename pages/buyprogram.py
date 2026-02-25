@@ -917,33 +917,38 @@ with tab3:
     
         with st.status("🔄 통합 프로세스 시작...", expanded=True) as status:
             try:
-                # --- STEP 1. 제원조회 (Cyberts) ---
+                # --- STEP 1. 제원조회 (Cyberts) 선행 완료 ---
                 status.write("🔍 1. Cyberts 제원 정보 조회 중...")
                 spec_val = st.session_state.get("v_spec_num_key", "")
                 
+                # 제원 조회 로직 실행
                 if spec_val:
-                    res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val)
-                    if res_spec.get("status") == "success":
-                        data = res_spec.get("data", {})
-                        # 세션 상태 업데이트 (화면 반영용)
-                        st.session_state["v_l"] = str(data.get("length", "0"))
-                        st.session_state["v_w"] = str(data.get("width", "0"))
-                        st.session_state["v_h"] = str(data.get("height", "0"))
-                        st.session_state["v_wt"] = str(data.get("weight", ""))
-                        
-                        # CBM 계산
-                        try:
-                            l_v, w_v, h_v = float(st.session_state["v_l"]), float(st.session_state["v_w"]), float(st.session_state["v_h"])
-                            st.session_state["v_c"] = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
-                        except:
-                            st.session_state["v_c"] = "0.00"
-                        
-                        # 중요: etc_data 딕셔너리에도 최신 CBM 반영
-                        etc_data["v_c"] = st.session_state["v_c"]
-                        status.write(f"✅ 제원 조회 성공 (CBM: {st.session_state['v_c']})")
-                    else:
-                        status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')}")
-                    
+                    try:
+                        res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val)
+                        if res_spec.get("status") == "success":
+                            data = res_spec.get("data", {})
+                            
+                            # [핵심] 세션 상태 즉시 업데이트
+                            st.session_state["v_l"] = str(data.get("length", "0"))
+                            st.session_state["v_w"] = str(data.get("width", "0"))
+                            st.session_state["v_h"] = str(data.get("height", "0"))
+                            st.session_state["v_wt"] = str(data.get("weight", ""))
+                            
+                            # CBM 계산 및 반영
+                            l_v = float(st.session_state["v_l"])
+                            w_v = float(st.session_state["v_w"])
+                            h_v = float(st.session_state["v_h"])
+                            calc_cbm = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
+                            
+                            st.session_state["v_c"] = calc_cbm
+                            etc_data["v_c"] = calc_cbm  # 이카운트 전달용 딕셔너리 갱신
+                            
+                            status.write(f"✅ 제원 조회 및 CBM 계산 완료 ({calc_cbm} CBM)")
+                        else:
+                            status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')} (기존 값 사용)")
+                    except Exception as e:
+                        # 브라우저 팝업(Alert) 에러 발생 시 처리
+                        status.write(f"⚠️ 제원 사이트 오류 발생으로 조회를 건너뜁니다.")                      
 
     
             except Exception as e:
