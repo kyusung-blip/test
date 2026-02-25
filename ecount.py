@@ -92,6 +92,9 @@ def register_item(data, session_id, final_spec_no): # 세 번째 인자 이름�
                 "NO_USER4": to_float(data.get("height", 0)),
                 "NO_USER5": to_float(data.get("weight", 0)),
                 "NO_USER6": cbm_val
+                "OUT_PRICE1": 23000,
+                "OUT_PRICE2": 100000,
+                "OUT_PRICE3": str(data.get("declaration", ""))
             }
         }]
     }
