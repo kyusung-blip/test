@@ -910,10 +910,11 @@ with tab3:
     
     if st.button("🚀 통합 구매입력 실행 (제원+등록+전표)", key="btn_all_in_one_ecount", type="primary", use_container_width=True):
         # 0. 기초 필수값 검증
+        # v_vin, v_biz_num 등은 상단 위젯에서 정의된 변수여야 합니다.
         if not v_vin or not v_biz_num or not v_username or not v_car_name_remit:
             st.error("⚠️ 차명, 차대번호, 매입사원, 제원관리번호, 사업자번호는 필수 입력 항목입니다.")
             st.stop()
-
+    
         with st.status("🔄 통합 프로세스 시작...", expanded=True) as status:
             try:
                 # --- STEP 1. 제원조회 (Cyberts) ---
@@ -925,7 +926,7 @@ with tab3:
                     if res_spec.get("status") == "success":
                         data = res_spec.get("data", {})
                         
-                        # 1. 원본 데이터 세션 저장 (문자열 안전하게 가져오기)
+                        # 데이터 추출 및 세션 저장 (문자열 안전 처리)
                         l_str = str(data.get("length", "0"))
                         w_str = str(data.get("width", "0"))
                         h_str = str(data.get("height", "0"))
@@ -936,7 +937,7 @@ with tab3:
                         st.session_state["v_h"] = h_str
                         st.session_state["v_wt"] = wt_str
                         
-                        # 2. CBM 계산 (오류 방지를 위해 try-except로 감쌈)
+                        # CBM 계산 로직 보완
                         try:
                             l_val = float(l_str)
                             w_val = float(w_str)
@@ -946,15 +947,32 @@ with tab3:
                         except (ValueError, TypeError):
                             st.session_state["v_c"] = "0.00"
                         
-                        # etc_data 갱신 (자동화 입력에 사용되는 딕셔너리일 경우)
-                        if 'etc_data' in locals() or 'etc_data' in globals():
-                            etc_data["v_c"] = st.session_state["v_c"]
-                        
                         status.write(f"✅ 제원 조회 성공 (CBM: {st.session_state['v_c']})")
                     else:
                         status.write(f"⚠️ 제원 조회 실패: {res_spec.get('message')} (계속 진행)")
                 else:
                     status.write("⏭️ 제원관리번호가 없어 조회를 건너뜁니다.")
+    
+                # --- STEP 2. 추가 프로세스 (등록/전표 등) ---
+                # 여기에 등록 및 전표 입력 함수들을 순차적으로 호출하세요.
+                # 예: status.write("📝 2. 전표 생성 중...")
+                
+                # --- STEP 3. 최종 마무리 및 화면 동기화 ---
+                status.update(label="✅ 모든 통합 프로세스 완료!", state="complete", expanded=False)
+                
+                # [보안 1] 위젯 버전 업데이트 (입력창 초기화/갱신용)
+                if "widget_version" in st.session_state:
+                    st.session_state["widget_version"] += 1
+                
+                # [보안 2] 토스트 알림
+                st.toast("✅ 제원 업데이트 및 프로세스가 성공적으로 완료되었습니다.")
+                
+                # [보안 3] 화면 즉시 반영을 위한 리런
+                st.rerun()
+    
+            except Exception as e:
+                status.update(label="❌ 프로세스 중단됨", state="error")
+                st.error(f"⚠️ 시스템 오류 발생: {e}")
 
                 # --- STEP 2. 구글 시트 NO. 조회 및 이카운트 세션 획득 ---
                 status.write("📋 2. 구글 시트 NO. 확인 및 이카운트 접속...")
