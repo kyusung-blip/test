@@ -325,10 +325,11 @@ def run_ecount_web_automation(data, status_placeholder):
             # 6. 말소 값 (23,000 고정) - XPath 특성상 팝업이나 별도 입력창일 경우를 대비
             status_placeholder.write("📍 [그리드] 말소 값 입력: 23,000")
             # 알려주신 input XPath를 직접 사용하여 입력 시도
-            malso_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[12]/span')))
-            malso_el.clear()
-            malso_el.send_keys("23000")
-            malso_el.send_keys(Keys.ENTER)
+            malso_el = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[12]/span')))
+            driver.execute_script("arguments[0].click();", malso_cell)
+            time.sleep(1)
+            driver.switch_to.active_element.send_keys("23000")
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(1)
 
             # --- [최종 저장] ---
