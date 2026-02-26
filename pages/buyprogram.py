@@ -457,7 +457,8 @@ with col_info:
     with r3_4_name:
         # 나라명 (예: 대한민국, 몽골 등)
         # 팁: country_data_name 등 별도의 세션 키를 사용하거나 parsed에서 가져올 수 있습니다.
-        v_country_name = st.text_input("나라명", value=st.session_state.get("country_name_data", ""))
+        detected_name = mapping.get_country_name(v_country) 
+        v_country_name = st.text_input("나라명", value=detected_name)
     
     with r3_5:
         # 1. 입력된 나라 코드를 기반으로 mapping.py에서 항구 리스트 가져오기
