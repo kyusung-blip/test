@@ -73,6 +73,7 @@ def register_item(data, session_id, final_spec_no): # 세 번째 인자 이름�
         except: return 0.0
 
     cbm_val = to_float(data.get("v_c", 0))
+    dec_price_calculated = to_float(data.get("declaration", 0)) * 10000
 
     payload = {
         "ProductList": [{
@@ -94,7 +95,7 @@ def register_item(data, session_id, final_spec_no): # 세 번째 인자 이름�
                 "NO_USER6": cbm_val,
                 "OUT_PRICE1": "23000",
                 "OUT_PRICE2": "100000",
-                "OUT_PRICE3": to_float(data.get("declaration", 0))
+                "OUT_PRICE3": dec_price_calculated
 
             }
         }]
