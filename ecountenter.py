@@ -129,6 +129,15 @@ def run_ecount_web_automation(data, status_placeholder):
                 el.send_keys(str(val))
                 el.send_keys(Keys.ENTER)
                 time.sleep(0.5)
+
+            # --- [국가명] ---
+            val = data.get('countryname')
+            if val:
+                status_placeholder.write(f"📍 [국가명] 입력 시도: {val}")
+                el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="mainPage"]/div[2]/div[4]/div[1]/ul/li[6]/div[2]/div/div/input')))
+                el.send_keys(str(val))
+                el.send_keys(Keys.ENTER)
+                time.sleep(0.5)
                 
             # --- [port] ---
             val = data.get('port')
@@ -301,12 +310,11 @@ def run_ecount_web_automation(data, status_placeholder):
             time.sleep(1)
 
             # 6. 말소 값 (23,000 고정) - XPath 특성상 팝업이나 별도 입력창일 경우를 대비
-            status_placeholder.write("📍 [그리드] 말소 값 입력: 23,000")
-            # 알려주신 input XPath를 직접 사용하여 입력 시도//*[@id="grid-main"]/tbody/tr[1]/td[12]/span
+            status_placeholder.write("📍 [그리드] AUCTION COST 입력: 100,000")
             malso_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[12]/span')))
             driver.execute_script("arguments[0].click();", malso_cell)
             time.sleep(1)
-            driver.switch_to.active_element.send_keys("23000")
+            driver.switch_to.active_element.send_keys("100000")
             driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(1)
 
