@@ -300,6 +300,16 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(1)
 
+                        # 6. 말소 값 (23,000 고정) - XPath 특성상 팝업이나 별도 입력창일 경우를 대비
+            status_placeholder.write("📍 [그리드] 말소 값 입력: 23,000")
+            # 알려주신 input XPath를 직접 사용하여 입력 시도
+            malso_el = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[12]/span')))
+            driver.execute_script("arguments[0].click();", malso_cell)
+            time.sleep(1)
+            driver.switch_to.active_element.send_keys("23000")
+            driver.switch_to.active_element.send_keys(Keys.ENTER)
+            time.sleep(1)
+
             # 4. CUSTOM DECLARATION (계산된 값 참조: 원본값 * 10,000)
             raw_dec = re.sub(r'[^0-9]', '', str(data.get('declaration', '0')))
             # 숫자로 변환 후 10,000 곱하기 (값이 없으면 0)
@@ -322,15 +332,7 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(1)
 
-            # 6. 말소 값 (23,000 고정) - XPath 특성상 팝업이나 별도 입력창일 경우를 대비
-            status_placeholder.write("📍 [그리드] 말소 값 입력: 23,000")
-            # 알려주신 input XPath를 직접 사용하여 입력 시도
-            malso_el = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[12]/span')))
-            driver.execute_script("arguments[0].click();", malso_cell)
-            time.sleep(1)
-            driver.switch_to.active_element.send_keys("23000")
-            driver.switch_to.active_element.send_keys(Keys.ENTER)
-            time.sleep(1)
+
 
             # --- [최종 저장] ---
             status_placeholder.write("💾 저장 버튼 클릭 중...")
