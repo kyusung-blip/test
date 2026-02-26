@@ -300,8 +300,11 @@ def run_ecount_web_automation(data, status_placeholder):
             driver.switch_to.active_element.send_keys(Keys.ENTER)
             time.sleep(1)
 
-            # 4. CUSTOM DECLARATION (계산된 값 참조)
-            dec_val = re.sub(r'[^0-9]', '', str(data.get('declaration', '0')))
+            # 4. CUSTOM DECLARATION (계산된 값 참조: 원본값 * 10,000)
+            raw_dec = re.sub(r'[^0-9]', '', str(data.get('declaration', '0')))
+            # 숫자로 변환 후 10,000 곱하기 (값이 없으면 0)
+            dec_int = int(raw_dec if raw_dec else 0) * 10000
+            dec_val = str(dec_int)
             status_placeholder.write(f"📍 [그리드] CUSTOM DECLARATION 입력: {dec_val}")
             dec_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[13]/span')))
             driver.execute_script("arguments[0].click();", dec_cell)
