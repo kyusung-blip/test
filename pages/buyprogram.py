@@ -144,7 +144,7 @@ st.markdown("""
 
     /* 4. 업무 및 바이어 정보 (연한 보라) - 사이트, 세일즈, 바이어, 나라, 제원관리번호 */
     input[aria-label="사이트"], input[aria-label="세일즈팀"], 
-    input[aria-label="바이어"], input[aria-label="나라"],
+    input[aria-label="바이어"], input[aria-label="나라"],input[aria-label="나라명"],
     input[aria-label="제원관리번호"] {
         background-color: #F5F3FF !important;
         border: 1px solid #DDD6FE !important;
