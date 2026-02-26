@@ -242,7 +242,7 @@ def run_ecount_web_automation(data, status_placeholder):
 
             # --- [하단 그리드: 품목/수량/단가] ---
             status_placeholder.write("📊 그리드 입력 단계 진입...")
-            /
+            
             # 1. 첫 번째 행: 차량 단가 (Price2)
             prod_val = data.get('vin') # 품목코드에 vin 사용
             status_placeholder.write(f"📍 [그리드 Row 1] 차량 품목 입력: {prod_val}")
