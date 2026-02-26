@@ -985,94 +985,90 @@ with tab3:
             except Exception as e:
                 status.update(label="⚠️ 통합 처리 중 시스템 에러 발생", state="error")
                 st.error(f"상세 에러: {str(e)}")
-
-    # 2. 이카운트 ERP 구매입력 섹션
+                
     st.divider()
-    st.markdown("### 📊 이카운트 ERP 관리")
-    if st.button("🚀 이카운트 데이터 동기화 및 구매입력", key="btn_integrated_ecount", type="primary", use_container_width=True):
-        if not v_vin or not v_biz_num:
-            st.error("⚠️ 차대번호와 사업자번호는 필수 입력 항목입니다.")
+    st.markdown("### ⚡ 이카운트 통합 마스터 (제원 + 전표)")
+    
+    if st.button("🚀 통합 프로세스 실행 (제원조회 및 구매입력)", key="btn_integrated_master", type="primary", use_container_width=True):
+        # 0. 필수값 체크
+        if not v_vin or not v_biz_num or not v_username:
+            st.error("⚠️ 차대번호, 사업자번호, 매입사원 정보는 필수입니다.")
             st.stop()
-        with st.spinner("구글 시트에서 NO. 정보를 조회 중..."):
-        # 1. 구글 시트에서 NO. 값 가져오기
-            found_no = gsm.get_no_by_plate(v_plate)
-        
-            if not found_no:
-                st.warning("⚠️ 구글 시트 '2026'에서 해당 차량번호를 찾을 수 없어 제원관리번호로 대체합니다.")
-                # 찾지 못했을 경우 기존처럼 v_spec_num을 사용하거나 빈값 처리
-                final_spec_no = v_spec_num 
-            else:
-                final_spec_no = found_no
-                st.info(f"✅ 구글 시트 NO. 확인: {final_spec_no}")
-            etc_data["v_c"] = st.session_state.get("v_c", "0.00")
-            
-        with st.spinner("이카운트 작업 진행 중..."):
-            # 0. 세션 획득
-            session_id, login_error = ecount.get_session_id()
-            if not session_id:
-                st.error("❌ 이카운트 로그인 실패")
-                st.json(login_error)
-                st.stop()
     
-            # 1. 품목 체크 및 등록
-            item_exists, _ = ecount.check_item_exists(session_id, v_vin)
-            if not item_exists:
-                st.info(f"🔍 품목 미등록 확인: {v_vin} 등록 중...")
-                res_item = ecount.register_item(etc_data, session_id, final_spec_no)
-                err_msg = res_item.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "")
-                # --- 디버깅용 로그 추가 ---
-                st.write("📡 품목 등록 시도 응답:", res_item) 
-                if "이미 품목등록에 존재하는 코드" in err_msg:
-                    st.write("✔️ 확인 결과, 이미 등록된 품목입니다. (중복 등록 방지)")
-                elif str(res_item.get("Status")) != "200" or res_item.get("Data", {}).get("SuccessCnt", 0) == 0:
-                    st.error("❌ 품목 등록 실패")
-                    st.json(res_item)
+        with st.status("🔄 통합 프로세스를 시작합니다...", expanded=True) as status_box:
+            try:
+                # --- STEP 1. Cyberts 제원 조회 (가장 먼저 실행) ---
+                status_box.write("🔍 1. Cyberts 제원 정보 조회 시도...")
+                spec_val = st.session_state.get("v_spec_num_key", "")
+                
+                if spec_val:
+                    # 서버 환경이므로 headless=True 사용
+                    res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val, headless=True)
+                    
+                    if res_spec.get("status") == "success":
+                        data = res_spec.get("data", {})
+                        # 세션에 값 주입
+                        st.session_state["v_l"] = data.get("length", "0")
+                        st.session_state["v_w"] = data.get("width", "0")
+                        st.session_state["v_h"] = data.get("height", "0")
+                        st.session_state["v_wt"] = data.get("weight", "0")
+                        
+                        # CBM 계산 및 반영
+                        l_v, w_v, h_v = float(st.session_state["v_l"]), float(st.session_state["v_w"]), float(st.session_state["v_h"])
+                        calc_cbm = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
+                        st.session_state["v_c"] = calc_cbm
+                        etc_data["v_c"] = calc_cbm  # 이카운트 전송용 딕셔너리 업데이트
+                        
+                        # [핵심] 위젯 버전 업그레이드 (화면 갱신용)
+                        st.session_state["widget_version"] += 1
+                        status_box.write(f"✅ 제원 조회 성공 및 반영 완료 ({calc_cbm} CBM)")
+                    else:
+                        status_box.write(f"⚠️ 제원조회 실패: {res_spec.get('message')} (기존 값 사용)")
+                        etc_data["v_c"] = st.session_state.get("v_c", "0.00")
+                
+                # --- STEP 2. 구글 시트 NO. 정보 조회 ---
+                status_box.write("📊 2. 구글 시트 데이터 동기화 중...")
+                found_no = gsm.get_no_by_plate(v_plate)
+                final_spec_no = found_no if found_no else v_spec_num
+                status_box.write(f"✅ 시트 확인 완료 (NO: {final_spec_no})")
+    
+                # --- STEP 3. 이카운트 로그인 및 기초 등록 ---
+                status_box.write("🔑 3. 이카운트 세션 획득 및 품목 확인...")
+                session_id, login_error = ecount.get_session_id()
+                if not session_id:
+                    st.error("❌ 이카운트 로그인 실패")
                     st.stop()
-                else:
-                    st.success("✅ 품목 등록 완료")
-            else:
-                st.write("✔️ 품목 확인 완료")
     
-            # 2. 거래처 등록 시도 (조회 없이 바로 진행)
-            st.info(f"🔄 거래처 확인 및 등록 시도: {v_biz_num}")
-            res_cust = ecount.register_customer(etc_data, session_id)
-            
-            # 응답 데이터 안전하게 추출
-            cust_data_part = res_cust.get("Data", {})
-            cust_details = cust_data_part.get("ResultDetails", [])
-            cust_err_msg = cust_details[0].get("TotalError", "") if cust_details else ""
-
-            # 이카운트 응답에 따른 분기 처리
-            if str(res_cust.get("Status")) == "200" and cust_data_part.get("SuccessCnt", 0) > 0:
-                st.success("✅ 신규 거래처 등록 완료")
-            elif "중복되는 코드는 등록할 수 없습니다" in cust_err_msg or "이미 등록된" in cust_err_msg:
-                # 중복 에러가 나면 이미 있는 것이므로 성공으로 간주하고 진행
-                st.write("✔️ 확인 결과, 이미 등록된 거래처입니다. (다음 단계 진행)")
-            else:
-                # 그 외의 진짜 에러(권한, 필수값 누락 등)인 경우에만 중단
-                st.error("❌ 거래처 처리 중 오류 발생")
-                st.json(res_cust)
-                st.stop()
+                # 품목 체크 및 등록
+                item_exists, _ = ecount.check_item_exists(session_id, v_vin)
+                if not item_exists:
+                    status_box.write(f"⚙️ 품목 신규 등록 중: {v_vin}")
+                    ecount.register_item(etc_data, session_id, final_spec_no)
+                
+                # 거래처 등록 (중복 시 내부에서 자동 스킵되도록 처리됨)
+                status_box.write(f"🏢 거래처 확인/등록 중: {v_biz_num}")
+                ecount.register_customer(etc_data, session_id)
     
-            # 3. 최종 구매입력 진행
-            st.info("📝 구매전표 생성 중...")
-            res_pur = ecount.register_purchase(etc_data, session_id, v_username)
-            
-            if str(res_pur.get("Status")) == "200":
-                data_part = res_pur.get("Data", {})
-                if data_part.get("SuccessCnt", 0) > 0:
+                # --- STEP 4. 최종 구매전표 생성 (API 방식) ---
+                status_box.write("📝 4. 이카운트 구매전표 생성 중...")
+                res_pur = ecount.register_purchase(etc_data, session_id, v_username)
+                
+                if str(res_pur.get("Status")) == "200" and res_pur.get("Data", {}).get("SuccessCnt", 0) > 0:
+                    slip_no = res_pur.get("Data", {}).get("SlipNos")[0]
+                    status_box.update(label=f"🎉 전체 공정 성공! (전표: {slip_no})", state="complete", expanded=False)
                     st.balloons()
-                    st.success(f"🎉 전표 생성 성공! 전표번호: {data_part.get('SlipNos')[0]}")
+                    st.success(f"성공적으로 완료되었습니다. (전표번호: {slip_no})")
+                    
+                    # 모든 값이 반영된 상태로 화면 리런
+                    st.rerun()
                 else:
-                    # 데이터 정합성 에러 (예: 창고코드 틀림 등)
-                    st.error("❌ 전표 생성 실패 (데이터 에러)")
-                    st.warning(data_part.get("ResultDetails", [{}])[0].get("TotalError", "상세 에러 확인 불가"))
-                    with st.expander("전체 에러 로그 확인"):
-                        st.json(res_pur)
-            else:
-                # 시스템/통신 에러
-                st.error(f"❌ API 통신 실패: {res_pur.get('Message')}")
-                st.json(res_pur)
+                    err_detail = res_pur.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "상세 에러 확인 불가")
+                    status_box.update(label="❌ 전표 생성 실패", state="error")
+                    st.error(f"전표 생성 중 오류: {err_detail}")
+    
+            except Exception as e:
+                status_box.update(label="⚠️ 시스템 오류 발생", state="error")
+                st.error(f"상세 에러: {str(e)}")
     st.divider()
     st.markdown("### 🧪 API 권한 테스트")
     if st.button("🛠️ 거래처 등록 TEST 실행", key="btn_test_cust_reg", use_container_width=True):
