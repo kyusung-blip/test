@@ -269,7 +269,7 @@ def run_ecount_web_automation(data, status_placeholder):
             # 숫자 외 문자 제거 후 정수로 변환하여 합산
             p2 = int(re.sub(r'[^0-9]', '', str(data.get('price2', '0'))) or 0)
             f2 = int(re.sub(r'[^0-9]', '', str(data.get('fee2', '0'))) or 0)
-            total_price = str(p2 + f2)
+            total_price_int = p2 + f2 
             total_price_str = str(total_price_int)
 
             status_placeholder.write(f"📍 [그리드] 단가(합계) 입력: {total_price_str}")
