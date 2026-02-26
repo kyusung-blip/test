@@ -969,26 +969,32 @@ with tab3:
                 status_box.write(f"🏢 거래처 확인/등록 중: {v_biz_num}")
                 ecount.register_customer(etc_data, session_id)
     
-                # --- STEP 4. 최종 구매전표 생성 (API 방식) ---
-                status_box.write("📝 4. 이카운트 구매전표 생성 중...")
-                res_pur = ecount.register_purchase(etc_data, session_id, v_username)
+                # --- STEP 4. 최종 구매전표 생성 (웹 자동화 방식) ---
+                status_box.write("📝 4. 이카운트 웹 자동화 프로세스 시작 (약 1분 소요)...")
                 
-                if str(res_pur.get("Status")) == "200" and res_pur.get("Data", {}).get("SuccessCnt", 0) > 0:
-                    slip_no = res_pur.get("Data", {}).get("SlipNos")[0]
-                    status_box.update(label=f"🎉 전체 공정 성공! (전표: {slip_no})", state="complete", expanded=False)
+                # ecountenter.py의 함수를 호출합니다.
+                # status_box(또는 status_placeholder)를 넘겨서 진행 상황을 실시간으로 출력합니다.
+                res_pur = ecountenter.run_ecount_web_automation(etc_data, status_box)
+                
+                if res_pur.get("status") == "success":
+                    status_box.update(label="🎉 구매전표 생성 및 저장 완료!", state="complete", expanded=False)
                     st.balloons()
-                    st.success(f"성공적으로 완료되었습니다. (전표번호: {slip_no})")
+                    st.success("성공적으로 완료되었습니다.")
                     
-                    # 모든 값이 반영된 상태로 화면 리런
+                    # 작업 완료 후 화면 갱신
+                    time.sleep(2)
                     st.rerun()
                 else:
-                    err_detail = res_pur.get("Data", {}).get("ResultDetails", [{}])[0].get("TotalError", "상세 에러 확인 불가")
+                    err_msg = res_pur.get("message", "알 수 없는 오류")
                     status_box.update(label="❌ 전표 생성 실패", state="error")
-                    st.error(f"전표 생성 중 오류: {err_detail}")
+                    st.error(f"자동화 작업 중 오류 발생: {err_msg}")
+                    # 디버깅용 스크린샷이 저장되었다면 안내
+                    st.info("실패 시 debug_input_stage.png 파일을 확인하세요.")
     
             except Exception as e:
                 status_box.update(label="⚠️ 시스템 오류 발생", state="error")
                 st.error(f"상세 에러: {str(e)}")
+                
     st.divider()
     st.markdown("### 🧪 API 권한 테스트")
     if st.button("🛠️ 거래처 등록 TEST 실행", key="btn_test_cust_reg", use_container_width=True):
