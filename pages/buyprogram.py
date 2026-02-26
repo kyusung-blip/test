@@ -439,7 +439,7 @@ with col_info:
     v_color = r2_4.text_input("color", value=parsed.get('color', ""))
 
     # R3: 사이트, 세일즈팀, 바이어, 나라, 확인버튼
-    r3_1, r3_2, r3_3, r3_4, r3_5, r3_6 = st.columns([1.2, 1.0, 1.0, 0.8, 1.5, 0.5])
+    r3_1, r3_2, r3_3, r3_4, r3_4_name, r3_5, r3_6 = st.columns([1.2, 1.0, 1.0, 0.7, 1.0, 1.5, 0.5])
     with r3_1:
         v_site = st.text_input("사이트", value=parsed.get('site', ""))
 
@@ -453,6 +453,11 @@ with col_info:
         # 세션에 저장된 나라 정보 로드
         current_country_val = st.session_state.get("country_data", "")
         v_country = st.text_input("나라", value=current_country_val if current_country_val else "")
+    # --- [새로 추가된 칸] ---
+    with r3_4_name:
+        # 나라명 (예: 대한민국, 몽골 등)
+        # 팁: country_data_name 등 별도의 세션 키를 사용하거나 parsed에서 가져올 수 있습니다.
+        v_country_name = st.text_input("나라명", value=st.session_state.get("country_name_data", ""))
     
     with r3_5:
         # 1. 입력된 나라 코드를 기반으로 mapping.py에서 항구 리스트 가져오기
