@@ -242,7 +242,7 @@ def run_ecount_web_automation(data, status_placeholder):
 
             # --- [하단 그리드: 품목/수량/단가] ---
             status_placeholder.write("📊 그리드 입력 단계 진입...")
-            
+            /
             # 1. 첫 번째 행: 차량 단가 (Price2)
             prod_val = data.get('vin') # 품목코드에 vin 사용
             status_placeholder.write(f"📍 [그리드 Row 1] 차량 품목 입력: {prod_val}")
@@ -273,7 +273,7 @@ def run_ecount_web_automation(data, status_placeholder):
             total_price_str = str(total_price_int)
 
             status_placeholder.write(f"📍 [그리드] 단가(합계) 입력: {total_price_str}")
-            price_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[8]/span[2]')))
+            price_cell = wait.until(EC.presence_of_element_located((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[9]/span')))
             driver.execute_script("arguments[0].click();", price_cell)
             time.sleep(1)
             driver.switch_to.active_element.send_keys(total_price_str)
@@ -325,7 +325,7 @@ def run_ecount_web_automation(data, status_placeholder):
             # 6. 말소 값 (23,000 고정) - XPath 특성상 팝업이나 별도 입력창일 경우를 대비
             status_placeholder.write("📍 [그리드] 말소 값 입력: 23,000")
             # 알려주신 input XPath를 직접 사용하여 입력 시도
-            malso_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="edit"]/div/div/input')))
+            malso_el = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="grid-main"]/tbody/tr[1]/td[12]/span')))
             malso_el.clear()
             malso_el.send_keys("23000")
             malso_el.send_keys(Keys.ENTER)
