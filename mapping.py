@@ -72,3 +72,42 @@ def get_port_display_list(code):
         return []
     # 대문자로 변환하여 매칭
     return COUNTRY_PORT_MAP.get(code.strip().upper(), [])
+
+COUNTRY_NAME_MAP = {
+    "AB": "ALBANIA",
+    "GR": "GREECE",
+    "HN": "HONDURAS",
+    "CL": "CHILE",
+    "PY": "PARAGUAY",
+    "SV": "EL SALVADOR",
+    "UA": "UKRAINE",
+    "AO": "ANGOLA",
+    "UZ": "UZBEKISTAN",
+    "GE": "GEORGIA",
+    "CR": "COSTA RICA",
+    "DJ": "DJIBOUTI",
+    "RU": "RUSSIA",
+    "KG": "KYRGYZSTAN",
+    "GT": "GUATEMALA",
+    "DZ": "ALGERIA",
+    "DR": "DOMINICAN REP.",
+    "TR": "TURKEY",
+    "SY": "SYRIA",
+    "GQ": "EQUATORIAL GUINEA",
+    "AZ": "AZERBAIJAN",
+    "BG": "BULGARIA",
+    "DE": "GERMANY",
+    "UAE": "DUBAI",
+    "BF": "BURKINA FASO",
+    "FR": "FRANCE",
+    "VE": "VENEZUELLA",
+    "KH": "CAMBODIA",
+    "CU": "CUBA"
+}
+
+def get_country_name(code):
+    """나라 코드를 입력받아 나라명 반환"""
+    if not code:
+        return ""
+    # 코드가 대문자인지 확인 후 매핑 값 반환, 없으면 입력된 코드 그대로 반환
+    return COUNTRY_NAME_MAP.get(code.strip().upper(), code)
