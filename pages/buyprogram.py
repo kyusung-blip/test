@@ -939,7 +939,7 @@ with tab3:
                 else:
                     # 실패해도 멈추지 않고 알림만 출력
                     status.write(f"⚠️ 제원조회 건너뜀: {res_spec.get('message')}")
-                    etc_data["v_c"] = st.session_state.get("v_c", "0.00")                   
+                    etc_data["v_c"] = st.session_state.get("v_c", "0.00")                 
 
     
             except Exception as e:
