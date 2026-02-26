@@ -32,6 +32,9 @@ ALL_WIDGET_KEYS = [
 if "widget_version" not in st.session_state:
     st.session_state["widget_version"] = 0
     
+if "auto_next_step" not in st.session_state:
+    st.session_state["auto_next_step"] = False
+    
 if "current_page" not in st.session_state:
     st.session_state["current_page"] = "buyprogram"
     st.session_state["out_tab1_final"] = "" # Tab1 결과값 초기화
@@ -910,42 +913,52 @@ with tab3:
     st.divider()
     st.markdown("### ⚡ 이카운트 통합 마스터 (제원 + 전표)")
     
+    # --- Tab 3 내부 ---
+
+# 1단계: 버튼 클릭 시 제원 조회만 수행
     if st.button("🚀 통합 프로세스 실행 (제원조회 및 구매입력)", key="btn_integrated_master", type="primary", use_container_width=True):
         # 0. 필수값 체크
         if not v_vin or not v_biz_num or not v_username:
             st.error("⚠️ 차대번호, 사업자번호, 매입사원 정보는 필수입니다.")
             st.stop()
     
-        with st.status("🔄 통합 프로세스를 시작합니다...", expanded=True) as status_box:
-            try:
-                # --- STEP 1. Cyberts 제원 조회 (가장 먼저 실행) ---
-                status_box.write("🔍 1. Cyberts 제원 정보 조회 시도...")
-                spec_val = st.session_state.get("v_spec_num_key", "")
-                
-                if spec_val:
-                    # 서버 환경이므로 headless=True 사용
-                    res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val, headless=True)
+        with st.spinner("🔍 1단계: Cyberts 제원 정보 조회 중..."):
+            spec_val = st.session_state.get("v_spec_num_key", "")
+            if spec_val:
+                res_spec = cyberts_crawler.fetch_vehicle_specs(spec_val, headless=True)
+                if res_spec.get("status") == "success":
+                    data = res_spec.get("data", {})
+                    # 세션에 값 주입 (화면 갱신 시 입력창에 즉시 반영됨)
+                    st.session_state["v_l"] = data.get("length", "0")
+                    st.session_state["v_w"] = data.get("width", "0")
+                    st.session_state["v_h"] = data.get("height", "0")
+                    st.session_state["v_wt"] = data.get("weight", "0")
                     
-                    if res_spec.get("status") == "success":
-                        data = res_spec.get("data", {})
-                        # 세션에 값 주입
-                        st.session_state["v_l"] = data.get("length", "0")
-                        st.session_state["v_w"] = data.get("width", "0")
-                        st.session_state["v_h"] = data.get("height", "0")
-                        st.session_state["v_wt"] = data.get("weight", "0")
-                        
-                        # CBM 계산 및 반영
-                        l_v, w_v, h_v = float(st.session_state["v_l"]), float(st.session_state["v_w"]), float(st.session_state["v_h"])
-                        calc_cbm = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
-                        st.session_state["v_c"] = calc_cbm
-                        etc_data["v_c"] = calc_cbm  # 이카운트 전송용 딕셔너리 업데이트
-                        
-                        # [핵심] 위젯 버전 업그레이드 (화면 갱신용)
-                        st.session_state["widget_version"] += 1
-                        status_box.write(f"✅ 제원 조회 성공 및 반영 완료 ({calc_cbm} CBM)")
-                    else:
-                        status_box.write(f"⚠️ 제원조회 실패: {res_spec.get('message')} (기존 값 사용)")
-                        etc_data["v_c"] = st.session_state.get("v_c", "0.00")
+                    # CBM 계산
+                    l_v, w_v, h_v = float(st.session_state["v_l"]), float(st.session_state["v_w"]), float(st.session_state["v_h"])
+                    calc_cbm = f"{(l_v * w_v * h_v) / 1000000000:.2f}"
+                    st.session_state["v_c"] = calc_cbm
+                    
+                    # 다음 단계를 위한 플래그 설정 및 리런
+                    st.session_state["auto_next_step"] = True
+                    st.session_state["widget_version"] += 1
+                    st.rerun() # 여기서 리런! 화면에 숫자가 박힘.
+                else:
+                    st.error(f"⚠️ 제원조회 실패: {res_spec.get('message')}")
+            else:
+                st.warning("제원관리번호가 없습니다.")
+    
+    # ------------------------------------------------------------------
+    # 2단계: 리런 후 플래그를 감지하여 자동으로 이카운트 작업 시작
+    # ------------------------------------------------------------------
+    if st.session_state.get("auto_next_step"):
+        # 무한 루프 방지를 위해 플래그 즉시 초기화
+        st.session_state["auto_next_step"] = False
+    
+        with st.status("🔄 2단계: 이카운트 통합 프로세스를 계속합니다...", expanded=True) as status_box:
+            try:
+                # etc_data에 리런 후 업데이트된 CBM 반영
+                etc_data["v_c"] = st.session_state.get("v_c", "0.00")
                 
                 # --- STEP 2. 구글 시트 NO. 정보 조회 ---
                 status_box.write("📊 2. 구글 시트 데이터 동기화 중...")
@@ -966,31 +979,22 @@ with tab3:
                     status_box.write(f"⚙️ 품목 신규 등록 중: {v_vin}")
                     ecount.register_item(etc_data, session_id, final_spec_no)
                 
-                # 거래처 등록 (중복 시 내부에서 자동 스킵되도록 처리됨)
+                # 거래처 등록
                 status_box.write(f"🏢 거래처 확인/등록 중: {v_biz_num}")
                 ecount.register_customer(etc_data, session_id)
     
                 # --- STEP 4. 최종 구매전표 생성 (웹 자동화 방식) ---
                 status_box.write("📝 4. 이카운트 웹 자동화 프로세스 시작 (약 1분 소요)...")
-                
-                # ecountenter.py의 함수를 호출합니다.
-                # status_box(또는 status_placeholder)를 넘겨서 진행 상황을 실시간으로 출력합니다.
                 res_pur = ecountenter.run_ecount_web_automation(etc_data, status_box)
                 
                 if res_pur.get("status") == "success":
                     status_box.update(label="🎉 구매전표 생성 및 저장 완료!", state="complete", expanded=False)
                     st.balloons()
                     st.success("성공적으로 완료되었습니다.")
-                    
-                    # 작업 완료 후 화면 갱신
-                    time.sleep(2)
-                    st.rerun()
                 else:
                     err_msg = res_pur.get("message", "알 수 없는 오류")
                     status_box.update(label="❌ 전표 생성 실패", state="error")
                     st.error(f"자동화 작업 중 오류 발생: {err_msg}")
-                    # 디버깅용 스크린샷이 저장되었다면 안내
-                    st.info("실패 시 debug_input_stage.png 파일을 확인하세요.")
     
             except Exception as e:
                 status_box.update(label="⚠️ 시스템 오류 발생", state="error")
